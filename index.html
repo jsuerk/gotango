@@ -1,0 +1,2649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0A0D11">
+<title>Go Tango — Where the world is vacationing</title>
+<meta property="og:title" content="Go Tango">
+<meta property="og:description" content="Where the world is vacationing. Flight-data intelligence for people who travel well.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,400;9..144,0,500;9..144,0,600;9..144,0,700;9..144,0,900;9..144,1,400;9..144,1,500;9..144,1,700&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0D11;
+    --bg-2: #11151B;
+    --surface: #161B23;
+    --surface-2: #1E242E;
+    --border: #252C37;
+    --border-light: #313945;
+    --text: #F5F1E8;
+    --text-dim: #A8A293;
+    --text-faint: #6B6557;
+    --amber: #E8A317;
+    --amber-bright: #F4B52A;
+    --amber-soft: #C28A1A;
+    --amber-deep: #8B6410;
+    --signal-up: #7FB069;
+    --signal-down: #E07856;
+    --teal: #5EAAA8;
+    --coral: #E58C5E;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Geist', -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+
+  body {
+    background-image:
+      radial-gradient(ellipse 700px 500px at 85% -15%, rgba(232, 163, 23, 0.08), transparent 55%),
+      radial-gradient(ellipse 500px 400px at -10% 40%, rgba(94, 170, 168, 0.05), transparent 60%),
+      radial-gradient(ellipse 400px 300px at 100% 80%, rgba(229, 140, 94, 0.04), transparent 60%);
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    opacity: 0.5;
+    z-index: 1;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.045 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  .app {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    position: relative;
+    padding-bottom: 88px;
+    z-index: 2;
+  }
+
+  /* ===== STATUS BAR ===== */
+  .status-bar {
+    position: sticky; top: 0;
+    z-index: 50;
+    background: rgba(10, 13, 17, 0.88);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px 12px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+  }
+  .status-time {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 1px;
+  }
+  .logo-mark {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 23px;
+    color: var(--amber);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .logo-mark-t {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 23px;
+    color: var(--amber);
+    line-height: 1;
+    letter-spacing: -0.05em;
+    margin-left: -2px;
+  }
+  .logo-dot {
+    width: 3px; height: 3px;
+    background: var(--text-faint);
+    border-radius: 50%;
+    margin: 0 7px 2px;
+  }
+  .logo-word {
+    font-family: 'Geist', sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .status-pulse {
+    justify-self: end;
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .pulse-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--signal-up);
+    box-shadow: 0 0 10px var(--signal-up);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  /* ===== HERO ===== */
+  .hero {
+    padding: 38px 20px 30px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(245,241,232,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,241,232,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse 400px 300px at 80% 30%, black, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse 400px 300px at 80% 30%, black, transparent 70%);
+    pointer-events: none;
+  }
+  .hero > * { position: relative; z-index: 1; }
+
+  .hero-kicker {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .hero-kicker::before {
+    content: "";
+    width: 24px; height: 1px;
+    background: var(--amber);
+  }
+  .hero-headline {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 46px;
+    line-height: 0.98;
+    letter-spacing: -0.028em;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .hero-headline em {
+    font-style: italic;
+    color: var(--amber);
+    font-weight: 500;
+    position: relative;
+    display: inline-block;
+  }
+  .hero-headline em::after {
+    content: "";
+    position: absolute;
+    bottom: 3px; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(to right, var(--amber) 0%, transparent 100%);
+    opacity: 0.25;
+  }
+  .hero-sub {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    max-width: 340px;
+    margin-top: 10px;
+  }
+
+  .hero-stats {
+    margin-top: 26px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(232,163,23,0.08);
+  }
+  .stat-cell {
+    background: var(--surface);
+    padding: 13px 10px;
+    position: relative;
+  }
+  .stat-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .stat-delta {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    margin-top: 5px;
+    letter-spacing: 0.02em;
+  }
+  .delta-up { color: var(--signal-up); }
+  .delta-down { color: var(--signal-down); }
+
+  /* ===== SECTION HEAD ===== */
+  .section-head {
+    padding: 30px 20px 16px;
+    display: flex; align-items: end; justify-content: space-between;
+    gap: 16px;
+  }
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: 25px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    line-height: 1;
+  }
+  .section-title em {
+    font-style: italic;
+    color: var(--amber);
+    font-weight: 500;
+  }
+  .section-meta {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* ===== WORLD STRIP ===== */
+  .world-strip {
+    margin: 0 20px 4px;
+    height: 150px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .world-strip svg {
+    width: 100%; height: 100%;
+    display: block;
+  }
+  .world-overlay {
+    position: absolute;
+    bottom: 10px; left: 12px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .world-key {
+    position: absolute;
+    top: 10px; right: 12px;
+    display: flex; gap: 10px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .world-key span { display: flex; align-items: center; gap: 4px; }
+  .world-key .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+
+  /* ===== DESTINATION CARDS ===== */
+  .dest-list {
+    margin: 0 20px;
+    display: flex; flex-direction: column;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .dest-card {
+    background: var(--surface);
+    padding: 16px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .dest-card:active { background: var(--surface-2); }
+  .dest-rank {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 22px;
+    color: var(--amber);
+    opacity: 0.7;
+    line-height: 1;
+    width: 22px;
+    text-align: center;
+  }
+  .dest-main { min-width: 0; }
+  .dest-row1 {
+    display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px;
+    flex-wrap: wrap;
+  }
+  .dest-name {
+    font-family: 'Fraunces', serif;
+    font-size: 19px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+  }
+  .dest-code {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+  }
+  .dest-vibe {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    line-height: 1.35;
+    font-style: italic;
+  }
+  .dest-meta {
+    display: flex; gap: 14px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .dest-meta b {
+    color: var(--text);
+    font-weight: 500;
+    margin-right: 3px;
+  }
+  .dest-arrivals {
+    text-align: right;
+    min-width: 70px;
+  }
+  .dest-arrivals-num {
+    font-family: 'Fraunces', serif;
+    font-size: 27px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .dest-arrivals-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+  .dest-trend {
+    display: inline-flex; align-items: center; gap: 2px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    margin-top: 6px;
+    justify-content: flex-end;
+  }
+  .dest-trend.up { color: var(--signal-up); }
+  .dest-trend.down { color: var(--signal-down); }
+
+  /* ===== COOLING SECTION ===== */
+  .cooling-list {
+    margin: 0 20px;
+    display: flex; flex-direction: column;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .cooling-card {
+    background: var(--surface);
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .cooling-card:active { background: var(--surface-2); }
+  .cooling-name {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .cooling-why {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-top: 3px;
+    font-style: italic;
+  }
+  .cooling-pct {
+    font-family: 'Geist Mono', monospace;
+    font-size: 14px;
+    color: var(--signal-down);
+  }
+
+  /* ===== SLEEPER PICK ===== */
+  .sleeper {
+    margin: 0 20px;
+    background: linear-gradient(135deg, var(--surface) 0%, var(--bg-2) 100%);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .sleeper::before {
+    content: "";
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle at center, rgba(232,163,23,0.12), transparent 60%);
+    pointer-events: none;
+  }
+  .sleeper-label {
+    display: inline-block;
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    border: 1px solid var(--amber-soft);
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: rgba(232,163,23,0.08);
+  }
+  .sleeper-name {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 5px;
+  }
+  .sleeper-code {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+  }
+  .sleeper-desc {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--text);
+    margin-bottom: 14px;
+  }
+  .sleeper-desc em { font-style: italic; color: var(--amber); }
+  .sleeper-stats {
+    display: flex; gap: 18px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .sleeper-stats b {
+    color: var(--signal-up);
+    font-weight: 500;
+  }
+
+  /* ===== BRIEF SIGNUP ===== */
+  .brief-card {
+    margin: 32px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .brief-card::before {
+    content: "GT";
+    position: absolute;
+    top: -18px; right: -12px;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 900;
+    font-size: 180px;
+    color: var(--amber);
+    opacity: 0.04;
+    line-height: 1;
+    pointer-events: none;
+    letter-spacing: -0.08em;
+  }
+  .brief-label {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .brief-label::before {
+    content: "";
+    width: 18px; height: 1px;
+    background: var(--amber);
+  }
+  .brief-title {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    margin-bottom: 10px;
+  }
+  .brief-title em { font-style: italic; color: var(--amber); }
+  .brief-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 18px;
+    line-height: 1.55;
+  }
+  .brief-form {
+    display: flex; gap: 8px;
+  }
+  .brief-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border-light);
+    color: var(--text);
+    padding: 12px 13px;
+    border-radius: 7px;
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .brief-input:focus { border-color: var(--amber); }
+  .brief-input::placeholder { color: var(--text-faint); }
+  .brief-btn {
+    background: var(--amber);
+    color: var(--bg);
+    border: none;
+    padding: 12px 18px;
+    border-radius: 7px;
+    font-family: 'Geist', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .brief-btn:active { background: var(--amber-soft); }
+
+  .brief-meta {
+    display: flex; gap: 14px;
+    margin-top: 14px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .brief-meta span:nth-child(even) { color: var(--border-light); }
+
+  /* ===== FOOTER ===== */
+  .footnote {
+    text-align: center;
+    padding: 32px 20px 20px;
+    color: var(--text-faint);
+    font-size: 11px;
+    line-height: 1.7;
+  }
+  .footnote-mark {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--amber);
+    margin-bottom: 10px;
+    letter-spacing: -0.03em;
+  }
+  .footnote a {
+    color: var(--text-dim);
+    text-decoration: none;
+    margin: 0 6px;
+  }
+  .footnote a:hover { color: var(--amber); }
+
+  /* ===== BOTTOM NAV ===== */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    background: rgba(10, 13, 17, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .nav-btn {
+    background: none;
+    border: none;
+    padding: 14px 0 18px;
+    color: var(--text-faint);
+    font-family: 'Geist', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 4px;
+    transition: color 0.15s;
+    position: relative;
+  }
+  .nav-btn svg { width: 18px; height: 18px; opacity: 0.7; }
+  .nav-btn.active { color: var(--amber); }
+  .nav-btn.active svg { opacity: 1; }
+  .nav-btn.active::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 26px; height: 2px;
+    background: var(--amber);
+    border-radius: 0 0 2px 2px;
+  }
+
+  /* ===== TABS ===== */
+  .tab-content { display: none; animation: fadeIn 0.3s ease-out; }
+  .tab-content.active { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== MOVERS TAB ===== */
+  .movers-intro {
+    padding: 30px 20px 0;
+  }
+  .movers-group {
+    padding: 0 20px;
+    margin-bottom: 8px;
+  }
+  .mover-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .mover-row:last-child { border-bottom: none; }
+  .mover-rank {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    min-width: 18px;
+  }
+  .mover-info { min-width: 0; }
+  .mover-name {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    font-weight: 500;
+    margin-bottom: 3px;
+  }
+  .mover-reason {
+    font-size: 12px;
+    color: var(--text-faint);
+    font-style: italic;
+    line-height: 1.35;
+  }
+  .mover-pct {
+    font-family: 'Geist Mono', monospace;
+    font-size: 13px;
+    text-align: right;
+  }
+  .mover-pct.up { color: var(--signal-up); }
+  .mover-pct.down { color: var(--signal-down); }
+
+  /* ===== WATCHLIST EMPTY ===== */
+  .empty-state {
+    padding: 60px 30px;
+    text-align: center;
+  }
+  .empty-mark {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 60px;
+    color: var(--amber);
+    opacity: 0.45;
+    margin-bottom: 20px;
+    letter-spacing: -0.06em;
+  }
+  .empty-title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+  }
+  .empty-desc {
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.55;
+    max-width: 300px;
+    margin: 0 auto;
+  }
+
+  /* ===== BRIEF ARTICLE ===== */
+  .brief-article {
+    padding: 0 20px 20px;
+  }
+  .brief-lede {
+    font-family: 'Fraunces', serif;
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--text);
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brief-lede::first-letter {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 56px;
+    font-weight: 500;
+    color: var(--amber);
+    float: left;
+    line-height: 0.9;
+    padding: 6px 8px 0 0;
+  }
+  .brief-body p {
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+  .brief-body p strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .brief-callout {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    background: var(--surface);
+    margin: 20px 0;
+    position: relative;
+  }
+  .brief-callout::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 16px;
+    width: 40px; height: 1px;
+    background: var(--amber);
+  }
+  .brief-callout-kicker {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    color: var(--amber);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-top: 4px;
+  }
+  .brief-callout-title {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+  .brief-callout-desc {
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  /* ===== DESTINATION DETAIL ===== */
+  .detail-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 13, 17, 0.75);
+    backdrop-filter: blur(8px);
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .detail-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .detail-sheet {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%) translateY(100%);
+    width: 100%;
+    max-width: 480px;
+    height: 96vh;
+    background: var(--bg);
+    border-top: 1px solid var(--border-light);
+    border-radius: 18px 18px 0 0;
+    z-index: 201;
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background-image: radial-gradient(ellipse 500px 300px at 80% -5%, rgba(232, 163, 23, 0.06), transparent 60%);
+  }
+  .detail-sheet.open { transform: translateX(-50%) translateY(0); }
+  .detail-handle {
+    width: 42px; height: 4px;
+    background: var(--border-light);
+    border-radius: 2px;
+    margin: 10px auto 0;
+  }
+  .detail-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .detail-content { padding: 0 0 32px; }
+
+  .d-hero {
+    padding: 32px 20px 24px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .d-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(245,241,232,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,241,232,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+  .d-hero > * { position: relative; z-index: 1; }
+  .d-vibe {
+    display: inline-block;
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: 3px;
+    margin-bottom: 16px;
+  }
+  .d-vibe.surge { color: var(--signal-up); background: rgba(127, 176, 105, 0.1); border: 1px solid rgba(127, 176, 105, 0.3); }
+  .d-vibe.cool { color: var(--signal-down); background: rgba(224, 120, 86, 0.1); border: 1px solid rgba(224, 120, 86, 0.3); }
+  .d-vibe.steady { color: var(--teal); background: rgba(94, 170, 168, 0.1); border: 1px solid rgba(94, 170, 168, 0.3); }
+  .d-vibe.build { color: var(--amber); background: rgba(232, 163, 23, 0.1); border: 1px solid rgba(232, 163, 23, 0.3); }
+  .d-name {
+    font-family: 'Fraunces', serif;
+    font-size: 44px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 0.95;
+    margin-bottom: 8px;
+  }
+  .d-meta {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+  }
+  .d-meta-sep { color: var(--border-light); margin: 0 8px; }
+
+  .d-section {
+    padding: 26px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .d-section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .d-section-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .d-section-label::before {
+    content: "";
+    width: 18px; height: 1px;
+    background: var(--amber);
+  }
+  .d-section-meta {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+  }
+
+  .d-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .d-stat { background: var(--surface); padding: 14px 12px; }
+  .d-stat-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .d-stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .d-stat-value.accent { color: var(--amber); }
+  .d-stat-delta {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    margin-top: 5px;
+  }
+  .d-stat-delta.up { color: var(--signal-up); }
+  .d-stat-delta.down { color: var(--signal-down); }
+
+  .d-chart {
+    width: 100%;
+    height: 140px;
+    overflow: visible;
+  }
+
+  .d-hours {
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    gap: 2px;
+    height: 60px;
+    align-items: end;
+    margin-bottom: 8px;
+  }
+  .d-hour-bar {
+    background: var(--surface-2);
+    border-radius: 1px 1px 0 0;
+    min-height: 2px;
+  }
+  .d-hour-bar.peak { background: var(--amber); }
+  .d-hour-labels {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+  }
+  .d-hour-labels span:nth-child(2), .d-hour-labels span:nth-child(3) { text-align: center; }
+  .d-hour-labels span:last-child { text-align: right; }
+
+  .d-dow {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .d-dow-col { text-align: center; }
+  .d-dow-bar-wrap {
+    height: 60px;
+    display: flex;
+    align-items: end;
+    justify-content: center;
+    margin-bottom: 6px;
+  }
+  .d-dow-bar {
+    width: 100%;
+    background: var(--surface-2);
+    border-radius: 2px;
+  }
+  .d-dow-bar.peak { background: var(--amber); }
+  .d-dow-bar.weekend { background: var(--teal); }
+  .d-dow-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+  }
+  .d-dow-label.peak { color: var(--amber); }
+
+  .d-origins {
+    display: flex; flex-direction: column;
+    gap: 12px;
+  }
+  .d-origin {
+    display: grid;
+    grid-template-columns: 90px 1fr 56px;
+    gap: 10px;
+    align-items: center;
+    font-size: 12px;
+  }
+  .d-origin-name {
+    color: var(--text);
+    font-family: 'Geist', sans-serif;
+    font-weight: 500;
+  }
+  .d-origin-sub {
+    color: var(--text-faint);
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+  }
+  .d-origin-bar {
+    height: 6px;
+    background: var(--surface-2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .d-origin-bar-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--teal), var(--amber));
+    border-radius: 2px;
+    transform-origin: left;
+    animation: barIn 0.8s ease-out;
+  }
+  @keyframes barIn { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .d-origin-val {
+    text-align: right;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+  }
+  .d-origin-val small {
+    display: block;
+    color: var(--text-faint);
+    font-size: 9px;
+    margin-top: 2px;
+  }
+
+  .d-aircraft {
+    display: flex; flex-direction: column;
+    gap: 8px;
+  }
+  .d-craft {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+  }
+  .d-craft-name {
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .d-craft-class {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+  .d-craft-count {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    color: var(--amber);
+  }
+
+  .d-yoy {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .d-yoy-cell { background: var(--surface); padding: 14px; }
+  .d-yoy-year {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.15em;
+    margin-bottom: 8px;
+  }
+  .d-yoy-cell.this .d-yoy-year { color: var(--amber); }
+  .d-yoy-val {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .d-yoy-sub {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+  .d-yoy-delta {
+    margin-top: 14px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: var(--signal-up);
+    text-align: center;
+    padding: 8px;
+    background: rgba(127, 176, 105, 0.06);
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  .d-feed {
+    display: flex; flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .d-feed-item {
+    display: grid;
+    grid-template-columns: 58px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 12px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .d-feed-item:last-child { border-bottom: none; }
+  .d-feed-time {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+  }
+  .d-feed-main { min-width: 0; }
+  .d-feed-aircraft {
+    font-family: 'Geist', sans-serif;
+    font-weight: 500;
+    color: var(--text);
+    font-size: 12.5px;
+  }
+  .d-feed-route {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .d-feed-tag {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    padding: 3px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.1em;
+  }
+  .d-feed-tag.private { color: var(--amber); background: rgba(232, 163, 23, 0.1); }
+  .d-feed-tag.commercial { color: var(--teal); background: rgba(94, 170, 168, 0.1); }
+
+  .d-forecast {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .d-forecast::before {
+    content: "";
+    position: absolute;
+    top: 0; right: 0;
+    width: 100px; height: 100px;
+    background: radial-gradient(circle at top right, rgba(232,163,23,0.15), transparent 60%);
+    pointer-events: none;
+  }
+  .d-forecast-head {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--amber);
+    text-transform: uppercase;
+  }
+  .d-forecast p {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .d-forecast p em { font-style: italic; color: var(--amber); }
+
+  .d-note {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--text);
+  }
+  .d-note-byline {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.1em;
+    margin-top: 14px;
+  }
+
+  .d-peers {
+    display: flex; flex-direction: column;
+    gap: 8px;
+  }
+  .d-peer {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    padding: 13px 15px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .d-peer:active { background: var(--surface-2); }
+  .d-peer-name {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+  }
+  .d-peer-code {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    margin-top: 3px;
+  }
+  .d-peer-pvt {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: var(--amber);
+    text-align: right;
+  }
+  .d-peer-pvt small { display: block; color: var(--text-faint); font-size: 8px; margin-top: 2px; }
+  .d-peer-trend {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    min-width: 44px;
+    text-align: right;
+  }
+  .d-peer-trend.up { color: var(--signal-up); }
+  .d-peer-trend.down { color: var(--signal-down); }
+
+  .d-actions {
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(to top, var(--bg) 60%, rgba(10,13,17,0.85) 90%, transparent);
+    padding: 20px 20px 24px;
+    display: grid;
+    grid-template-columns: 1fr 46px 46px;
+    gap: 10px;
+    z-index: 5;
+  }
+  .d-btn-primary {
+    background: var(--amber);
+    color: var(--bg);
+    border: none;
+    padding: 14px;
+    border-radius: 8px;
+    font-family: 'Geist', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .d-btn-primary:active { background: var(--amber-soft); }
+  .d-btn-icon {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .d-btn-icon:active { background: var(--surface-2); }
+  .d-btn-icon svg { width: 18px; height: 18px; }
+
+  .d-callout {
+    margin-top: 14px;
+    padding: 11px 14px;
+    background: rgba(232, 163, 23, 0.06);
+    border-left: 2px solid var(--amber);
+    border-radius: 0 6px 6px 0;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    line-height: 1.55;
+  }
+  .d-callout strong { color: var(--text); font-weight: 500; }
+
+  .d-locked {
+    padding: 22px;
+    text-align: center;
+    border: 1px dashed var(--border-light);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+  .d-locked-icon {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 32px;
+    color: var(--amber);
+    margin-bottom: 10px;
+    letter-spacing: -0.05em;
+  }
+  .d-locked-title {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+  .d-locked-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+    line-height: 1.55;
+  }
+  .d-locked-btn {
+    display: inline-block;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    color: var(--amber);
+    border: 1px solid var(--amber-soft);
+    padding: 8px 16px;
+    border-radius: 5px;
+    background: rgba(232,163,23,0.08);
+    letter-spacing: 0.03em;
+    cursor: pointer;
+  }
+
+  /* ===== TOAST ===== */
+  .toast {
+    position: fixed;
+    bottom: 110px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface);
+    border: 1px solid var(--amber-soft);
+    color: var(--text);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 300;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- STATUS BAR -->
+  <header class="status-bar">
+    <div class="status-time" id="utc-clock">—— UTC</div>
+    <div class="logo">
+      <span class="logo-mark">G</span><span class="logo-mark-t">T</span>
+      <span class="logo-dot"></span>
+      <span class="logo-word">GO TANGO</span>
+    </div>
+    <div class="status-pulse"><span class="pulse-dot"></span> Live</div>
+  </header>
+
+  <!-- ============ NOW TAB ============ -->
+  <div class="tab-content active" id="tab-now">
+
+    <section class="hero">
+      <div class="hero-kicker">The Index · Friday, 20 April</div>
+      <h1 class="hero-headline">Where the world is <em>vacationing.</em></h1>
+      <p class="hero-sub">Flight-data intelligence for 20 destinations where money actually goes. Surges, cool-downs, and the reasons behind both — refreshed hourly from public ADS-B data.</p>
+
+      <div class="hero-stats">
+        <div class="stat-cell">
+          <div class="stat-label">Arrivals · 24h</div>
+          <div class="stat-value">14,082</div>
+          <div class="stat-delta delta-up">↑ 6.2% w/w</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">Private %</div>
+          <div class="stat-value">23.4</div>
+          <div class="stat-delta delta-up">↑ 1.8 pts</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">Surging</div>
+          <div class="stat-value">9</div>
+          <div class="stat-delta delta-down">↓ 4 cooling</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAP -->
+    <div class="section-head">
+      <h2 class="section-title">Live <em>map</em></h2>
+      <span class="section-meta">20 destinations · 04:17z</span>
+    </div>
+    <div class="world-strip">
+      <svg viewBox="0 0 480 150" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <radialGradient id="dotGlow">
+            <stop offset="0%" stop-color="#E8A317" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#E8A317" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="coolGlow">
+            <stop offset="0%" stop-color="#E07856" stop-opacity="0.6"/>
+            <stop offset="100%" stop-color="#E07856" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <g opacity="0.16" stroke="#A8A293" stroke-width="0.4" fill="none">
+          <path d="M40,45 Q70,35 100,47 T160,55 L180,65 L155,80 Q120,85 90,75 T40,65 Z"/>
+          <path d="M180,60 L220,45 Q260,35 300,50 L340,60 Q360,80 340,95 L290,100 Q240,95 200,85 Z"/>
+          <path d="M345,55 Q380,50 420,60 L440,80 Q420,100 380,95 T345,85 Z"/>
+          <path d="M210,95 Q230,105 240,125 Q220,133 200,123 T190,105 Z"/>
+        </g>
+        <!-- St Barts -->
+        <circle cx="92" cy="75" r="15" fill="url(#dotGlow)"/>
+        <circle cx="92" cy="75" r="3.5" fill="#E8A317"/>
+        <!-- Palm Beach -->
+        <circle cx="78" cy="62" r="7" fill="url(#coolGlow)"/>
+        <circle cx="78" cy="62" r="2" fill="#E07856"/>
+        <!-- Tulum -->
+        <circle cx="70" cy="74" r="11" fill="url(#dotGlow)"/>
+        <circle cx="70" cy="74" r="3" fill="#E8A317"/>
+        <!-- Aspen -->
+        <circle cx="55" cy="50" r="7" fill="url(#coolGlow)"/>
+        <circle cx="55" cy="50" r="2" fill="#E07856"/>
+        <!-- Hamptons -->
+        <circle cx="105" cy="45" r="12" fill="url(#dotGlow)"/>
+        <circle cx="105" cy="45" r="3" fill="#E8A317"/>
+        <!-- St Tropez -->
+        <circle cx="225" cy="50" r="13" fill="url(#dotGlow)"/>
+        <circle cx="225" cy="50" r="3.2" fill="#E8A317"/>
+        <!-- Mykonos -->
+        <circle cx="260" cy="60" r="14" fill="url(#dotGlow)"/>
+        <circle cx="260" cy="60" r="3.2" fill="#E8A317"/>
+        <!-- Ibiza -->
+        <circle cx="212" cy="55" r="11" fill="url(#dotGlow)"/>
+        <circle cx="212" cy="55" r="2.8" fill="#E8A317"/>
+        <!-- Comporta -->
+        <circle cx="195" cy="60" r="10" fill="url(#dotGlow)"/>
+        <circle cx="195" cy="60" r="2.5" fill="#E8A317"/>
+        <!-- Dubai -->
+        <circle cx="300" cy="72" r="8" fill="rgba(94,170,168,0.5)"/>
+        <circle cx="300" cy="72" r="2" fill="#5EAAA8"/>
+        <!-- Courchevel -->
+        <circle cx="220" cy="42" r="7" fill="url(#coolGlow)"/>
+        <circle cx="220" cy="42" r="2" fill="#E07856"/>
+      </svg>
+      <div class="world-key">
+        <span><span class="dot" style="background:#E8A317"></span>Surge</span>
+        <span><span class="dot" style="background:#5EAAA8"></span>Steady</span>
+        <span><span class="dot" style="background:#E07856"></span>Cool</span>
+      </div>
+      <div class="world-overlay">20 destinations · Hourly refresh</div>
+    </div>
+
+    <!-- HOT LIST -->
+    <div class="section-head">
+      <h2 class="section-title"><em>Heating up</em></h2>
+      <span class="section-meta">Top 6 · Mover score</span>
+    </div>
+
+    <div class="dest-list">
+      <div class="dest-card" data-dest="stbarts">
+        <div class="dest-rank">I</div>
+        <div class="dest-main">
+          <div class="dest-row1">
+            <span class="dest-name">St. Barthélemy</span>
+            <span class="dest-code">TFFJ</span>
+          </div>
+          <div class="dest-vibe">Easter pulls NYC and London in synchronized waves</div>
+          <div class="dest-meta">
+            <span><b>74%</b> private</span>
+            <span><b>NYC, MIA, LON</b></span>
+          </div>
+        </div>
+        <div class="dest-arrivals">
+          <div class="dest-arrivals-num">312</div>
+          <div class="dest-arrivals-label">24h arr</div>
+          <div class="dest-trend up">↑ 38% wow</div>
+        </div>
+      </div>
+
+      <div class="dest-card" data-dest="mykonos">
+        <div class="dest-rank">II</div>
+        <div class="dest-main">
+          <div class="dest-row1">
+            <span class="dest-name">Mykonos</span>
+            <span class="dest-code">LGMK</span>
+          </div>
+          <div class="dest-vibe">First private scouts of the season — Rome and Athens early</div>
+          <div class="dest-meta">
+            <span><b>42%</b> private</span>
+            <span><b>ATH, ROM, LON</b></span>
+          </div>
+        </div>
+        <div class="dest-arrivals">
+          <div class="dest-arrivals-num">87</div>
+          <div class="dest-arrivals-label">24h arr</div>
+          <div class="dest-trend up">↑ 67% wow</div>
+        </div>
+      </div>
+
+      <div class="dest-card" data-dest="hamptons">
+        <div class="dest-rank">III</div>
+        <div class="dest-main">
+          <div class="dest-row1">
+            <span class="dest-name">The Hamptons</span>
+            <span class="dest-code">KJPX · KFOK</span>
+          </div>
+          <div class="dest-vibe">Early memorial day openings drive first summer spike</div>
+          <div class="dest-meta">
+            <span><b>68%</b> private</span>
+            <span><b>TEB, HPN, BOS</b></span>
+          </div>
+        </div>
+        <div class="dest-arrivals">
+          <div class="dest-arrivals-num">142</div>
+          <div class="dest-arrivals-label">24h arr</div>
+          <div class="dest-trend up">↑ 52% wow</div>
+        </div>
+      </div>
+
+      <div class="dest-card" data-dest="comporta">
+        <div class="dest-rank">IV</div>
+        <div class="dest-main">
+          <div class="dest-row1">
+            <span class="dest-name">Comporta</span>
+            <span class="dest-code">LPMT</span>
+          </div>
+          <div class="dest-vibe">Quietly the fastest-growing destination on our index</div>
+          <div class="dest-meta">
+            <span><b>58%</b> private</span>
+            <span><b>LIS, LON, PAR</b></span>
+          </div>
+        </div>
+        <div class="dest-arrivals">
+          <div class="dest-arrivals-num">64</div>
+          <div class="dest-arrivals-label">24h arr</div>
+          <div class="dest-trend up">↑ 41% wow</div>
+        </div>
+      </div>
+
+      <div class="dest-card" data-dest="ibiza">
+        <div class="dest-rank">V</div>
+        <div class="dest-main">
+          <div class="dest-row1">
+            <span class="dest-name">Ibiza</span>
+            <span class="dest-code">LEIB</span>
+          </div>
+          <div class="dest-vibe">Pre-season property set arriving ahead of May openings</div>
+          <div class="dest-meta">
+            <span><b>38%</b> private</span>
+            <span><b>BCN, LON, GVA</b></span>
+          </div>
+        </div>
+        <div class="dest-arrivals">
+          <div class="dest-arrivals-num">124</div>
+          <div class="dest-arrivals-label">24h arr</div>
+          <div class="dest-trend up">↑ 28% wow</div>
+        </div>
+      </div>
+
+      <div class="dest-card" data-dest="tulum">
+        <div class="dest-rank">VI</div>
+        <div class="dest-main">
+          <div class="dest-row1">
+            <span class="dest-name">Tulum</span>
+            <span class="dest-code">MMTO · MMUN</span>
+          </div>
+          <div class="dest-vibe">Weekly party cycle — Thursday-Friday spike forming</div>
+          <div class="dest-meta">
+            <span><b>34%</b> private</span>
+            <span><b>JFK, LAX, ATL</b></span>
+          </div>
+        </div>
+        <div class="dest-arrivals">
+          <div class="dest-arrivals-num">446</div>
+          <div class="dest-arrivals-label">24h arr</div>
+          <div class="dest-trend up">↑ 9% wow</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COOLING -->
+    <div class="section-head">
+      <h2 class="section-title"><em>Cooling down</em></h2>
+      <span class="section-meta">Last 7 days</span>
+    </div>
+
+    <div class="cooling-list">
+      <div class="cooling-card" data-dest="aspen">
+        <div>
+          <div class="cooling-name">Aspen · <span style="font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--text-faint);">KASE</span></div>
+          <div class="cooling-why">Ski season tail — fifteen straight days of decline</div>
+        </div>
+        <div class="cooling-pct">−22%</div>
+      </div>
+      <div class="cooling-card" data-dest="courchevel">
+        <div>
+          <div class="cooling-name">Courchevel · <span style="font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--text-faint);">LFLJ</span></div>
+          <div class="cooling-why">Alpine season ending; final UK arrivals this weekend</div>
+        </div>
+        <div class="cooling-pct">−18%</div>
+      </div>
+      <div class="cooling-card" data-dest="palmbeach">
+        <div>
+          <div class="cooling-name">Palm Beach · <span style="font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--text-faint);">KPBI</span></div>
+          <div class="cooling-why">Snowbird reversal — northbound traffic up 31%</div>
+        </div>
+        <div class="cooling-pct">−14%</div>
+      </div>
+    </div>
+
+    <!-- SLEEPER -->
+    <div class="section-head">
+      <h2 class="section-title"><em>Sleeper</em> pick</h2>
+      <span class="section-meta">Editor's note</span>
+    </div>
+    <div class="sleeper" onclick="openDetail(destData.comporta)">
+      <div class="sleeper-label">⏷ Below Radar</div>
+      <div class="sleeper-name">Comporta, Portugal</div>
+      <div class="sleeper-code">LPMT · 38.4°N · 8.8°W</div>
+      <p class="sleeper-desc">The Hamptons crowd that quietly migrated to this stretch of Atlantic pine forest post-pandemic is <em>finally showing up in the data.</em> Private arrivals from Paris, London, and New York have quadrupled year-over-year.</p>
+      <div class="sleeper-stats">
+        <span><b>+4.1×</b> YoY</span>
+        <span><b>58%</b> private</span>
+        <span>64 arr / 24h</span>
+      </div>
+    </div>
+
+    <!-- BRIEF SIGNUP -->
+    <div class="brief-card">
+      <div class="brief-label">The Tuesday Brief</div>
+      <h3 class="brief-title">Five surging,<br>three <em>cooling.</em></h3>
+      <p class="brief-desc">Every Tuesday, a 90-second read on where the world's most mobile 1% is actually going — and why. No ads, no press release recycling, no affiliate links. Only signal.</p>
+      <div class="brief-form">
+        <input type="email" class="brief-input" placeholder="your@email.com" id="brief-email">
+        <button class="brief-btn" onclick="signup()">Subscribe</button>
+      </div>
+      <div class="brief-meta">
+        <span>22,481 readers</span>
+        <span>·</span>
+        <span>Free forever</span>
+        <span>·</span>
+        <span>Unsubscribe anytime</span>
+      </div>
+    </div>
+
+    <div class="footnote">
+      <div class="footnote-mark">GT</div>
+      Go Tango · Independent travel intelligence<br>
+      Built on public ADS-B data · No advertiser influence<br>
+      <div style="margin-top: 10px;">
+        <a href="#">About the 20</a>·<a href="#">Methodology</a>·<a href="#">Contact</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MOVERS TAB ============ -->
+  <div class="tab-content" id="tab-movers">
+    <section class="hero">
+      <div class="hero-kicker">Movers · Last 7 Days</div>
+      <h1 class="hero-headline">What's <em>changing</em><br>this week.</h1>
+      <p class="hero-sub">Every destination we track, ranked by week-over-week momentum. Each with the reason behind the shift.</p>
+    </section>
+
+    <div class="section-head">
+      <h2 class="section-title"><em>Surging</em></h2>
+      <span class="section-meta">Wow %</span>
+    </div>
+    <div class="movers-group">
+      <div class="mover-row" onclick="openDetail(destData.mykonos)">
+        <span class="mover-rank">01</span>
+        <div class="mover-info">
+          <div class="mover-name">Mykonos</div>
+          <div class="mover-reason">First private scouts of the season arriving from Rome and Athens</div>
+        </div>
+        <span class="mover-pct up">+67%</span>
+      </div>
+      <div class="mover-row" onclick="openDetail(destData.hamptons)">
+        <span class="mover-rank">02</span>
+        <div class="mover-info">
+          <div class="mover-name">The Hamptons</div>
+          <div class="mover-reason">Early Memorial Day property openings pulling first summer arrivals</div>
+        </div>
+        <span class="mover-pct up">+52%</span>
+      </div>
+      <div class="mover-row" onclick="openDetail(destData.comporta)">
+        <span class="mover-rank">03</span>
+        <div class="mover-info">
+          <div class="mover-name">Comporta</div>
+          <div class="mover-reason">Sustained growth — no single event, just structural migration</div>
+        </div>
+        <span class="mover-pct up">+41%</span>
+      </div>
+      <div class="mover-row" onclick="openDetail(destData.stbarts)">
+        <span class="mover-rank">04</span>
+        <div class="mover-info">
+          <div class="mover-name">St. Barthélemy</div>
+          <div class="mover-reason">Easter holiday spike — last weekend of the 2026 season</div>
+        </div>
+        <span class="mover-pct up">+38%</span>
+      </div>
+      <div class="mover-row" onclick="openDetail(destData.ibiza)">
+        <span class="mover-rank">05</span>
+        <div class="mover-info">
+          <div class="mover-name">Ibiza</div>
+          <div class="mover-reason">Villa staff and property managers ahead of May openings</div>
+        </div>
+        <span class="mover-pct up">+28%</span>
+      </div>
+      <div class="mover-row">
+        <span class="mover-rank">06</span>
+        <div class="mover-info">
+          <div class="mover-name">St. Tropez</div>
+          <div class="mover-reason">Early Côte d'Azur arrivals from Milan and Geneva</div>
+        </div>
+        <span class="mover-pct up">+24%</span>
+      </div>
+      <div class="mover-row">
+        <span class="mover-rank">07</span>
+        <div class="mover-info">
+          <div class="mover-name">Marrakech</div>
+          <div class="mover-reason">Spring weekenders from Paris and London</div>
+        </div>
+        <span class="mover-pct up">+22%</span>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h2 class="section-title"><em>Cooling</em></h2>
+      <span class="section-meta">Wow %</span>
+    </div>
+    <div class="movers-group">
+      <div class="mover-row" onclick="openDetail(destData.aspen)">
+        <span class="mover-rank">01</span>
+        <div class="mover-info">
+          <div class="mover-name">Aspen</div>
+          <div class="mover-reason">Ski season ending on schedule — 15-day declining trend</div>
+        </div>
+        <span class="mover-pct down">−22%</span>
+      </div>
+      <div class="mover-row" onclick="openDetail(destData.courchevel)">
+        <span class="mover-rank">02</span>
+        <div class="mover-info">
+          <div class="mover-name">Courchevel</div>
+          <div class="mover-reason">Alps wrapping — UK spring break crowd returning home</div>
+        </div>
+        <span class="mover-pct down">−18%</span>
+      </div>
+      <div class="mover-row">
+        <span class="mover-rank">03</span>
+        <div class="mover-info">
+          <div class="mover-name">St. Moritz</div>
+          <div class="mover-reason">Final week — Swiss spring thaw in full effect</div>
+        </div>
+        <span class="mover-pct down">−16%</span>
+      </div>
+      <div class="mover-row" onclick="openDetail(destData.palmbeach)">
+        <span class="mover-rank">04</span>
+        <div class="mover-info">
+          <div class="mover-name">Palm Beach</div>
+          <div class="mover-reason">Snowbird reversal — northbound private traffic up 31%</div>
+        </div>
+        <span class="mover-pct down">−14%</span>
+      </div>
+      <div class="mover-row">
+        <span class="mover-rank">05</span>
+        <div class="mover-info">
+          <div class="mover-name">Vail</div>
+          <div class="mover-reason">Rockies wind-down following the Aspen pattern</div>
+        </div>
+        <span class="mover-pct down">−11%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ WATCHLIST TAB ============ -->
+  <div class="tab-content" id="tab-watch">
+    <section class="hero">
+      <div class="hero-kicker">Watchlist</div>
+      <h1 class="hero-headline">Track <em>your</em><br>destinations.</h1>
+      <p class="hero-sub">Save any destination to get push alerts when arrivals shift more than 25% week-over-week, or when major events drive unusual activity.</p>
+    </section>
+    <div class="empty-state">
+      <div class="empty-mark">GT</div>
+      <div class="empty-title">No destinations saved</div>
+      <div class="empty-desc">Tap any destination card to add it to your watchlist. The free plan tracks up to 3. Go Tango Pro unlocks unlimited destinations with hourly alerts.</div>
+    </div>
+  </div>
+
+  <!-- ============ BRIEF TAB ============ -->
+  <div class="tab-content" id="tab-brief">
+    <section class="hero">
+      <div class="hero-kicker">The Brief · Issue 47 · Tuesday, 17 April</div>
+      <h1 class="hero-headline">Easter sends St. Barts <em>vertical.</em></h1>
+      <p class="hero-sub" style="font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: var(--text-faint); text-transform: uppercase;">4 min read · By Go Tango Editorial</p>
+    </section>
+
+    <div class="brief-article">
+      <p class="brief-lede">Five destinations heating up. Three quietly cooling. One sleeper worth a closer look.</p>
+
+      <div class="brief-body">
+        <p>The Easter holiday is doing what it does every year — pulling private aviation traffic to the Caribbean — but the magnitude this season is the largest we've recorded. <strong>St. Barts is up 38% week-over-week</strong>, with private arrivals from New York alone climbing 52%. London's contribution is up 41%. The two cities are now delivering 47% of the island's total volume, a concentration we haven't seen since 2019.</p>
+
+        <p>Meanwhile, <strong>Aspen's ski season is closing on schedule</strong>. Charter arrivals at KASE are down 22% week-over-week as the snow window narrows. Watch for the typical 10-day handoff before summer hiking traffic begins. The Colorado pattern is telegraphing what we'll see in the Alps — Courchevel is already down 18%, with St. Moritz running a week behind.</p>
+
+        <p>The emerging story this week is Mediterranean <strong>pre-season</strong>. Mykonos crossed the 80 arrivals/day threshold for the first time this year — the scouts are flowing in from Rome and Athens, exactly matching the 2024 ramp. Ibiza is following two weeks behind. Expect real volume by mid-June.</p>
+
+        <div class="brief-callout">
+          <div class="brief-callout-kicker">Sleeper of the week</div>
+          <div class="brief-callout-title">Comporta, Portugal</div>
+          <div class="brief-callout-desc">Private arrivals up 4.1× year-over-year. This Atlantic pine-forest stretch south of Lisbon is quietly becoming the new Hamptons of Europe — and the data is finally catching up to the rumors.</div>
+        </div>
+
+        <p>On the cooling side, the US East Coast snowbird migration is reversing exactly on cue. <strong>Palm Beach is down 14%</strong>, with northbound private traffic to Teterboro and Boston up 31%. Jupiter and Naples are following suit. Nantucket, interestingly, is already up 8% — the Northeast summer is warming up earlier than usual this year.</p>
+
+        <p style="color: var(--text-faint); font-size: 12px; text-align: center; padding: 20px 0 0;">— End of brief —</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-tab="tab-now">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></svg>
+    Now
+  </button>
+  <button class="nav-btn" data-tab="tab-movers">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8M14 7h7v7"/></svg>
+    Movers
+  </button>
+  <button class="nav-btn" data-tab="tab-watch">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+    Watch
+  </button>
+  <button class="nav-btn" data-tab="tab-brief">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    Brief
+  </button>
+</nav>
+
+<!-- DETAIL OVERLAY -->
+<div class="detail-overlay" id="overlay" onclick="closeDetail()"></div>
+<div class="detail-sheet" id="sheet">
+  <div class="detail-handle"></div>
+  <button class="detail-close" onclick="closeDetail()">×</button>
+  <div class="detail-content" id="detail-body"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">Saved</div>
+
+<script>
+  // ============ UTC CLOCK ============
+  function tickClock() {
+    const now = new Date();
+    const h = String(now.getUTCHours()).padStart(2, '0');
+    const m = String(now.getUTCMinutes()).padStart(2, '0');
+    document.getElementById('utc-clock').textContent = `${h}:${m} UTC`;
+  }
+  tickClock();
+  setInterval(tickClock, 30000);
+
+  // ============ TABS ============
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.tab;
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById(target).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  // ============ DESTINATION DATA ============
+  const destData = {
+    stbarts: {
+      name: "St. Barthélemy", icao: "TFFJ", coords: "17.90°N · 62.84°W", region: "French Caribbean",
+      vibeLabel: "Surging · Easter Peak", vibeClass: "surge",
+      arr24: "312", arr7: "268", pvt: "74%", pvtCount: "231",
+      wow: "+38%", mom: "+112%", originDiv: "3.2",
+      trajectory: [142,138,145,160,155,148,152,168,175,182,195,188,172,180,195,210,225,240,218,205,215,235,268,295,312,310,288,272,265,270],
+      trajectoryAnno: { day: 24, label: "Easter Thu" },
+      hours: [1,1,0,0,0,0,1,2,3,4,8,12,18,22,28,32,35,38,42,36,28,18,10,5],
+      peakHour: 17,
+      dow: [15,18,22,35,58,45,28], dowLabels: ["Mo","Tu","We","Th","Fr","Sa","Su"], dowPeak: 4,
+      origins: [
+        { name: "New York", codes: "JFK · TEB", pct: 31, count: "97", val: 92 },
+        { name: "Miami", codes: "MIA · OPF", pct: 24, count: "75", val: 71 },
+        { name: "London", codes: "LTN · LHR", pct: 16, count: "50", val: 47 },
+        { name: "Paris", codes: "LBG · CDG", pct: 12, count: "37", val: 34 },
+        { name: "Geneva", codes: "GVA", pct: 7, count: "22", val: 22 },
+        { name: "Other", codes: "14 cities", pct: 10, count: "31", val: 30 }
+      ],
+      aircraft: [
+        { name: "Pilatus PC-12", cls: "Turboprop · The TFFJ workhorse", count: 68 },
+        { name: "Gulfstream G550", cls: "Heavy · Transatlantic range", count: 42 },
+        { name: "Bombardier Global 7500", cls: "Heavy · Ultra long range", count: 31 },
+        { name: "Cessna Citation X", cls: "Midsize · Short hops", count: 28 },
+        { name: "Embraer Phenom 300", cls: "Light · Fractional common", count: 24 }
+      ],
+      yoy: { this: "312", last: "196", delta: "+59% vs Easter '25" },
+      feed: [
+        { time: "04:17z", aircraft: "Gulfstream G650ER", route: "TEB → TFFJ", tag: "private" },
+        { time: "03:42z", aircraft: "Cessna Citation Latitude", route: "OPF → TFFJ", tag: "private" },
+        { time: "03:18z", aircraft: "Pilatus PC-12", route: "SXM → TFFJ", tag: "private" },
+        { time: "02:55z", aircraft: "Winair ATR 42", route: "SXM → TFFJ · WM215", tag: "commercial" },
+        { time: "02:31z", aircraft: "Bombardier Global 6000", route: "LTN → TFFJ", tag: "private" },
+        { time: "01:48z", aircraft: "Dassault Falcon 7X", route: "LBG → TFFJ", tag: "private" }
+      ],
+      forecast: "Arrivals should hold near 300/day through Easter Monday, then taper <em>sharply</em>. Historical pattern suggests a 70% drop-off by the following weekend as the NYC and London crowds return home.",
+      note: "The largest week-over-week jump anywhere in the Caribbean. Easter brings the NYC and London crowd in synchronized waves — most arrivals concentrate Thursday through Saturday afternoon, with the rare Tuesday evening spike from the quieter Geneva set. The 74% private mix is the highest of any destination we track.",
+      byline: "Go Tango Editorial · April 20",
+      peers: [
+        { name: "Mustique", code: "TVSM · Grenadines", pvt: "94%", trend: "+12%", up: true },
+        { name: "Anguilla", code: "TQPF", pvt: "52%", trend: "+24%", up: true },
+        { name: "Turks & Caicos", code: "MBPV", pvt: "38%", trend: "+18%", up: true }
+      ]
+    },
+    mykonos: {
+      name: "Mykonos", icao: "LGMK", coords: "37.43°N · 25.35°E", region: "Cyclades, Greece",
+      vibeLabel: "Building · Pre-season", vibeClass: "build",
+      arr24: "87", arr7: "62", pvt: "42%", pvtCount: "37",
+      wow: "+67%", mom: "+340%", originDiv: "4.1",
+      trajectory: [12,14,15,18,16,14,15,18,20,22,25,24,22,20,28,32,35,38,42,45,48,52,58,65,72,78,85,87,84,82],
+      trajectoryAnno: { day: 26, label: "Season start" },
+      hours: [0,0,0,0,0,0,0,1,2,4,6,8,12,14,16,15,13,10,7,5,3,2,1,0],
+      peakHour: 14,
+      dow: [8,10,11,14,18,16,10], dowLabels: ["Mo","Tu","We","Th","Fr","Sa","Su"], dowPeak: 4,
+      origins: [
+        { name: "Athens", codes: "ATH", pct: 38, count: "33", val: 95 },
+        { name: "Rome", codes: "FCO · CIA", pct: 18, count: "16", val: 58 },
+        { name: "London", codes: "LTN · LHR", pct: 14, count: "12", val: 48 },
+        { name: "Paris", codes: "LBG", pct: 9, count: "8", val: 38 },
+        { name: "Zurich", codes: "ZRH", pct: 7, count: "6", val: 32 },
+        { name: "Other", codes: "8 cities", pct: 14, count: "12", val: 48 }
+      ],
+      aircraft: [
+        { name: "Aegean A320", cls: "Narrowbody · Athens shuttle", count: 32 },
+        { name: "Cessna Citation Latitude", cls: "Midsize · Pre-season scouts", count: 14 },
+        { name: "Embraer Phenom 300", cls: "Light · Regional hops", count: 11 },
+        { name: "Bombardier Challenger 350", cls: "Super midsize", count: 8 },
+        { name: "Dassault Falcon 7X", cls: "Heavy · Long range", count: 4 }
+      ],
+      yoy: { this: "87", last: "52", delta: "+67% vs same week '25" },
+      feed: [
+        { time: "18:22z", aircraft: "Cessna Citation Latitude", route: "LBG → JMK", tag: "private" },
+        { time: "17:45z", aircraft: "Aegean A320", route: "ATH → JMK · A3352", tag: "commercial" },
+        { time: "17:18z", aircraft: "Bombardier Challenger 350", route: "FCO → JMK", tag: "private" },
+        { time: "16:52z", aircraft: "Embraer Phenom 300", route: "ZRH → JMK", tag: "private" },
+        { time: "16:10z", aircraft: "Sky Express ATR 72", route: "ATH → JMK · GQ480", tag: "commercial" },
+        { time: "15:34z", aircraft: "Gulfstream G280", route: "LTN → JMK", tag: "private" }
+      ],
+      forecast: "The earliest meaningful private traffic of the season. If 2023 and 2024 patterns repeat, peak arrivals begin the <em>second week of June</em> and crest in late July near 480/day. Watch for the first Saudi arrivals as the leading indicator.",
+      note: "This is what a season beginning looks like in the data. Mykonos sat near zero until April 1, when the first scouts — staff, property managers, early-arriving owners — began flowing in from Rome and Athens. The +67% week-over-week is off a tiny base, but the shape matches the 2024 ramp almost perfectly. Book now if you want peak weeks.",
+      byline: "Go Tango Editorial · April 20",
+      peers: [
+        { name: "Ibiza", code: "LEIB · Spain", pvt: "38%", trend: "+28%", up: true },
+        { name: "Santorini", code: "LGSR · Greece", pvt: "24%", trend: "+42%", up: true },
+        { name: "St. Tropez", code: "LFTZ · France", pvt: "71%", trend: "+24%", up: true }
+      ]
+    },
+    hamptons: {
+      name: "The Hamptons", icao: "KJPX · KFOK", coords: "40.96°N · 72.25°W", region: "Long Island, NY",
+      vibeLabel: "Building · Summer onset", vibeClass: "build",
+      arr24: "142", arr7: "102", pvt: "68%", pvtCount: "97",
+      wow: "+52%", mom: "+180%", originDiv: "3.8",
+      trajectory: [48,52,55,48,42,45,52,58,65,58,62,68,75,82,75,78,88,92,98,105,112,108,118,128,135,142,138,132,135,140],
+      trajectoryAnno: { day: 27, label: "Season start" },
+      hours: [2,1,0,0,0,0,2,8,15,22,28,32,30,28,25,28,32,38,42,35,22,15,8,4],
+      peakHour: 17,
+      dow: [18,22,25,35,48,42,28], dowLabels: ["Mo","Tu","We","Th","Fr","Sa","Su"], dowPeak: 4,
+      origins: [
+        { name: "New York", codes: "TEB · JFK · HPN", pct: 58, count: "82", val: 96 },
+        { name: "Boston", codes: "BOS · BED", pct: 14, count: "20", val: 52 },
+        { name: "Philadelphia", codes: "PHL · PNE", pct: 9, count: "13", val: 38 },
+        { name: "Washington DC", codes: "IAD · DCA", pct: 6, count: "9", val: 28 },
+        { name: "Palm Beach", codes: "PBI", pct: 5, count: "7", val: 24 },
+        { name: "Other", codes: "12 cities", pct: 8, count: "11", val: 32 }
+      ],
+      aircraft: [
+        { name: "Embraer Phenom 300", cls: "Light · NYC shuttle king", count: 32 },
+        { name: "Cessna Citation Excel", cls: "Midsize · Weekender favorite", count: 28 },
+        { name: "Pilatus PC-12", cls: "Turboprop · Short-field flexible", count: 18 },
+        { name: "Bombardier Challenger 350", cls: "Super midsize · Boston runs", count: 12 },
+        { name: "Gulfstream G280", cls: "Heavy · Rare but rising", count: 7 }
+      ],
+      yoy: { this: "142", last: "98", delta: "+45% vs same week '25" },
+      feed: [
+        { time: "21:42z", aircraft: "Embraer Phenom 300", route: "TEB → JPX", tag: "private" },
+        { time: "21:15z", aircraft: "Cessna Citation Excel", route: "HPN → JPX", tag: "private" },
+        { time: "20:48z", aircraft: "Pilatus PC-12", route: "BED → FOK", tag: "private" },
+        { time: "20:22z", aircraft: "Bombardier Challenger 350", route: "TEB → FOK", tag: "private" },
+        { time: "19:55z", aircraft: "Gulfstream G280", route: "PBI → FOK", tag: "private" },
+        { time: "19:18z", aircraft: "Cessna Citation CJ3+", route: "TEB → JPX", tag: "private" }
+      ],
+      forecast: "Expect steady climb through Memorial Day, then a <em>sharp escalation</em>. Peak arrivals typically hit 260+/day by July 4, concentrated Thursday-Sunday. The voluntary 9:30 PM curfew pushes peak into late afternoon.",
+      note: "Summer is opening earlier than usual. The 52% WoW jump is the fastest seasonal onset we've tracked since 2022. TEB-origin arrivals are leading — up 63% week-over-week. Combined KJPX + KFOK tracking shows Gabreski is picking up more of the growth, likely as heavier aircraft avoid KJPX's 4,255 ft runway.",
+      byline: "Go Tango Editorial · April 20",
+      peers: [
+        { name: "Nantucket", code: "KACK · Mass.", pvt: "64%", trend: "+18%", up: true },
+        { name: "Martha's Vineyard", code: "KMVY · Mass.", pvt: "58%", trend: "+12%", up: true },
+        { name: "Block Island", code: "KBID · RI", pvt: "42%", trend: "+8%", up: true }
+      ]
+    },
+    comporta: {
+      name: "Comporta", icao: "LPMT", coords: "38.38°N · 8.78°W", region: "Alentejo Coast, Portugal",
+      vibeLabel: "Surging · Structural growth", vibeClass: "surge",
+      arr24: "64", arr7: "52", pvt: "58%", pvtCount: "37",
+      wow: "+41%", mom: "+88%", originDiv: "5.2",
+      trajectory: [22,24,25,28,26,24,28,32,35,38,35,32,38,42,45,48,42,46,52,55,58,54,56,60,62,64,62,58,60,64],
+      trajectoryAnno: { day: 27, label: "New high" },
+      hours: [1,0,0,0,0,0,1,3,6,10,14,18,22,24,20,16,14,12,15,18,14,10,6,3],
+      peakHour: 13,
+      dow: [8,9,10,11,12,9,5], dowLabels: ["Mo","Tu","We","Th","Fr","Sa","Su"], dowPeak: 4,
+      origins: [
+        { name: "Lisbon", codes: "LIS", pct: 32, count: "20", val: 88 },
+        { name: "London", codes: "LTN · LCY", pct: 22, count: "14", val: 68 },
+        { name: "Paris", codes: "LBG · CDG", pct: 18, count: "11", val: 55 },
+        { name: "New York", codes: "TEB · JFK", pct: 12, count: "8", val: 42 },
+        { name: "Madrid", codes: "MAD", pct: 8, count: "5", val: 32 },
+        { name: "Other", codes: "9 cities", pct: 8, count: "5", val: 30 }
+      ],
+      aircraft: [
+        { name: "Cessna Citation Latitude", cls: "Midsize · European favorite", count: 14 },
+        { name: "Embraer Phenom 300", cls: "Light · Lisbon shuttle", count: 11 },
+        { name: "Pilatus PC-24", cls: "Light jet · Short-field capable", count: 7 },
+        { name: "Bombardier Challenger 350", cls: "Super midsize · Transatlantic", count: 4 },
+        { name: "Dassault Falcon 7X", cls: "Heavy · NYC-origin", count: 2 }
+      ],
+      yoy: { this: "64", last: "15", delta: "+4.3× vs same week '25" },
+      feed: [
+        { time: "14:22z", aircraft: "Cessna Citation Latitude", route: "LTN → LPMT", tag: "private" },
+        { time: "13:48z", aircraft: "Embraer Phenom 300", route: "LIS → LPMT", tag: "private" },
+        { time: "13:15z", aircraft: "Pilatus PC-24", route: "LBG → LPMT", tag: "private" },
+        { time: "12:42z", aircraft: "Bombardier Challenger 350", route: "TEB → LPMT", tag: "private" },
+        { time: "12:08z", aircraft: "Dassault Falcon 7X", route: "JFK → LPMT", tag: "private" },
+        { time: "11:34z", aircraft: "Cessna Citation CJ3+", route: "MAD → LPMT", tag: "private" }
+      ],
+      forecast: "No sign of this slowing. Expect arrivals to cross <em>100/day</em> during summer peak for the first time on record. The structural shift — not seasonal — is the story here.",
+      note: "The fastest-growing destination on our index, and it's not a close race. Comporta's arrival curve has doubled year-over-year for three consecutive years, driven by property developments that quietly became destinations. The NYC-origin traffic — up 340% YoY — is the most striking signal. This is no longer a European insider secret.",
+      byline: "Go Tango Editorial · April 20",
+      peers: [
+        { name: "Mallorca", code: "LEPA · Spain", pvt: "34%", trend: "+22%", up: true },
+        { name: "Lisbon", code: "LPPT · Portugal", pvt: "22%", trend: "+18%", up: true },
+        { name: "Algarve (Faro)", code: "LPFR · Portugal", pvt: "28%", trend: "+14%", up: true }
+      ]
+    },
+    tulum: {
+      name: "Tulum", icao: "MMTO · MMUN", coords: "20.25°N · 87.40°W", region: "Riviera Maya",
+      vibeLabel: "Steady · Weekly Cycle", vibeClass: "steady",
+      arr24: "446", arr7: "438", pvt: "34%", pvtCount: "152",
+      wow: "+9%", mom: "−8%", originDiv: "6.2",
+      trajectory: [480,492,510,388,385,395,410,465,482,505,380,375,395,405,458,475,498,375,370,385,398,448,465,490,442,438,446,440,435,430],
+      trajectoryAnno: { day: 27, label: "This week" },
+      hours: [8,6,4,2,2,3,6,12,18,22,28,32,38,42,45,48,52,55,50,45,38,28,20,14],
+      peakHour: 16,
+      dow: [28,32,35,48,62,58,38], dowLabels: ["Mo","Tu","We","Th","Fr","Sa","Su"], dowPeak: 4,
+      origins: [
+        { name: "New York", codes: "JFK · EWR", pct: 22, count: "98", val: 82 },
+        { name: "Los Angeles", codes: "LAX", pct: 18, count: "80", val: 72 },
+        { name: "Atlanta", codes: "ATL", pct: 14, count: "62", val: 58 },
+        { name: "Miami", codes: "MIA", pct: 11, count: "49", val: 48 },
+        { name: "Chicago", codes: "ORD", pct: 9, count: "40", val: 40 },
+        { name: "Other", codes: "32 cities", pct: 26, count: "117", val: 68 }
+      ],
+      aircraft: [
+        { name: "Airbus A320 family", cls: "Narrowbody · Charter common", count: 124 },
+        { name: "Boeing 737-800", cls: "Narrowbody · JFK/LAX regulars", count: 98 },
+        { name: "Embraer Phenom 300", cls: "Light · Popular charter", count: 34 },
+        { name: "Gulfstream G550", cls: "Heavy · Exec parties", count: 18 },
+        { name: "Cessna Citation Sovereign", cls: "Midsize", count: 15 }
+      ],
+      yoy: { this: "446", last: "398", delta: "+12% vs same week '25" },
+      feed: [
+        { time: "23:48z", aircraft: "JetBlue A321", route: "JFK → TQO · B6287", tag: "commercial" },
+        { time: "23:22z", aircraft: "Gulfstream G550", route: "TEB → MMTL", tag: "private" },
+        { time: "22:55z", aircraft: "Delta 737-900", route: "ATL → CUN · DL2174", tag: "commercial" },
+        { time: "22:14z", aircraft: "Embraer Phenom 300", route: "HOU → MMTL", tag: "private" },
+        { time: "21:31z", aircraft: "American A321", route: "LAX → CUN · AA1982", tag: "commercial" },
+        { time: "20:58z", aircraft: "Bombardier Global 5000", route: "DAL → MMTL", tag: "private" }
+      ],
+      forecast: "Pattern remains remarkably predictable. Expect Thursday/Friday arrivals to spike near <em>3× Mon-Wed baseline</em> this week. The new TQO airport continues shifting volume from CUN.",
+      note: "A destination with an unusually clean weekly rhythm. Thursday through Saturday concentrates 60% of weekly arrivals, with the Monday morning departure cycle equally pronounced. The new TQO airport has gradually shifted the mix — commercial traffic is up 18% YoY while private is flat, suggesting Tulum is broadening rather than deepening.",
+      byline: "Go Tango Editorial · April 20",
+      peers: [
+        { name: "Cancún", code: "MMUN · Mexico", pvt: "11%", trend: "+3%", up: true },
+        { name: "Cabo San Lucas", code: "MMSD · Mexico", pvt: "44%", trend: "+2%", up: true },
+        { name: "Puerto Vallarta", code: "MMPR · Mexico", pvt: "28%", trend: "+9%", up: true }
+      ]
+    },
+    ibiza: {
+      name: "Ibiza", icao: "LEIB", coords: "38.87°N · 1.37°E", region: "Balearic Islands, Spain",
+      vibeLabel: "Building · Pre-season", vibeClass: "build",
+      arr24: "124", arr7: "98", pvt: "38%", pvtCount: "47",
+      wow: "+28%", mom: "+148%", originDiv: "5.8",
+      trajectory: [38,42,45,50,48,45,52,58,62,68,65,62,70,75,78,82,85,88,92,95,98,105,112,118,122,124,120,118,122,128],
+      trajectoryAnno: { day: 25, label: "Pre-open" },
+      hours: [0,0,0,0,0,0,1,3,6,10,15,20,25,28,32,35,32,28,22,18,12,8,4,2],
+      peakHour: 15,
+      dow: [12,14,16,20,24,22,16], dowLabels: ["Mo","Tu","We","Th","Fr","Sa","Su"], dowPeak: 4,
+      origins: [
+        { name: "Barcelona", codes: "BCN", pct: 24, count: "30", val: 78 },
+        { name: "London", codes: "LTN · LHR", pct: 18, count: "22", val: 62 },
+        { name: "Madrid", codes: "MAD", pct: 14, count: "17", val: 52 },
+        { name: "Geneva", codes: "GVA", pct: 12, count: "15", val: 44 },
+        { name: "Paris", codes: "LBG · CDG", pct: 10, count: "12", val: 38 },
+        { name: "Other", codes: "16 cities", pct: 22, count: "28", val: 62 }
+      ],
+      aircraft: [
+        { name: "Embraer Phenom 300", cls: "Light · European favorite", count: 18 },
+        { name: "Cessna Citation Latitude", cls: "Midsize · Regional hops", count: 14 },
+        { name: "Bombardier Challenger 350", cls: "Super midsize", count: 9 },
+        { name: "Dassault Falcon 7X", cls: "Heavy · UHNW favorite", count: 4 },
+        { name: "Vueling A320", cls: "Narrowbody · Barcelona shuttle", count: 42 }
+      ],
+      yoy: { this: "124", last: "88", delta: "+41% vs same week '25" },
+      feed: [
+        { time: "20:14z", aircraft: "Embraer Phenom 300", route: "LTN → IBZ", tag: "private" },
+        { time: "19:48z", aircraft: "Vueling A320", route: "BCN → IBZ · VY3901", tag: "commercial" },
+        { time: "19:22z", aircraft: "Bombardier Challenger 350", route: "GVA → IBZ", tag: "private" },
+        { time: "18:55z", aircraft: "Cessna Citation Latitude", route: "LBG → IBZ", tag: "private" },
+        { time: "18:18z", aircraft: "Dassault Falcon 7X", route: "MAD → IBZ", tag: "private" },
+        { time: "17:42z", aircraft: "Cessna Citation CJ3+", route: "LCY → IBZ", tag: "private" }
+      ],
+      forecast: "Staff and property managers ahead of peak. Real volume begins late May as clubs reopen. Expect <em>2-3× current levels</em> by mid-June, with peak typically 480/day in late July.",
+      note: "Pre-season is well underway — the property-management and villa-staff flow is running two weeks ahead of 2025's pace. Watch Geneva arrivals as the key leading indicator; Swiss-origin private traffic historically peaks before the party crowd lands. The Pacha and DC-10 reopenings in May will drive the step-change.",
+      byline: "Go Tango Editorial · April 20",
+      peers: [
+        { name: "Mykonos", code: "LGMK · Greece", pvt: "42%", trend: "+67%", up: true },
+        { name: "Formentera", code: "via LEIB · Spain", pvt: "52%", trend: "+32%", up: true },
+        { name: "St. Tropez", code: "LFTZ · France", pvt: "71%", trend: "+24%", up: true }
+      ]
+    },
+    aspen: {
+      name: "Aspen", icao: "KASE", coords: "39.22°N · 106.87°W", region: "Colorado Rockies",
+      vibeLabel: "Cooling · Season Tail", vibeClass: "cool",
+      arr24: "198", arr7: "235", pvt: "61%", pvtCount: "121",
+      wow: "−22%", mom: "−45%", originDiv: "4.8",
+      trajectory: [420,435,445,428,410,395,380,365,348,335,320,305,290,275,268,258,248,240,232,225,220,218,212,208,205,200,198,195,192,190],
+      trajectoryAnno: { day: 2, label: "Last peak" },
+      hours: [2,1,1,0,0,0,1,3,8,14,22,28,32,30,25,20,18,15,12,10,8,6,4,3],
+      peakHour: 12,
+      dow: [22,28,30,32,42,48,38], dowLabels: ["Mo","Tu","We","Th","Fr","Sa","Su"], dowPeak: 5,
+      origins: [
+        { name: "Los Angeles", codes: "VNY · LAX", pct: 28, count: "55", val: 85 },
+        { name: "Dallas", codes: "DAL · DFW", pct: 19, count: "38", val: 64 },
+        { name: "New York", codes: "TEB · JFK", pct: 17, count: "34", val: 58 },
+        { name: "Denver", codes: "APA · DEN", pct: 14, count: "28", val: 48 },
+        { name: "Houston", codes: "HOU · IAH", pct: 10, count: "20", val: 36 },
+        { name: "Other", codes: "19 cities", pct: 12, count: "23", val: 40 }
+      ],
+      aircraft: [
+        { name: "Bombardier Challenger 350", cls: "Super midsize · KASE favorite", count: 28 },
+        { name: "Gulfstream G450", cls: "Heavy · West Coast routes", count: 22 },
+        { name: "Cessna Citation CJ3", cls: "Light · Dallas regulars", count: 18 },
+        { name: "Embraer Phenom 300", cls: "Light · Fractional common", count: 17 },
+        { name: "Dassault Falcon 2000", cls: "Heavy · Long-range", count: 14 }
+      ],
+      yoy: { this: "198", last: "242", delta: "−18% vs same week '25" },
+      feed: [
+        { time: "22:41z", aircraft: "Bombardier Challenger 350", route: "VNY → ASE", tag: "private" },
+        { time: "22:08z", aircraft: "Gulfstream G450", route: "DAL → ASE", tag: "private" },
+        { time: "21:32z", aircraft: "SkyWest CRJ-700", route: "DEN → ASE · OO5431", tag: "commercial" },
+        { time: "21:05z", aircraft: "Cessna Citation CJ3+", route: "APA → ASE", tag: "private" },
+        { time: "20:21z", aircraft: "United ERJ-175", route: "ORD → ASE · UA5893", tag: "commercial" },
+        { time: "19:44z", aircraft: "Dassault Falcon 7X", route: "TEB → ASE", tag: "private" }
+      ],
+      forecast: "Ski season is wrapping on schedule. Expect a <em>10-day quiet window</em> through late April — potentially below 80 arrivals/day — before summer hiking and Music Festival traffic begins building in June.",
+      note: "The snow window is narrowing, and the data says it clearly. KASE arrivals peaked on April 2 and have declined steadily for 15 consecutive days. LA departures are falling fastest — down 34% week-over-week — signaling the California contingent is moving on. Dallas traffic remains stickiest, as usual.",
+      byline: "Go Tango Editorial · April 20",
+      peers: [
+        { name: "Vail", code: "KEGE · Colorado", pvt: "58%", trend: "−11%", up: false },
+        { name: "Jackson Hole", code: "KJAC · Wyoming", pvt: "49%", trend: "−8%", up: false },
+        { name: "St. Moritz", code: "LSZS · Switzerland", pvt: "88%", trend: "−16%", up: false }
+      ]
+    },
+    courchevel: {
+      name: "Courchevel", icao: "LFLJ", coords: "45.40°N · 6.64°E", region: "French Alps",
+      vibeLabel: "Cooling · Season End", vibeClass: "cool",
+      arr24: "42", arr7: "58", pvt: "82%", pvtCount: "34",
+      wow: "−18%", mom: "−52%", originDiv: "4.2",
+      trajectory: [105,108,98,92,88,82,78,74,68,64,60,58,55,52,50,52,48,46,45,48,46,48,45,44,42,42,40,38,35,32],
+      trajectoryAnno: { day: 3, label: "Peak" },
+      hours: [0,0,0,0,0,0,0,2,5,10,14,18,16,14,12,10,8,6,4,2,1,0,0,0],
+      peakHour: 11,
+      dow: [5,6,6,7,8,6,4], dowLabels: ["Mo","Tu","We","Th","Fr","Sa","Su"], dowPeak: 4,
+      origins: [
+        { name: "London", codes: "LTN · LHR", pct: 34, count: "14", val: 88 },
+        { name: "Paris", codes: "LBG · CDG", pct: 22, count: "9", val: 58 },
+        { name: "Geneva", codes: "GVA", pct: 16, count: "7", val: 48 },
+        { name: "Moscow", codes: "VKO", pct: 12, count: "5", val: 38 },
+        { name: "Nice", codes: "NCE", pct: 8, count: "3", val: 28 },
+        { name: "Other", codes: "6 cities", pct: 8, count: "3", val: 28 }
+      ],
+      aircraft: [
+        { name: "Pilatus PC-12", cls: "Turboprop · Courchevel specialist", count: 12 },
+        { name: "Cessna Citation Mustang", cls: "Light · Short-field king", count: 8 },
+        { name: "Embraer Phenom 300", cls: "Light · UK favorite", count: 6 },
+        { name: "Pilatus PC-24", cls: "Light jet · Rare short-field jet", count: 4 },
+        { name: "Dassault Falcon 2000", cls: "Heavy · Diverts to Chambéry", count: 2 }
+      ],
+      yoy: { this: "42", last: "52", delta: "−19% vs same week '25" },
+      feed: [
+        { time: "14:22z", aircraft: "Pilatus PC-12", route: "LTN → LFLJ", tag: "private" },
+        { time: "13:48z", aircraft: "Cessna Citation Mustang", route: "LBG → LFLJ", tag: "private" },
+        { time: "13:15z", aircraft: "Embraer Phenom 300", route: "LHR → LFLJ", tag: "private" },
+        { time: "12:42z", aircraft: "Pilatus PC-24", route: "GVA → LFLJ", tag: "private" },
+        { time: "12:08z", aircraft: "Pilatus PC-12", route: "VKO → LFLJ", tag: "private" },
+        { time: "11:34z", aircraft: "Cessna Citation CJ3", route: "NCE → LFLJ", tag: "private" }
+      ],
+      forecast: "The altiport closes for summer season end in mid-April. Expect traffic to <em>effectively zero</em> by May 1, then reopen with minimal volume in June for hiking.",
+      note: "Courchevel's season closes with remarkable precision each year, and 2026 is on schedule. The altiport's 525m sloped runway is one of the most demanding in Europe; by mid-April, only the specialists remain. UK arrivals are falling fastest — the school holiday window has closed. Russian traffic from VKO continues at low but steady volume.",
+      byline: "Go Tango Editorial · April 20",
+      peers: [
+        { name: "St. Moritz", code: "LSZS · Switzerland", pvt: "88%", trend: "−16%", up: false },
+        { name: "Megève", code: "LFHM · France", pvt: "76%", trend: "−22%", up: false },
+        { name: "Verbier (via Sion)", code: "LSGS · Switzerland", pvt: "68%", trend: "−14%", up: false }
+      ]
+    },
+    palmbeach: {
+      name: "Palm Beach", icao: "KPBI", coords: "26.68°N · 80.10°W", region: "South Florida",
+      vibeLabel: "Cooling · Season End", vibeClass: "cool",
+      arr24: "389", arr7: "432", pvt: "55%", pvtCount: "214",
+      wow: "−14%", mom: "−28%", originDiv: "5.2",
+      trajectory: [548,552,545,538,525,510,498,485,478,465,458,448,442,438,428,422,418,412,405,402,398,412,408,405,402,398,392,389,385,380],
+      trajectoryAnno: { day: 0, label: "Season peak" },
+      hours: [4,2,1,0,0,1,3,8,15,22,28,32,35,38,40,42,45,42,38,32,25,18,12,8],
+      peakHour: 16,
+      dow: [52,58,55,62,68,64,38], dowLabels: ["Mo","Tu","We","Th","Fr","Sa","Su"], dowPeak: 4,
+      origins: [
+        { name: "New York", codes: "TEB · JFK", pct: 24, count: "93", val: 82 },
+        { name: "Boston", codes: "BOS · BED", pct: 14, count: "54", val: 56 },
+        { name: "Greenwich", codes: "HPN · TEB", pct: 12, count: "47", val: 50 },
+        { name: "Philadelphia", codes: "PHL · PNE", pct: 9, count: "35", val: 42 },
+        { name: "Chicago", codes: "MDW · ORD", pct: 8, count: "31", val: 38 },
+        { name: "Other", codes: "17 cities", pct: 33, count: "129", val: 76 }
+      ],
+      aircraft: [
+        { name: "Cessna Citation Excel", cls: "Midsize · Northeast staple", count: 58 },
+        { name: "Gulfstream G450", cls: "Heavy · TEB regulars", count: 42 },
+        { name: "Bombardier Challenger 350", cls: "Super midsize", count: 38 },
+        { name: "Embraer Phenom 300", cls: "Light · Fractional common", count: 32 },
+        { name: "Dassault Falcon 2000", cls: "Heavy", count: 24 }
+      ],
+      yoy: { this: "389", last: "412", delta: "−6% vs same week '25" },
+      feed: [
+        { time: "21:42z", aircraft: "Gulfstream G450", route: "PBI → TEB", tag: "private" },
+        { time: "21:18z", aircraft: "JetBlue A320", route: "JFK → PBI · B6515", tag: "commercial" },
+        { time: "20:52z", aircraft: "Cessna Citation Excel", route: "PBI → HPN", tag: "private" },
+        { time: "20:24z", aircraft: "Bombardier Challenger 350", route: "PBI → BOS", tag: "private" },
+        { time: "19:48z", aircraft: "Delta 737-800", route: "BOS → PBI · DL2281", tag: "commercial" },
+        { time: "19:12z", aircraft: "Embraer Phenom 300", route: "PBI → TEB", tag: "private" }
+      ],
+      forecast: "Snowbird reversal is in full swing. Expect arrivals to keep declining toward a <em>summer floor near 220/day</em> by mid-May. Watch outbound traffic to TEB and BOS — already up 31%.",
+      note: "The annual snowbird migration is reversing, and the data is leading the popular narrative by a week or two. Northbound private traffic from KPBI to TEB and BOS is up 31% week-over-week — a classic canary for Palm Beach season end. The 389 arrivals today are still strong, but the trajectory is unmistakable.",
+      byline: "Go Tango Editorial · April 20",
+      peers: [
+        { name: "Naples FL", code: "KAPF · Florida", pvt: "68%", trend: "−12%", up: false },
+        { name: "Jupiter", code: "KSUA · Florida", pvt: "72%", trend: "−16%", up: false },
+        { name: "Nantucket", code: "KACK · Mass.", pvt: "64%", trend: "+8%", up: true }
+      ]
+    }
+  };
+
+  // ============ CHART BUILDERS ============
+  function buildChart(data, annotation) {
+    const w = 440, h = 140, pad = 10;
+    const min = Math.min(...data), max = Math.max(...data);
+    const range = max - min || 1;
+    const xStep = (w - pad*2) / (data.length - 1);
+    const points = data.map((v, i) => {
+      const x = pad + i * xStep;
+      const y = pad + (h - pad*2) * (1 - (v - min) / range);
+      return [x, y];
+    });
+    const linePath = points.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+    const areaPath = linePath + ` L${points[points.length-1][0].toFixed(1)},${h-pad} L${points[0][0].toFixed(1)},${h-pad} Z`;
+    const annoIdx = Math.min(annotation.day, data.length - 1);
+    const annoPt = points[annoIdx];
+    const lastPt = points[points.length-1];
+    return `
+      <svg class="d-chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#E8A317" stop-opacity="0.38"/>
+            <stop offset="100%" stop-color="#E8A317" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <line x1="${pad}" y1="${pad}" x2="${w-pad}" y2="${pad}" stroke="#252C37" stroke-dasharray="2 3"/>
+        <line x1="${pad}" y1="${h/2}" x2="${w-pad}" y2="${h/2}" stroke="#252C37" stroke-dasharray="2 3"/>
+        <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="#252C37"/>
+        <path d="${areaPath}" fill="url(#areaGrad)"/>
+        <path d="${linePath}" fill="none" stroke="#E8A317" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="4" fill="#E8A317"/>
+        <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="8" fill="#E8A317" opacity="0.22"/>
+        <line x1="${annoPt[0].toFixed(1)}" y1="${(annoPt[1]-4).toFixed(1)}" x2="${annoPt[0].toFixed(1)}" y2="${annoPt[1]+14}" stroke="#E8A317" stroke-width="1" stroke-dasharray="2 2" opacity="0.6"/>
+        <circle cx="${annoPt[0].toFixed(1)}" cy="${annoPt[1].toFixed(1)}" r="3" fill="none" stroke="#E8A317" stroke-width="1.2"/>
+        <text style="font-family: 'Geist Mono'; font-size: 9px; fill: #E8A317;" x="${annoPt[0].toFixed(1)}" y="${annoPt[1]+24}" text-anchor="middle">${annotation.label}</text>
+        <text style="font-family: 'Geist Mono'; font-size: 9px; fill: #6B6557;" x="${pad}" y="${h-2}" text-anchor="start">30d ago</text>
+        <text style="font-family: 'Geist Mono'; font-size: 9px; fill: #6B6557;" x="${w-pad}" y="${h-2}" text-anchor="end">today</text>
+        <text style="font-family: 'Geist Mono'; font-size: 9px; fill: #6B6557;" x="${pad}" y="${pad+3}" text-anchor="start">${max}</text>
+        <text style="font-family: 'Geist Mono'; font-size: 9px; fill: #6B6557;" x="${pad}" y="${h-pad-3}" text-anchor="start">${min}</text>
+      </svg>
+    `;
+  }
+
+  function buildHours(hours, peakHour) {
+    const max = Math.max(...hours);
+    return hours.map((v, i) => {
+      const pct = (v / max) * 100;
+      const peak = Math.abs(i - peakHour) <= 1 ? 'peak' : '';
+      return `<div class="d-hour-bar ${peak}" style="height: ${Math.max(pct, 3)}%"></div>`;
+    }).join('');
+  }
+
+  function buildDow(dow, labels, peakIdx) {
+    const max = Math.max(...dow);
+    return dow.map((v, i) => {
+      const pct = (v / max) * 100;
+      const isPeak = i === peakIdx;
+      const isWeekend = (i === 5 || i === 6) && !isPeak;
+      const cls = isPeak ? 'peak' : (isWeekend ? 'weekend' : '');
+      return `
+        <div class="d-dow-col">
+          <div class="d-dow-bar-wrap">
+            <div class="d-dow-bar ${cls}" style="height: ${pct}%"></div>
+          </div>
+          <div class="d-dow-label ${isPeak ? 'peak' : ''}">${labels[i]}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ============ DETAIL OPEN ============
+  function openDetail(d) {
+    if (!d) return;
+    const wowClass = d.wow.startsWith('+') ? 'up' : 'down';
+    const momClass = d.mom.startsWith('+') ? 'up' : 'down';
+    const peakHourStr = d.peakHour < 12 ? `${d.peakHour}:00` : (d.peakHour === 12 ? '12:00' : `${d.peakHour-12}:00 PM`);
+    const peakDayFull = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"][d.dowPeak];
+
+    document.getElementById('detail-body').innerHTML = `
+      <div class="d-hero">
+        <span class="d-vibe ${d.vibeClass}">${d.vibeLabel}</span>
+        <h2 class="d-name">${d.name}</h2>
+        <div class="d-meta">${d.icao}<span class="d-meta-sep">·</span>${d.coords}<span class="d-meta-sep">·</span>${d.region}</div>
+      </div>
+
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">At a glance</span>
+          <span class="d-section-meta">Live · 04:17z</span>
+        </div>
+        <div class="d-stats">
+          <div class="d-stat">
+            <div class="d-stat-label">24h arrivals</div>
+            <div class="d-stat-value">${d.arr24}</div>
+            <div class="d-stat-delta ${wowClass}">${d.wow} wow</div>
+          </div>
+          <div class="d-stat">
+            <div class="d-stat-label">7d avg</div>
+            <div class="d-stat-value">${d.arr7}</div>
+            <div class="d-stat-delta ${momClass}">${d.mom} mom</div>
+          </div>
+          <div class="d-stat">
+            <div class="d-stat-label">Private</div>
+            <div class="d-stat-value accent">${d.pvt}</div>
+            <div class="d-stat-delta" style="color: var(--text-dim);">${d.pvtCount} flights</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">30-day trajectory</span>
+          <span class="d-section-meta">Daily arrivals</span>
+        </div>
+        ${buildChart(d.trajectory, d.trajectoryAnno)}
+      </div>
+
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">The pulse</span>
+          <span class="d-section-meta">When they land</span>
+        </div>
+        <div style="margin-bottom: 6px; font-family: 'Geist Mono'; font-size: 10px; color: var(--text-dim); letter-spacing: 0.05em;">Hour of day · UTC</div>
+        <div class="d-hours">${buildHours(d.hours, d.peakHour)}</div>
+        <div class="d-hour-labels"><span>00z</span><span>06z</span><span>12z</span><span>18z</span></div>
+        <div class="d-callout">Peak arrivals around <strong>${peakHourStr} UTC</strong>.</div>
+        <div style="margin-top: 22px; margin-bottom: 6px; font-family: 'Geist Mono'; font-size: 10px; color: var(--text-dim); letter-spacing: 0.05em;">Day of week · 7d</div>
+        <div class="d-dow">${buildDow(d.dow, d.dowLabels, d.dowPeak)}</div>
+        <div class="d-callout"><strong>${peakDayFull}</strong> is the dominant arrival day.</div>
+      </div>
+
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">Where they're coming from</span>
+          <span class="d-section-meta">7-day · ${d.originDiv} diversity</span>
+        </div>
+        <div class="d-origins">
+          ${d.origins.map(o => `
+            <div class="d-origin">
+              <div><div class="d-origin-name">${o.name}</div><div class="d-origin-sub">${o.codes}</div></div>
+              <div class="d-origin-bar"><div class="d-origin-bar-fill" style="width: ${o.val}%"></div></div>
+              <div class="d-origin-val">${o.pct}%<small>${o.count} fl</small></div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">What's landing</span>
+          <span class="d-section-meta">Top 5 · 7d</span>
+        </div>
+        <div class="d-aircraft">
+          ${d.aircraft.map(a => `
+            <div class="d-craft">
+              <div><div class="d-craft-name">${a.name}</div><div class="d-craft-class">${a.cls}</div></div>
+              <div class="d-craft-count">${a.count}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">Same week, last year</span>
+          <span class="d-section-meta">YoY</span>
+        </div>
+        <div class="d-yoy">
+          <div class="d-yoy-cell">
+            <div class="d-yoy-year">2025</div>
+            <div class="d-yoy-val" style="color: var(--text-dim);">${d.yoy.last}</div>
+            <div class="d-yoy-sub">arrivals/day</div>
+          </div>
+          <div class="d-yoy-cell this">
+            <div class="d-yoy-year">2026 · NOW</div>
+            <div class="d-yoy-val">${d.yoy.this}</div>
+            <div class="d-yoy-sub">arrivals/day</div>
+          </div>
+        </div>
+        <div class="d-yoy-delta">${d.yoy.delta}</div>
+      </div>
+
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">Recent notable arrivals</span>
+          <span class="d-section-meta">Live feed</span>
+        </div>
+        <div class="d-feed">
+          ${d.feed.map(f => `
+            <div class="d-feed-item">
+              <div class="d-feed-time">${f.time}</div>
+              <div class="d-feed-main">
+                <div class="d-feed-aircraft">${f.aircraft}</div>
+                <div class="d-feed-route">${f.route}</div>
+              </div>
+              <div class="d-feed-tag ${f.tag}">${f.tag === 'private' ? 'PVT' : 'COM'}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="d-callout" style="margin-top: 12px;">Tail numbers and operator details available with <strong>Go Tango Pro</strong>.</div>
+      </div>
+
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">What to expect</span>
+          <span class="d-section-meta">7-day forecast</span>
+        </div>
+        <div class="d-forecast">
+          <div class="d-forecast-head">◉ Go Tango projection</div>
+          <p>${d.forecast}</p>
+        </div>
+      </div>
+
+      <div class="d-section">
+        <div class="d-section-head"><span class="d-section-label">Editor's note</span></div>
+        <p class="d-note">${d.note}</p>
+        <div class="d-note-byline">— ${d.byline}</div>
+      </div>
+
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">Similar destinations</span>
+          <span class="d-section-meta">Peers</span>
+        </div>
+        <div class="d-peers">
+          ${d.peers.map(p => `
+            <div class="d-peer" onclick="showToast('Loading ${p.name}…')">
+              <div><div class="d-peer-name">${p.name}</div><div class="d-peer-code">${p.code}</div></div>
+              <div class="d-peer-pvt">${p.pvt}<small>PVT</small></div>
+              <div class="d-peer-trend ${p.up ? 'up' : 'down'}">${p.trend}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="d-section">
+        <div class="d-locked">
+          <div class="d-locked-icon">GT</div>
+          <div class="d-locked-title">Go deeper with Go Tango Pro</div>
+          <div class="d-locked-desc">Unlimited watchlist, tail-number resolution, empty-leg signal, 2 years of history, and the full origin flow map.</div>
+          <div class="d-locked-btn" onclick="showToast('Pro · $14/mo · coming soon')">Try Pro free for 14 days →</div>
+        </div>
+      </div>
+
+      <div class="d-actions">
+        <button class="d-btn-primary" onclick="addWatch()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+          Add to Watchlist
+        </button>
+        <button class="d-btn-icon" onclick="showToast('Link copied')" title="Share">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+        </button>
+        <button class="d-btn-icon" onclick="closeDetail()" title="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+    `;
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('sheet').classList.add('open');
+    document.getElementById('sheet').scrollTop = 0;
+  }
+
+  function closeDetail() {
+    document.getElementById('overlay').classList.remove('open');
+    document.getElementById('sheet').classList.remove('open');
+  }
+
+  // ============ DEST CLICKS ============
+  document.querySelectorAll('[data-dest]').forEach(el => {
+    el.addEventListener('click', () => {
+      const key = el.dataset.dest;
+      if (destData[key]) openDetail(destData[key]);
+    });
+  });
+
+  // ============ TOASTS ============
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  function addWatch() {
+    showToast('✓ Added to watchlist');
+    closeDetail();
+  }
+
+  function signup() {
+    const email = document.getElementById('brief-email').value;
+    if (email && email.includes('@')) {
+      showToast('✓ Welcome aboard. First brief Tuesday.');
+      document.getElementById('brief-email').value = '';
+    } else {
+      showToast('Please enter a valid email');
+    }
+  }
+</script>
+</body>
+</html>
