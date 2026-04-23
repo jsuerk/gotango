@@ -1427,6 +1427,8 @@
     transform: translateX(-50%) translateY(0);
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 </head>
 <body>
 <div class="app">
@@ -1475,57 +1477,7 @@
       <span class="section-meta">20 destinations · 04:17z</span>
     </div>
     <div class="world-strip">
-      <svg viewBox="0 0 480 150" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <radialGradient id="dotGlow">
-            <stop offset="0%" stop-color="#E8A317" stop-opacity="0.8"/>
-            <stop offset="100%" stop-color="#E8A317" stop-opacity="0"/>
-          </radialGradient>
-          <radialGradient id="coolGlow">
-            <stop offset="0%" stop-color="#E07856" stop-opacity="0.6"/>
-            <stop offset="100%" stop-color="#E07856" stop-opacity="0"/>
-          </radialGradient>
-        </defs>
-        <g opacity="0.16" stroke="#A8A293" stroke-width="0.4" fill="none">
-          <path d="M40,45 Q70,35 100,47 T160,55 L180,65 L155,80 Q120,85 90,75 T40,65 Z"/>
-          <path d="M180,60 L220,45 Q260,35 300,50 L340,60 Q360,80 340,95 L290,100 Q240,95 200,85 Z"/>
-          <path d="M345,55 Q380,50 420,60 L440,80 Q420,100 380,95 T345,85 Z"/>
-          <path d="M210,95 Q230,105 240,125 Q220,133 200,123 T190,105 Z"/>
-        </g>
-        <!-- St Barts -->
-        <circle cx="92" cy="75" r="15" fill="url(#dotGlow)"/>
-        <circle cx="92" cy="75" r="3.5" fill="#E8A317"/>
-        <!-- Palm Beach -->
-        <circle cx="78" cy="62" r="7" fill="url(#coolGlow)"/>
-        <circle cx="78" cy="62" r="2" fill="#E07856"/>
-        <!-- Tulum -->
-        <circle cx="70" cy="74" r="11" fill="url(#dotGlow)"/>
-        <circle cx="70" cy="74" r="3" fill="#E8A317"/>
-        <!-- Aspen -->
-        <circle cx="55" cy="50" r="7" fill="url(#coolGlow)"/>
-        <circle cx="55" cy="50" r="2" fill="#E07856"/>
-        <!-- Hamptons -->
-        <circle cx="105" cy="45" r="12" fill="url(#dotGlow)"/>
-        <circle cx="105" cy="45" r="3" fill="#E8A317"/>
-        <!-- St Tropez -->
-        <circle cx="225" cy="50" r="13" fill="url(#dotGlow)"/>
-        <circle cx="225" cy="50" r="3.2" fill="#E8A317"/>
-        <!-- Mykonos -->
-        <circle cx="260" cy="60" r="14" fill="url(#dotGlow)"/>
-        <circle cx="260" cy="60" r="3.2" fill="#E8A317"/>
-        <!-- Ibiza -->
-        <circle cx="212" cy="55" r="11" fill="url(#dotGlow)"/>
-        <circle cx="212" cy="55" r="2.8" fill="#E8A317"/>
-        <!-- Comporta -->
-        <circle cx="195" cy="60" r="10" fill="url(#dotGlow)"/>
-        <circle cx="195" cy="60" r="2.5" fill="#E8A317"/>
-        <!-- Dubai -->
-        <circle cx="300" cy="72" r="8" fill="rgba(94,170,168,0.5)"/>
-        <circle cx="300" cy="72" r="2" fill="#5EAAA8"/>
-        <!-- Courchevel -->
-        <circle cx="220" cy="42" r="7" fill="url(#coolGlow)"/>
-        <circle cx="220" cy="42" r="2" fill="#E07856"/>
-      </svg>
+      <svg id="world-map" viewBox="0 0 480 150" preserveAspectRatio="xMidYMid slice"></svg>
       <div class="world-key">
         <span><span class="dot" style="background:#E8A317"></span>Surge</span>
         <span><span class="dot" style="background:#5EAAA8"></span>Steady</span>
@@ -2644,6 +2596,77 @@
       showToast('Please enter a valid email');
     }
   }
+
+  // ============ WORLD MAP ============
+  const WORLD_TOPO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
+
+  const mapDestinations = [
+    { name: 'St. Barts',    lng: -62.84, lat: 17.90, type: 'surge', size: 14 },
+    { name: 'Hamptons',     lng: -72.25, lat: 40.96, type: 'surge', size: 12 },
+    { name: 'Tulum',        lng: -87.40, lat: 20.25, type: 'surge', size: 11 },
+    { name: 'Mykonos',      lng:  25.35, lat: 37.43, type: 'surge', size: 14 },
+    { name: 'Ibiza',        lng:   1.37, lat: 38.87, type: 'surge', size: 11 },
+    { name: 'St. Tropez',   lng:   6.40, lat: 43.27, type: 'surge', size: 13 },
+    { name: 'Comporta',     lng:  -8.78, lat: 38.38, type: 'surge', size: 10 },
+    { name: 'Dubai',        lng:  55.36, lat: 25.25, type: 'steady', size: 8 },
+    { name: 'Cabo',         lng:-109.92, lat: 22.89, type: 'steady', size: 8 },
+    { name: 'Aspen',        lng:-106.87, lat: 39.22, type: 'cool', size: 7 },
+    { name: 'Palm Beach',   lng: -80.10, lat: 26.68, type: 'cool', size: 7 },
+    { name: 'Courchevel',   lng:   6.64, lat: 45.40, type: 'cool', size: 7 }
+  ];
+
+  const mapColors = { surge: '#E8A317', steady: '#5EAAA8', cool: '#E07856' };
+  const mapGlowOpacity = { surge: 0.75, steady: 0.5, cool: 0.55 };
+
+  function renderWorldMap() {
+    const svg = d3.select('#world-map');
+    if (svg.empty()) return;
+
+    const width = 480, height = 150;
+    const projection = d3.geoEquirectangular()
+      .scale(76)
+      .translate([width / 2, height / 2 + 8]);
+    const pathGen = d3.geoPath().projection(projection);
+
+    d3.json(WORLD_TOPO_URL).then(world => {
+      const land = topojson.feature(world, world.objects.land);
+
+      svg.append('g')
+        .selectAll('path')
+        .data([land])
+        .join('path')
+        .attr('d', pathGen)
+        .attr('fill', '#1E242E')
+        .attr('stroke', '#313945')
+        .attr('stroke-width', 0.4)
+        .attr('opacity', 0.85);
+
+      const dotGroup = svg.append('g').attr('class', 'map-dots');
+      mapDestinations.forEach(d => {
+        const [x, y] = projection([d.lng, d.lat]);
+        const color = mapColors[d.type];
+        const opac = mapGlowOpacity[d.type];
+
+        dotGroup.append('circle')
+          .attr('cx', x).attr('cy', y).attr('r', d.size)
+          .attr('fill', color).attr('opacity', 0)
+          .transition().duration(600).attr('opacity', opac * 0.3);
+
+        dotGroup.append('circle')
+          .attr('cx', x).attr('cy', y).attr('r', d.size * 0.55)
+          .attr('fill', color).attr('opacity', 0)
+          .transition().duration(600).attr('opacity', opac * 0.6);
+
+        dotGroup.append('circle')
+          .attr('cx', x).attr('cy', y)
+          .attr('r', d.type === 'surge' ? 3 : 2)
+          .attr('fill', color).attr('opacity', 0)
+          .transition().duration(600).attr('opacity', 1);
+      });
+    }).catch(err => console.error('Map load failed:', err));
+  }
+
+  renderWorldMap();
 </script>
 </body>
 </html>
