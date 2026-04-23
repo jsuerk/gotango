@@ -1,79 +1,145 @@
+const TOKEN_URL =
+  'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token';
+const ARRIVALS_BASE = 'https://opensky-network.org/api/flights/arrival';
+
+function errorCauseString(error) {
+  if (!(error instanceof Error) || error.cause == null) return null;
+  const c = error.cause;
+  if (typeof c === 'object' && c !== null) {
+    if ('code' in c && c.code != null) return String(c.code);
+    if ('message' in c && c.message != null) return String(c.message);
+  }
+  return String(c);
+}
+
+function failureBody(stage, error, raw_status) {
+  const msg = error instanceof Error ? error.message : String(error);
+  return {
+    ok: false,
+    airport: 'TFFJ',
+    stage,
+    error: msg,
+    error_name: error instanceof Error ? error.name : null,
+    error_cause: errorCauseString(error),
+    raw_status: raw_status ?? null,
+  };
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
   try {
-    const username = process.env.OPENSKY_USERNAME;
-    const password = process.env.OPENSKY_PASSWORD;
+    const clientId = process.env.OPENSKY_CLIENT_ID;
+    const clientSecret = process.env.OPENSKY_CLIENT_SECRET;
 
-    if (!username || !password) {
-      return res.status(200).json({
-        ok: false,
-        airport: 'TFFJ',
-        error:
-          'Missing OpenSky credentials: set OPENSKY_USERNAME and OPENSKY_PASSWORD.',
-        raw_status: null,
+    if (!clientId || !clientSecret) {
+      const err = new Error(
+        'Missing OpenSky credentials: set OPENSKY_CLIENT_ID and OPENSKY_CLIENT_SECRET.'
+      );
+      console.error('test-arrivals:', err);
+      return res.status(200).json(failureBody('token', err, null));
+    }
+
+    console.log('OpenSky token endpoint:', TOKEN_URL);
+
+    const tokenBody = new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: clientId,
+      client_secret: clientSecret,
+    });
+
+    const tokenRes = await fetch(TOKEN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: tokenBody.toString(),
+    });
+
+    console.log('Token response status:', tokenRes.status);
+
+    if (!tokenRes.ok) {
+      let detail = '';
+      try {
+        detail = (await tokenRes.text()).slice(0, 500);
+      } catch {
+        /* ignore */
+      }
+      const err = new Error(
+        detail || `Token request failed with HTTP ${tokenRes.status}.`
+      );
+      console.error('test-arrivals token error:', err.message, {
+        status: tokenRes.status,
       });
+      return res.status(200).json(failureBody('token', err, tokenRes.status));
+    }
+
+    let tokenJson;
+    try {
+      tokenJson = await tokenRes.json();
+    } catch (parseErr) {
+      console.error('test-arrivals token JSON parse:', parseErr);
+      return res
+        .status(200)
+        .json(failureBody('token', parseErr, tokenRes.status));
+    }
+
+    const access_token = tokenJson?.access_token;
+    if (!access_token || typeof access_token !== 'string') {
+      const err = new Error('Token response missing access_token.');
+      console.error('test-arrivals:', err, { tokenKeys: Object.keys(tokenJson || {}) });
+      return res.status(200).json(failureBody('token', err, tokenRes.status));
     }
 
     const end = Math.floor(Date.now() / 1000);
     const begin = end - 24 * 60 * 60;
 
-    const url = new URL('https://opensky-network.org/api/flights/arrival');
-    url.searchParams.set('airport', 'TFFJ');
-    url.searchParams.set('begin', String(begin));
-    url.searchParams.set('end', String(end));
+    const arrivalsUrl = new URL(ARRIVALS_BASE);
+    arrivalsUrl.searchParams.set('airport', 'TFFJ');
+    arrivalsUrl.searchParams.set('begin', String(begin));
+    arrivalsUrl.searchParams.set('end', String(end));
 
-    const basic = Buffer.from(`${username}:${password}`).toString('base64');
+    console.log('OpenSky arrivals URL:', arrivalsUrl.toString());
+    console.log('Arrivals window (unix):', { begin, end });
 
-    const openskyRes = await fetch(url.toString(), {
+    const arrivalsRes = await fetch(arrivalsUrl.toString(), {
       headers: {
-        Authorization: `Basic ${basic}`,
+        Authorization: `Bearer ${access_token}`,
       },
     });
 
-    const raw_status = openskyRes.status;
+    console.log('Arrivals response status:', arrivalsRes.status);
 
-    if (!openskyRes.ok) {
+    const raw_status = arrivalsRes.status;
+
+    if (!arrivalsRes.ok) {
       let detail = '';
       try {
-        const text = await openskyRes.text();
-        if (text) detail = text.slice(0, 300);
+        detail = (await arrivalsRes.text()).slice(0, 500);
       } catch {
         /* ignore */
       }
-      const error =
-        detail ||
-        (openskyRes.status === 401 || openskyRes.status === 403
-          ? 'OpenSky rejected credentials or access denied.'
-          : `OpenSky request failed with HTTP ${openskyRes.status}.`);
-
-      return res.status(200).json({
-        ok: false,
-        airport: 'TFFJ',
-        error,
-        raw_status,
+      const err = new Error(
+        detail || `Arrivals request failed with HTTP ${arrivalsRes.status}.`
+      );
+      console.error('test-arrivals arrivals error:', err.message, {
+        status: arrivalsRes.status,
       });
+      return res.status(200).json(failureBody('arrivals', err, raw_status));
     }
 
     let body;
     try {
-      body = await openskyRes.json();
-    } catch {
-      return res.status(200).json({
-        ok: false,
-        airport: 'TFFJ',
-        error: 'OpenSky returned a response that is not valid JSON.',
-        raw_status,
-      });
+      body = await arrivalsRes.json();
+    } catch (parseErr) {
+      console.error('test-arrivals arrivals JSON parse:', parseErr);
+      return res.status(200).json(failureBody('arrivals', parseErr, raw_status));
     }
 
     if (!Array.isArray(body)) {
-      return res.status(200).json({
-        ok: false,
-        airport: 'TFFJ',
-        error: 'OpenSky response was not a JSON array of arrivals.',
-        raw_status,
-      });
+      const err = new Error('OpenSky response was not a JSON array of arrivals.');
+      console.error('test-arrivals:', err);
+      return res.status(200).json(failureBody('arrivals', err, raw_status));
     }
 
     return res.status(200).json({
@@ -87,13 +153,7 @@ export default async function handler(req, res) {
       raw_status,
     });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : String(err);
-    return res.status(200).json({
-      ok: false,
-      airport: 'TFFJ',
-      error: message || 'Unknown error while fetching OpenSky arrivals.',
-      raw_status: null,
-    });
+    console.error('test-arrivals unexpected error:', err);
+    return res.status(200).json(failureBody('unknown', err, null));
   }
 }
