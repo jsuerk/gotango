@@ -39,17 +39,22 @@ export default async function handler(req, res) {
       return res.status(200).json(failureBody('config', err, null));
     }
 
-    const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000);
-    const start = startDate.toISOString();
-    const end = endDate.toISOString();
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const formatTime = (d) => d.toISOString().replace(/\.\d{3}Z$/, 'Z');
+    const start = formatTime(yesterday);
+    const end = formatTime(now);
 
-    const url = new URL(AEROAPI_ARRIVALS);
-    url.searchParams.set('start', start);
-    url.searchParams.set('end', end);
-    url.searchParams.set('max_pages', '1');
+    console.log('FlightAware start/end sent:', { start, end });
 
-    console.log('FlightAware arrivals request URL:', url.toString());
+    const params = new URLSearchParams({
+      start: start,
+      end: end,
+      max_pages: '1',
+    });
+    const url = `${AEROAPI_ARRIVALS}?${params.toString()}`;
+
+    console.log('FlightAware EXACT request URL:', url);
 
     const controller = new AbortController();
     const timeoutMs = 25_000;
@@ -57,7 +62,7 @@ export default async function handler(req, res) {
 
     let arrivalsRes;
     try {
-      arrivalsRes = await fetch(url.toString(), {
+      arrivalsRes = await fetch(url, {
         method: 'GET',
         signal: controller.signal,
         headers: {
