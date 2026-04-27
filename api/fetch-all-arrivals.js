@@ -1,3 +1,4 @@
+import { kv } from '@vercel/kv';
 import { DESTINATIONS } from '../destinations.config.js';
 
 const TIMEOUT_MS = 25_000;
@@ -217,7 +218,7 @@ export default async function handler(req, res) {
       `[fetch-all-arrivals] Summary: total_destinations=${total_destinations} successful=${successful} failed=${failed} total_arrivals_across_all=${total_arrivals_across_all} total_api_calls_made=${totalApiCalls.count} duration_ms=${duration_ms}`,
     );
 
-    return res.status(200).json({
+    const responseBody = {
       ok: true,
       total_destinations,
       successful,
@@ -227,7 +228,45 @@ export default async function handler(req, res) {
       fetched_at,
       duration_ms,
       destinations,
-    });
+      kv_saved: false,
+    };
+
+    const okDestinationCount = destinations.filter((d) => d.ok).length;
+    const sanityOkDestinations = okDestinationCount >= 15;
+    const sanityTotalArrivals = total_arrivals_across_all > 0;
+
+    if (!sanityOkDestinations || !sanityTotalArrivals) {
+      const parts = [];
+      if (!sanityOkDestinations) {
+        parts.push(
+          `only ${okDestinationCount} of 20 destinations have ok: true (need at least 15)`,
+        );
+      }
+      if (!sanityTotalArrivals) {
+        parts.push('total_arrivals_across_all is not greater than 0');
+      }
+      console.warn('Sanity check failed, skipping save:', parts.join('; '));
+    } else {
+      console.log('Sanity check passed, saving to KV...');
+      try {
+        const savedAt = new Date().toISOString();
+        const latestPayload = { ...responseBody, kv_saved: true };
+        await kv.set('gotango:arrivals:latest', latestPayload);
+        await kv.set('gotango:arrivals:meta', {
+          saved_at: savedAt,
+          successful_count: successful,
+          total_arrivals: total_arrivals_across_all,
+          duration_ms,
+        });
+        responseBody.kv_saved = true;
+        console.log('Saved to KV successfully');
+      } catch (kvErr) {
+        const msg = kvErr instanceof Error ? kvErr.message : String(kvErr);
+        console.log(`Failed to save to KV: ${msg}`);
+      }
+    }
+
+    return res.status(200).json(responseBody);
   } catch (err) {
     console.error('fetch-all-arrivals unexpected error:', err);
     return res.status(200).json({
