@@ -55,9 +55,9 @@ function aircraftBreakdownFromArrivals(arrivals) {
 function flightTimeMs(flight) {
   const candidates = [
     flight?.actual_on,
-    flight?.arrival_time,
-    flight?.scheduled_on,
     flight?.estimated_on,
+    flight?.scheduled_on,
+    flight?.arrival_time,
     flight?.filed_ete,
   ];
   for (const candidate of candidates) {
@@ -73,10 +73,10 @@ function recentFlightsFromArrivals(arrivals) {
     .sort((a, b) => flightTimeMs(b) - flightTimeMs(a))
     .slice(0, 15)
     .map((f) => ({
-      arrival_time: f?.actual_on || f?.arrival_time || f?.scheduled_on || f?.estimated_on || null,
-      callsign: f?.ident || f?.callsign || null,
+      arrival_time: f?.actual_on || f?.estimated_on || f?.scheduled_on || f?.arrival_time || null,
+      callsign: f?.ident || f?.ident_icao || null,
       aircraft_type: f?.aircraft_type || null,
-      origin_icao: f?.origin?.code_icao || f?.origin?.code || null,
+      origin_icao: f?.origin?.code_icao || null,
       origin_name: f?.origin?.name || f?.origin?.city || null,
       is_general_aviation: classifyType(f) === 'ga',
     }));
@@ -188,7 +188,7 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls) {
   const stats = countTypes(combined);
   const { general_aviation_count, commercial_count, unknown_type_count } = stats;
   const top_origins = topOriginsFromArrivals(combined);
-  const aircraft_breakdown = aircraftBreakdownFromArrivals(combined);
+  const top_aircraft = aircraftBreakdownFromArrivals(combined);
   const recent_flights = recentFlightsFromArrivals(combined);
   const sample_flight = combined.length > 0 ? combined[0] : null;
   const fetched_at = new Date().toISOString();
@@ -206,7 +206,7 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls) {
     commercial_count: destOk ? commercial_count : 0,
     unknown_type_count: destOk ? unknown_type_count : 0,
     top_origins: destOk ? top_origins : [],
-    aircraft_breakdown: destOk ? aircraft_breakdown : [],
+    top_aircraft: destOk ? top_aircraft : [],
     recent_flights: destOk ? recent_flights : [],
     sample_flight,
     errors,
