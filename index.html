@@ -1500,29 +1500,7 @@
       <span class="section-meta">Last 7 days</span>
     </div>
 
-    <div class="cooling-list">
-      <div class="cooling-card" data-dest="aspen">
-        <div>
-          <div class="cooling-name">Aspen · <span style="font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--text-faint);">KASE</span></div>
-          <div class="cooling-why">Ski season tail — fifteen straight days of decline</div>
-        </div>
-        <div class="cooling-pct">−22%</div>
-      </div>
-      <div class="cooling-card" data-dest="courchevel">
-        <div>
-          <div class="cooling-name">Courchevel · <span style="font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--text-faint);">LFLJ</span></div>
-          <div class="cooling-why">Alpine season ending; final UK arrivals this weekend</div>
-        </div>
-        <div class="cooling-pct">−18%</div>
-      </div>
-      <div class="cooling-card" data-dest="palmbeach">
-        <div>
-          <div class="cooling-name">Palm Beach · <span style="font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--text-faint);">KPBI</span></div>
-          <div class="cooling-why">Snowbird reversal — northbound traffic up 31%</div>
-        </div>
-        <div class="cooling-pct">−14%</div>
-      </div>
-    </div>
+    <div class="cooling-list" id="cooling-down-list"></div>
 
     <!-- SLEEPER -->
     <div class="section-head">
@@ -1959,6 +1937,93 @@
     }
   }
 
+  function renderCoolingDown(data) {
+    const container = document.getElementById('cooling-down-list');
+    if (!container) return;
+
+    try {
+      container.innerHTML = '';
+      if (!data || !data.data || !Array.isArray(data.data.destinations)) return;
+
+      const destinations = data.data.destinations;
+      const inactive = destinations.filter(dest => Number(dest && dest.arrivals_count) === 0);
+      const sortedByLowestArrivals = destinations
+        .slice()
+        .sort((a, b) => Number(a && a.arrivals_count || 0) - Number(b && b.arrivals_count || 0));
+
+      const coolingPicks = [];
+      const seenIds = new Set();
+
+      inactive.forEach(dest => {
+        if (coolingPicks.length >= 3) return;
+        const destId = String(dest && dest.id || '');
+        if (seenIds.has(destId)) return;
+        seenIds.add(destId);
+        coolingPicks.push(dest);
+      });
+
+      sortedByLowestArrivals.forEach(dest => {
+        if (coolingPicks.length >= 3) return;
+        const destId = String(dest && dest.id || '');
+        if (seenIds.has(destId)) return;
+        seenIds.add(destId);
+        coolingPicks.push(dest);
+      });
+
+      coolingPicks.forEach(dest => {
+        const arrivalsCount = Number(dest && dest.arrivals_count || 0);
+        const destName = String(dest && dest.name || '');
+        const destId = String(dest && dest.id || '');
+        const icaoCode = Array.isArray(dest && dest.icao) ? String(dest.icao[0] || '') : '';
+
+        let whyLine = '';
+        if (arrivalsCount === 0) {
+          whyLine = 'No recorded arrivals — destination quiet';
+        } else if (arrivalsCount <= 2) {
+          whyLine = `Very low activity — only ${arrivalsCount} arrivals`;
+        } else {
+          whyLine = `Lower volume — ${arrivalsCount} total arrivals`;
+        }
+
+        const card = document.createElement('div');
+        card.className = 'cooling-card';
+        card.dataset.dest = destId;
+
+        const leftCol = document.createElement('div');
+
+        const nameRow = document.createElement('div');
+        nameRow.className = 'cooling-name';
+        nameRow.appendChild(document.createTextNode(`${destName} · `));
+
+        const codeSpan = document.createElement('span');
+        codeSpan.className = 'cooling-code';
+        codeSpan.style.fontFamily = "'Geist Mono', monospace";
+        codeSpan.style.fontSize = '10px';
+        codeSpan.style.color = 'var(--text-faint)';
+        codeSpan.textContent = icaoCode;
+        nameRow.appendChild(codeSpan);
+
+        const why = document.createElement('div');
+        why.className = 'cooling-why';
+        why.textContent = whyLine;
+
+        leftCol.appendChild(nameRow);
+        leftCol.appendChild(why);
+
+        const pct = document.createElement('div');
+        pct.className = 'cooling-pct';
+        pct.textContent = '—';
+
+        card.appendChild(leftCol);
+        card.appendChild(pct);
+        container.appendChild(card);
+      });
+    } catch (error) {
+      container.innerHTML = '';
+      console.warn('Error rendering cooling down list:', error);
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', async () => {
     updateClock();
     setInterval(updateClock, 60000);
@@ -1966,6 +2031,7 @@
     const arrivalsData = await loadArrivalsData();
     updateStats(arrivalsData);
     renderHeatingUp(arrivalsData);
+    renderCoolingDown(arrivalsData);
   });
 
   // ============ TABS ============
