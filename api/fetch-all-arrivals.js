@@ -286,7 +286,7 @@ export default async function handler(req, res) {
           console.log(
             `Appending to history (current size before trim: ${sizeBeforePush + 1})...`,
           );
-          await kv.lpush(historyKey, JSON.stringify(historyRecord));
+          await kv.lpush(historyKey, historyRecord);
           await kv.ltrim(historyKey, 0, 29);
           responseBody.history_appended = true;
           console.log('History appended successfully');

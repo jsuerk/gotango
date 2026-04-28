@@ -11,11 +11,25 @@ export default async function handler(req, res) {
     console.log(`Found ${n} history entries`);
 
     const entries = [];
-    for (const str of rawList) {
-      try {
-        entries.push(JSON.parse(str));
-      } catch {
-        // skip malformed rows; continue with others
+    for (let i = 0; i < rawList.length; i++) {
+      const entry = rawList[i];
+      const idx = i + 1;
+      const ty = typeof entry;
+
+      if (ty === 'string') {
+        try {
+          entries.push(JSON.parse(entry));
+          console.log(`Entry ${idx}: type=${ty}, parsed=true`);
+        } catch {
+          console.warn(`Entry ${idx}: JSON.parse failed, skipping malformed string`);
+          console.log(`Entry ${idx}: type=${ty}, parsed=false`);
+        }
+      } else if (ty === 'object' && entry !== null) {
+        entries.push(entry);
+        console.log(`Entry ${idx}: type=${ty}, parsed=true`);
+      } else {
+        console.warn(`Entry ${idx}: unexpected entry (${ty}); skipping`);
+        console.log(`Entry ${idx}: type=${ty}, parsed=false`);
       }
     }
 
