@@ -1492,127 +1492,7 @@
       <span class="section-meta">Top 6 · Mover score</span>
     </div>
 
-    <div class="dest-list">
-      <div class="dest-card" data-dest="stbarts">
-        <div class="dest-rank">I</div>
-        <div class="dest-main">
-          <div class="dest-row1">
-            <span class="dest-name">St. Barthélemy</span>
-            <span class="dest-code">TFFJ</span>
-          </div>
-          <div class="dest-vibe">Easter pulls NYC and London in synchronized waves</div>
-          <div class="dest-meta">
-            <span><b>74%</b> private</span>
-            <span><b>NYC, MIA, LON</b></span>
-          </div>
-        </div>
-        <div class="dest-arrivals">
-          <div class="dest-arrivals-num">312</div>
-          <div class="dest-arrivals-label">24h arr</div>
-          <div class="dest-trend up">↑ 38% wow</div>
-        </div>
-      </div>
-
-      <div class="dest-card" data-dest="mykonos">
-        <div class="dest-rank">II</div>
-        <div class="dest-main">
-          <div class="dest-row1">
-            <span class="dest-name">Mykonos</span>
-            <span class="dest-code">LGMK</span>
-          </div>
-          <div class="dest-vibe">First private scouts of the season — Rome and Athens early</div>
-          <div class="dest-meta">
-            <span><b>42%</b> private</span>
-            <span><b>ATH, ROM, LON</b></span>
-          </div>
-        </div>
-        <div class="dest-arrivals">
-          <div class="dest-arrivals-num">87</div>
-          <div class="dest-arrivals-label">24h arr</div>
-          <div class="dest-trend up">↑ 67% wow</div>
-        </div>
-      </div>
-
-      <div class="dest-card" data-dest="hamptons">
-        <div class="dest-rank">III</div>
-        <div class="dest-main">
-          <div class="dest-row1">
-            <span class="dest-name">The Hamptons</span>
-            <span class="dest-code">KJPX · KFOK</span>
-          </div>
-          <div class="dest-vibe">Early memorial day openings drive first summer spike</div>
-          <div class="dest-meta">
-            <span><b>68%</b> private</span>
-            <span><b>TEB, HPN, BOS</b></span>
-          </div>
-        </div>
-        <div class="dest-arrivals">
-          <div class="dest-arrivals-num">142</div>
-          <div class="dest-arrivals-label">24h arr</div>
-          <div class="dest-trend up">↑ 52% wow</div>
-        </div>
-      </div>
-
-      <div class="dest-card" data-dest="comporta">
-        <div class="dest-rank">IV</div>
-        <div class="dest-main">
-          <div class="dest-row1">
-            <span class="dest-name">Comporta</span>
-            <span class="dest-code">LPMT</span>
-          </div>
-          <div class="dest-vibe">Quietly the fastest-growing destination on our index</div>
-          <div class="dest-meta">
-            <span><b>58%</b> private</span>
-            <span><b>LIS, LON, PAR</b></span>
-          </div>
-        </div>
-        <div class="dest-arrivals">
-          <div class="dest-arrivals-num">64</div>
-          <div class="dest-arrivals-label">24h arr</div>
-          <div class="dest-trend up">↑ 41% wow</div>
-        </div>
-      </div>
-
-      <div class="dest-card" data-dest="ibiza">
-        <div class="dest-rank">V</div>
-        <div class="dest-main">
-          <div class="dest-row1">
-            <span class="dest-name">Ibiza</span>
-            <span class="dest-code">LEIB</span>
-          </div>
-          <div class="dest-vibe">Pre-season property set arriving ahead of May openings</div>
-          <div class="dest-meta">
-            <span><b>38%</b> private</span>
-            <span><b>BCN, LON, GVA</b></span>
-          </div>
-        </div>
-        <div class="dest-arrivals">
-          <div class="dest-arrivals-num">124</div>
-          <div class="dest-arrivals-label">24h arr</div>
-          <div class="dest-trend up">↑ 28% wow</div>
-        </div>
-      </div>
-
-      <div class="dest-card" data-dest="tulum">
-        <div class="dest-rank">VI</div>
-        <div class="dest-main">
-          <div class="dest-row1">
-            <span class="dest-name">Tulum</span>
-            <span class="dest-code">MMTO · MMUN</span>
-          </div>
-          <div class="dest-vibe">Weekly party cycle — Thursday-Friday spike forming</div>
-          <div class="dest-meta">
-            <span><b>34%</b> private</span>
-            <span><b>JFK, LAX, ATL</b></span>
-          </div>
-        </div>
-        <div class="dest-arrivals">
-          <div class="dest-arrivals-num">446</div>
-          <div class="dest-arrivals-label">24h arr</div>
-          <div class="dest-trend up">↑ 9% wow</div>
-        </div>
-      </div>
-    </div>
+    <div class="dest-list" id="heating-up-list"></div>
 
     <!-- COOLING -->
     <div class="section-head">
@@ -1963,12 +1843,129 @@
     }
   }
 
+  function renderHeatingUp(data) {
+    if (!data || !data.data || !Array.isArray(data.data.destinations)) return;
+
+    const container = document.getElementById('heating-up-list');
+    if (!container) return;
+
+    try {
+      const romans = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+      const destinations = data.data.destinations;
+      const top6 = destinations
+        .filter(dest => Number(dest && dest.arrivals_count) > 0)
+        .sort((a, b) => Number(b.arrivals_count || 0) - Number(a.arrivals_count || 0))
+        .slice(0, 6);
+
+      container.innerHTML = '';
+
+      top6.forEach((dest, i) => {
+        const arrivalsCount = Number(dest.arrivals_count || 0);
+        const gaCount = Number(dest.general_aviation_count || 0);
+        const commercialCount = Number(dest.commercial_count || 0);
+        const privatePct = arrivalsCount > 0 ? Math.round((gaCount / arrivalsCount) * 100) : 0;
+        const originCodes = Array.isArray(dest.top_origins)
+          ? dest.top_origins.slice(0, 3).map(o => o && o.code).filter(Boolean)
+          : [];
+        const topOriginCodes = originCodes.length > 0 ? originCodes.join(', ') : '—';
+        const insightOrigins = originCodes.length > 0 ? topOriginCodes : 'mixed origins';
+
+        let insightLine = '';
+        if (privatePct >= 70) {
+          insightLine = `Heavily private — ${privatePct}% GA from ${insightOrigins}`;
+        } else if (privatePct >= 40) {
+          insightLine = `Mixed traffic — ${privatePct}% private aviation`;
+        } else {
+          insightLine = `Mostly commercial — ${commercialCount} airline arrivals`;
+        }
+
+        const card = document.createElement('div');
+        card.className = 'dest-card';
+        card.dataset.dest = String(dest.id || '');
+
+        const rank = document.createElement('div');
+        rank.className = 'dest-rank';
+        rank.textContent = romans[i] || '';
+
+        const main = document.createElement('div');
+        main.className = 'dest-main';
+
+        const row1 = document.createElement('div');
+        row1.className = 'dest-row1';
+
+        const name = document.createElement('span');
+        name.className = 'dest-name';
+        name.textContent = String(dest.name || '');
+
+        const code = document.createElement('span');
+        code.className = 'dest-code';
+        code.textContent = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
+
+        row1.appendChild(name);
+        row1.appendChild(code);
+
+        const vibe = document.createElement('div');
+        vibe.className = 'dest-vibe';
+        vibe.textContent = insightLine;
+
+        const meta = document.createElement('div');
+        meta.className = 'dest-meta';
+
+        const privateSpan = document.createElement('span');
+        const privateBold = document.createElement('b');
+        privateBold.textContent = `${privatePct}%`;
+        privateSpan.appendChild(privateBold);
+        privateSpan.appendChild(document.createTextNode(' private'));
+
+        const originsSpan = document.createElement('span');
+        const originsBold = document.createElement('b');
+        originsBold.textContent = topOriginCodes;
+        originsSpan.appendChild(originsBold);
+
+        meta.appendChild(privateSpan);
+        meta.appendChild(originsSpan);
+
+        main.appendChild(row1);
+        main.appendChild(vibe);
+        main.appendChild(meta);
+
+        const arrivals = document.createElement('div');
+        arrivals.className = 'dest-arrivals';
+
+        const arrivalsNum = document.createElement('div');
+        arrivalsNum.className = 'dest-arrivals-num';
+        arrivalsNum.textContent = String(arrivalsCount);
+
+        const arrivalsLabel = document.createElement('div');
+        arrivalsLabel.className = 'dest-arrivals-label';
+        arrivalsLabel.textContent = '24h arr';
+
+        const trend = document.createElement('div');
+        trend.className = 'dest-trend';
+        trend.textContent = '—';
+
+        arrivals.appendChild(arrivalsNum);
+        arrivals.appendChild(arrivalsLabel);
+        arrivals.appendChild(trend);
+
+        card.appendChild(rank);
+        card.appendChild(main);
+        card.appendChild(arrivals);
+        container.appendChild(card);
+      });
+    } catch (error) {
+      container.innerHTML = '';
+      console.warn('Error rendering heating up list:', error);
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', async () => {
     updateClock();
     setInterval(updateClock, 60000);
     updateDate();
     const arrivalsData = await loadArrivalsData();
     updateStats(arrivalsData);
+    renderHeatingUp(arrivalsData);
   });
 
   // ============ TABS ============
