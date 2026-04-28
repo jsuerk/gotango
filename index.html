@@ -1512,6 +1512,267 @@
     margin: 0;
   }
 
+  /* === Destination Modal Sections === */
+  .dest-modal__body {
+    /* Override the existing minimal padding to match mockup section padding */
+    padding: 0 0 32px;
+  }
+
+  .d-hero {
+    padding: 32px 24px 24px;
+    border-bottom: 1px solid var(--border, #252C37);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .d-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(245,241,232,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,241,232,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .d-hero > * { position: relative; z-index: 1; }
+
+  .d-vibe {
+    display: inline-block;
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: 3px;
+    margin-bottom: 16px;
+  }
+
+  .d-vibe.surge {
+    color: var(--signal-up, #7FB069);
+    background: rgba(127, 176, 105, 0.1);
+    border: 1px solid rgba(127, 176, 105, 0.3);
+  }
+  .d-vibe.cool {
+    color: var(--signal-down, #E07856);
+    background: rgba(224, 120, 86, 0.1);
+    border: 1px solid rgba(224, 120, 86, 0.3);
+  }
+  .d-vibe.steady {
+    color: var(--teal, #5EAAA8);
+    background: rgba(94, 170, 168, 0.1);
+    border: 1px solid rgba(94, 170, 168, 0.3);
+  }
+
+  .d-name {
+    font-family: 'Fraunces', serif;
+    font-size: 38px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 0.95;
+    margin: 0 0 8px 0;
+    color: var(--text, #F5F1E8);
+  }
+
+  .d-meta {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint, #6B6557);
+    letter-spacing: 0.08em;
+  }
+
+  .d-meta-sep {
+    color: var(--border-light, #313945);
+    margin: 0 8px;
+  }
+
+  .d-section {
+    padding: 26px 24px;
+    border-bottom: 1px solid var(--border, #252C37);
+  }
+
+  .d-section:last-child {
+    border-bottom: none;
+  }
+
+  .d-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .d-section-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text-faint, #6B6557);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .d-section-label::before {
+    content: "";
+    width: 18px;
+    height: 1px;
+    background: var(--amber, #E8A317);
+  }
+
+  .d-section-meta {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint, #6B6557);
+    letter-spacing: 0.08em;
+  }
+
+  /* Stats grid (3 cells) */
+  .d-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border, #252C37);
+    border: 1px solid var(--border, #252C37);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .d-stat {
+    background: var(--surface, #161B23);
+    padding: 14px 12px;
+    min-width: 0;
+  }
+
+  .d-stat-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--text-faint, #6B6557);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .d-stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--text, #F5F1E8);
+    word-break: break-word;
+  }
+
+  .d-stat-value.accent {
+    color: var(--amber, #E8A317);
+  }
+
+  .d-stat-sub {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    margin-top: 5px;
+    color: var(--text-dim, #A8A293);
+  }
+
+  /* Trajectory placeholder (skeleton chart) */
+  .d-trajectory-placeholder {
+    height: 140px;
+    border: 1px dashed var(--border-light, #313945);
+    border-radius: 8px;
+    background:
+      repeating-linear-gradient(
+        to right,
+        transparent,
+        transparent 39px,
+        rgba(255, 255, 255, 0.025) 39px,
+        rgba(255, 255, 255, 0.025) 40px
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 27px,
+        rgba(255, 255, 255, 0.025) 27px,
+        rgba(255, 255, 255, 0.025) 28px
+      );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .d-placeholder-msg {
+    text-align: center;
+    padding: 16px 24px;
+  }
+
+  .d-placeholder-icon {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 24px;
+    color: var(--amber, #E8A317);
+    opacity: 0.5;
+    margin-bottom: 6px;
+  }
+
+  .d-placeholder-title {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--amber, #E8A317);
+    margin-bottom: 4px;
+  }
+
+  .d-placeholder-text {
+    font-size: 12px;
+    color: var(--text-dim, #A8A293);
+    line-height: 1.5;
+    max-width: 280px;
+    margin: 0 auto;
+  }
+
+  /* Pulse placeholder */
+  .d-pulse-placeholder {
+    display: grid;
+    gap: 16px;
+  }
+
+  .d-pulse-skeleton {
+    height: 80px;
+    background: var(--surface, #161B23);
+    border: 1px dashed var(--border-light, #313945);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Editorial note */
+  .d-note {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text, #F5F1E8);
+    margin: 0;
+  }
+
+  .d-note-byline {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint, #6B6557);
+    letter-spacing: 0.1em;
+    margin-top: 14px;
+  }
+
+  .d-note-empty {
+    font-style: italic;
+    color: var(--text-faint, #6B6557);
+    font-size: 13px;
+  }
+
   /* Click affordance for destination cards */
   .dest-card,
   .cooling-card {
@@ -1547,6 +1808,26 @@
     .dest-modal__close {
       top: 12px;
       right: 12px;
+    }
+
+    .d-hero {
+      padding: 28px 20px 20px;
+    }
+
+    .d-name {
+      font-size: 32px;
+    }
+
+    .d-section {
+      padding: 22px 20px;
+    }
+
+    .d-stat {
+      padding: 12px 10px;
+    }
+
+    .d-stat-value {
+      font-size: 19px;
     }
   }
 
@@ -1896,7 +2177,7 @@
     </button>
     <div class="dest-modal__body" id="dest-modal-body">
       <h2 id="dest-modal-title" class="dest-modal__placeholder-title">Loading...</h2>
-      <p class="dest-modal__placeholder-text">Detail rendering coming in Pass 7.</p>
+      <p class="dest-modal__placeholder-text">Loading destination details...</p>
     </div>
   </div>
 </div>
@@ -3041,9 +3322,10 @@
 
     _modalCurrentDestId = destinationId;
 
-    // Update modal placeholder content (Pass 7 will replace this with full sections)
-    const titleEl = document.getElementById('dest-modal-title');
-    if (titleEl) titleEl.textContent = dest.name;
+    const bodyEl = document.getElementById('dest-modal-body');
+    if (bodyEl) {
+      bodyEl.innerHTML = renderDestinationCard(dest, destinations);
+    }
 
     // Show modal
     const modal = document.getElementById('destination-modal');
@@ -3137,6 +3419,202 @@
     } catch (e) {
       /* no-op */
     }
+  }
+
+  // === Destination Detail Card Renderers ===
+
+  function _safeNum(v) {
+    return (typeof v === 'number' && Number.isFinite(v)) ? v : 0;
+  }
+
+  function _formatCoords(lat, lng) {
+    if (typeof lat !== 'number' || typeof lng !== 'number') return '';
+    const ns = lat >= 0 ? 'N' : 'S';
+    const ew = lng >= 0 ? 'E' : 'W';
+    return `${Math.abs(lat).toFixed(2)}°${ns} · ${Math.abs(lng).toFixed(2)}°${ew}`;
+  }
+
+  function _escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function _computeTier(dest, allDestinations) {
+    // Determine vibe tier based on rank within all destinations
+    // Top 6 by arrivals_count = 'surge'
+    // Bottom 3 (or those with 0 arrivals) = 'cool'
+    // Middle = 'steady'
+    if (!allDestinations || !Array.isArray(allDestinations)) return 'steady';
+
+    const sorted = [...allDestinations]
+      .filter(d => d && d.ok)
+      .sort((a, b) => _safeNum(b.arrivals_count) - _safeNum(a.arrivals_count));
+
+    const idx = sorted.findIndex(d => d.id === dest.id);
+    if (idx === -1) return 'steady';
+
+    // Zero arrivals always = cool
+    if (_safeNum(dest.arrivals_count) === 0) return 'cool';
+
+    const total = sorted.length;
+    if (idx < 6) return 'surge';
+    if (idx >= total - 3) return 'cool';
+    return 'steady';
+  }
+
+  function _tierLabel(tier) {
+    if (tier === 'surge') return 'Heating up';
+    if (tier === 'cool') return 'Cooling';
+    return 'Steady';
+  }
+
+  function _computePrivatePct(dest) {
+    const total = _safeNum(dest.arrivals_count);
+    const ga = _safeNum(dest.general_aviation_count);
+    if (total <= 0) return null;
+    return Math.round((ga / total) * 100);
+  }
+
+  function _topAircraftType(dest) {
+    if (!dest.top_aircraft || !Array.isArray(dest.top_aircraft)) return null;
+    // Skip "UNKNOWN" if there's a real type below it
+    const real = dest.top_aircraft.filter(a => a && a.type && a.type !== 'UNKNOWN');
+    const pick = real.length > 0 ? real[0] : (dest.top_aircraft[0] || null);
+    if (!pick || !pick.type) return null;
+    return String(pick.type).trim();
+  }
+
+  function renderModalHero(dest, tier) {
+    const tierLabel = _tierLabel(tier);
+    const coords = _formatCoords(dest.lat, dest.lng);
+    const icaoStr = Array.isArray(dest.icao) ? dest.icao.join(' · ') : (dest.icao || '');
+    const region = _escapeHtml(dest.region || '');
+    const metaParts = [];
+    if (icaoStr) metaParts.push(_escapeHtml(icaoStr));
+    if (coords) metaParts.push(_escapeHtml(coords));
+    if (region) metaParts.push(region);
+
+    return `
+      <div class="d-hero">
+        <span class="d-vibe ${tier}">${_escapeHtml(tierLabel)}</span>
+        <h2 id="dest-modal-title" class="d-name">${_escapeHtml(dest.name || '')}</h2>
+        <div class="d-meta">${metaParts.join('<span class="d-meta-sep">·</span>')}</div>
+      </div>
+    `;
+  }
+
+  function renderModalStats(dest) {
+    const arrivals = _safeNum(dest.arrivals_count);
+    const pvtPct = _computePrivatePct(dest);
+    const pvtStr = pvtPct == null ? '—' : `${pvtPct}%`;
+    const pvtSub = pvtPct == null ? 'No data' : `${_safeNum(dest.general_aviation_count)} of ${arrivals} flights`;
+    const topAircraft = _topAircraftType(dest);
+    const topAircraftStr = topAircraft || '—';
+    const topAircraftSub = topAircraft ? 'Most common type' : 'No data';
+
+    return `
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">At a glance</span>
+          <span class="d-section-meta">Last 24h</span>
+        </div>
+        <div class="d-stats">
+          <div class="d-stat">
+            <div class="d-stat-label">24h arrivals</div>
+            <div class="d-stat-value">${arrivals}</div>
+            <div class="d-stat-sub">${arrivals === 1 ? 'flight' : 'flights'}</div>
+          </div>
+          <div class="d-stat">
+            <div class="d-stat-label">Private</div>
+            <div class="d-stat-value accent">${pvtStr}</div>
+            <div class="d-stat-sub">${_escapeHtml(pvtSub)}</div>
+          </div>
+          <div class="d-stat">
+            <div class="d-stat-label">Top type</div>
+            <div class="d-stat-value">${_escapeHtml(topAircraftStr)}</div>
+            <div class="d-stat-sub">${_escapeHtml(topAircraftSub)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTrajectoryPlaceholder() {
+    return `
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">30-day trajectory</span>
+          <span class="d-section-meta">Daily arrivals</span>
+        </div>
+        <div class="d-trajectory-placeholder">
+          <div class="d-placeholder-msg">
+            <div class="d-placeholder-icon">GT</div>
+            <div class="d-placeholder-title">Building data</div>
+            <div class="d-placeholder-text">Trajectory chart unlocks once we've collected at least 7 days of history. Currently collecting.</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderPulsePlaceholder() {
+    return `
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">The pulse</span>
+          <span class="d-section-meta">Hour and day patterns</span>
+        </div>
+        <div class="d-pulse-placeholder">
+          <div class="d-pulse-skeleton">
+            <div class="d-placeholder-msg">
+              <div class="d-placeholder-title">Building data</div>
+              <div class="d-placeholder-text">Hourly and day-of-week patterns appear after 7 days of history.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderEditorial(dest) {
+    const text = dest.editorial && String(dest.editorial).trim();
+    if (!text) {
+      return `
+        <div class="d-section">
+          <div class="d-section-head">
+            <span class="d-section-label">Editor's note</span>
+          </div>
+          <p class="d-note d-note-empty">Editorial coverage launching soon.</p>
+        </div>
+      `;
+    }
+    return `
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">Editor's note</span>
+        </div>
+        <p class="d-note">${_escapeHtml(text)}</p>
+        <div class="d-note-byline">— Go Tango Editorial</div>
+      </div>
+    `;
+  }
+
+  function renderDestinationCard(dest, allDestinations) {
+    if (!dest) return '<div class="dest-modal__body"><p>Destination not found.</p></div>';
+    const tier = _computeTier(dest, allDestinations);
+
+    return [
+      renderModalHero(dest, tier),
+      renderModalStats(dest),
+      renderTrajectoryPlaceholder(),
+      renderPulsePlaceholder(),
+      renderEditorial(dest),
+    ].join('');
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
