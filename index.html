@@ -1426,6 +1426,150 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+
+  /* === Destination Detail Modal === */
+  .dest-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-family: inherit;
+  }
+
+  .dest-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 8, 12, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    cursor: pointer;
+    animation: dest-modal-fade-in 200ms ease-out;
+  }
+
+  .dest-modal__container {
+    position: relative;
+    background: #0f0f14;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    width: min(720px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    margin: 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    animation: dest-modal-slide-up 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .dest-modal__close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 2;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(20, 20, 28, 0.8);
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    line-height: 1;
+    transition: background 150ms ease, border-color 150ms ease;
+  }
+
+  .dest-modal__close:hover {
+    background: rgba(40, 40, 50, 0.9);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .dest-modal__close:focus-visible {
+    outline: 2px solid #f5b73d;
+    outline-offset: 2px;
+  }
+
+  .dest-modal__body {
+    padding: 32px 28px 36px;
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  .dest-modal__placeholder-title {
+    font-family: inherit;
+    font-size: 28px;
+    font-weight: 400;
+    margin: 0 0 12px 0;
+    color: white;
+  }
+
+  .dest-modal__placeholder-text {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 14px;
+    margin: 0;
+  }
+
+  /* Click affordance for destination cards */
+  .dest-card,
+  .cooling-card {
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease;
+  }
+
+  .dest-card:hover,
+  .cooling-card:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  /* Map dot click affordance */
+  .map-dot {
+    cursor: pointer;
+  }
+
+  /* Mobile: full-screen takeover */
+  @media (max-width: 640px) {
+    .dest-modal__container {
+      width: 100vw;
+      max-height: 100vh;
+      height: 100vh;
+      margin: 0;
+      border-radius: 0;
+      border: none;
+    }
+
+    .dest-modal__body {
+      padding: 56px 20px 24px;
+    }
+
+    .dest-modal__close {
+      top: 12px;
+      right: 12px;
+    }
+  }
+
+  @keyframes dest-modal-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes dest-modal-slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* When modal is open, prevent body scroll */
+  body.dest-modal-open {
+    overflow: hidden;
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
@@ -1744,6 +1888,19 @@
 <!-- TOAST -->
 <div class="toast" id="toast">Saved</div>
 
+<div id="destination-modal" class="dest-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="dest-modal-title" style="display: none;">
+  <div class="dest-modal__backdrop" data-modal-close></div>
+  <div class="dest-modal__container" role="document">
+    <button class="dest-modal__close" data-modal-close aria-label="Close destination detail">
+      <span aria-hidden="true">×</span>
+    </button>
+    <div class="dest-modal__body" id="dest-modal-body">
+      <h2 id="dest-modal-title" class="dest-modal__placeholder-title">Loading...</h2>
+      <p class="dest-modal__placeholder-text">Detail rendering coming in Pass 7.</p>
+    </div>
+  </div>
+</div>
+
 <script>
   // ============ HERO DATA (PHASE 5A PASS 1) ============
   async function loadArrivalsData() {
@@ -1860,6 +2017,7 @@
         const card = document.createElement('div');
         card.className = 'dest-card';
         card.dataset.dest = String(dest.id || '');
+        card.setAttribute('data-destination-id', String(dest.id || ''));
 
         const rank = document.createElement('div');
         rank.className = 'dest-rank';
@@ -1997,6 +2155,7 @@
         const card = document.createElement('div');
         card.className = 'cooling-card';
         card.dataset.dest = destId;
+        card.setAttribute('data-destination-id', destId);
 
         const leftCol = document.createElement('div');
 
@@ -2032,17 +2191,6 @@
       console.warn('Error rendering cooling down list:', error);
     }
   }
-
-  document.addEventListener('DOMContentLoaded', async () => {
-    updateClock();
-    setInterval(updateClock, 60000);
-    updateDate();
-    const arrivalsData = await loadArrivalsData();
-    updateStats(arrivalsData);
-    renderHeatingUp(arrivalsData);
-    renderCoolingDown(arrivalsData);
-    renderWorldMap(arrivalsData);
-  });
 
   // ============ TABS ============
   document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -2748,18 +2896,18 @@
   const WORLD_TOPO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
 
   const mapDestinations = [
-    { name: 'St. Barts',    lng: -62.84, lat: 17.90, type: 'surge', size: 14 },
-    { name: 'Hamptons',     lng: -72.25, lat: 40.96, type: 'surge', size: 12 },
-    { name: 'Tulum',        lng: -87.40, lat: 20.25, type: 'surge', size: 11 },
-    { name: 'Mykonos',      lng:  25.35, lat: 37.43, type: 'surge', size: 14 },
-    { name: 'Ibiza',        lng:   1.37, lat: 38.87, type: 'surge', size: 11 },
-    { name: 'St. Tropez',   lng:   6.40, lat: 43.27, type: 'surge', size: 13 },
-    { name: 'Comporta',     lng:  -8.78, lat: 38.38, type: 'surge', size: 10 },
-    { name: 'Dubai',        lng:  55.36, lat: 25.25, type: 'steady', size: 8 },
-    { name: 'Cabo',         lng:-109.92, lat: 22.89, type: 'steady', size: 8 },
-    { name: 'Aspen',        lng:-106.87, lat: 39.22, type: 'cool', size: 7 },
-    { name: 'Palm Beach',   lng: -80.10, lat: 26.68, type: 'cool', size: 7 },
-    { name: 'Courchevel',   lng:   6.64, lat: 45.40, type: 'cool', size: 7 }
+    { id: 'st-barts',   name: 'St. Barts',  lng: -62.84, lat: 17.90, type: 'surge', size: 14 },
+    { id: 'hamptons',   name: 'Hamptons',   lng: -72.25, lat: 40.96, type: 'surge', size: 12 },
+    { id: 'tulum',      name: 'Tulum',      lng: -87.40, lat: 20.25, type: 'surge', size: 11 },
+    { id: 'mykonos',    name: 'Mykonos',    lng:  25.35, lat: 37.43, type: 'surge', size: 14 },
+    { id: 'ibiza',      name: 'Ibiza',      lng:   1.37, lat: 38.87, type: 'surge', size: 11 },
+    { id: 'st-tropez',  name: 'St. Tropez', lng:   6.40, lat: 43.27, type: 'surge', size: 13 },
+    { id: 'comporta',   name: 'Comporta',   lng:  -8.78, lat: 38.38, type: 'surge', size: 10 },
+    { id: 'dubai',      name: 'Dubai',      lng:  55.36, lat: 25.25, type: 'steady', size: 8 },
+    { id: 'cabo',       name: 'Cabo',       lng:-109.92, lat: 22.89, type: 'steady', size: 8 },
+    { id: 'aspen',      name: 'Aspen',      lng:-106.87, lat: 39.22, type: 'cool', size: 7 },
+    { id: 'palm-beach', name: 'Palm Beach', lng: -80.10, lat: 26.68, type: 'cool', size: 7 },
+    { id: 'courchevel', name: 'Courchevel', lng:   6.64, lat: 45.40, type: 'cool', size: 7 }
   ];
 
   const mapColors = { surge: '#E8A317', steady: '#5EAAA8', cool: '#E07856' };
@@ -2814,6 +2962,7 @@
             const type = index < 6 ? 'surge' : (index < 17 ? 'steady' : 'cool');
             const size = arrivalsCount <= 0 ? 2 : Math.max(2, Math.min(8, 2 + (arrivalsCount / 5)));
             return {
+              id: dest.id,
               lng: dest.lng,
               lat: dest.lat,
               type,
@@ -2843,22 +2992,167 @@
 
         dotGroup.append('circle')
           .attr('cx', x).attr('cy', y).attr('r', d.size)
+          .attr('class', 'map-dot')
+          .attr('data-destination-id', d.id)
           .attr('fill', color).attr('opacity', 0)
           .transition().duration(600).attr('opacity', opac * 0.3);
 
         dotGroup.append('circle')
           .attr('cx', x).attr('cy', y).attr('r', d.size * 0.55)
+          .attr('class', 'map-dot')
+          .attr('data-destination-id', d.id)
           .attr('fill', color).attr('opacity', 0)
           .transition().duration(600).attr('opacity', opac * 0.6);
 
         dotGroup.append('circle')
           .attr('cx', x).attr('cy', y)
           .attr('r', d.type === 'surge' ? 3 : 2)
+          .attr('class', 'map-dot')
+          .attr('data-destination-id', d.id)
           .attr('fill', color).attr('opacity', 0)
           .transition().duration(600).attr('opacity', 1);
       });
     }).catch(err => console.error('Map load failed:', err));
   }
+
+  // === Destination Detail Modal ===
+
+  let _modalCurrentDestId = null;
+  let _modalArrivalsData = null;
+
+  function openDestinationModal(destinationId) {
+    if (!destinationId) return;
+
+    // Find the destination in the cached data
+    const data = _modalArrivalsData;
+    const destinations = data && Array.isArray(data.destinations)
+      ? data.destinations
+      : (data && data.data && Array.isArray(data.data.destinations) ? data.data.destinations : null);
+    if (!destinations) {
+      console.warn('[modal] No arrivals data available yet');
+      return;
+    }
+
+    const dest = destinations.find(d => d.id === destinationId);
+    if (!dest) {
+      console.warn('[modal] Destination not found:', destinationId);
+      return;
+    }
+
+    _modalCurrentDestId = destinationId;
+
+    // Update modal placeholder content (Pass 7 will replace this with full sections)
+    const titleEl = document.getElementById('dest-modal-title');
+    if (titleEl) titleEl.textContent = dest.name;
+
+    // Show modal
+    const modal = document.getElementById('destination-modal');
+    if (modal) {
+      modal.style.display = 'flex';
+      modal.setAttribute('aria-hidden', 'false');
+    }
+
+    // Lock body scroll
+    document.body.classList.add('dest-modal-open');
+
+    // Update URL with deep-link param
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('destination', destinationId);
+      window.history.replaceState({ destination: destinationId }, '', url.toString());
+    } catch (e) {
+      /* no-op */
+    }
+
+    // Focus the close button for keyboard accessibility
+    const closeBtn = modal && modal.querySelector('.dest-modal__close');
+    if (closeBtn) {
+      setTimeout(() => closeBtn.focus(), 50);
+    }
+  }
+
+  function closeDestinationModal() {
+    const modal = document.getElementById('destination-modal');
+    if (modal) {
+      modal.style.display = 'none';
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
+    document.body.classList.remove('dest-modal-open');
+    _modalCurrentDestId = null;
+
+    // Remove deep-link param from URL
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('destination');
+      window.history.replaceState({}, '', url.toString());
+    } catch (e) {
+      /* no-op */
+    }
+  }
+
+  function attachModalCloseHandlers() {
+    // Close on backdrop click or X button click
+    document.querySelectorAll('[data-modal-close]').forEach(el => {
+      el.addEventListener('click', closeDestinationModal);
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && _modalCurrentDestId) {
+        closeDestinationModal();
+      }
+    });
+  }
+
+  function attachDestinationCardClickHandlers() {
+    // Heating Up cards — each .dest-card needs to know its destination id
+    // Cooling Down cards — each .cooling-card needs to know its destination id
+    // Map dots — each map dot circle needs to know its destination id
+    //
+    // The card-rendering functions (renderHeatingUp, renderCoolingDown) need to be modified
+    // to set a data-destination-id attribute on each card.
+    // The map rendering function (renderWorldMap) needs to set a data-destination-id on each dot.
+
+    // Use event delegation on document so handlers work for dynamically rendered cards
+    document.addEventListener('click', (e) => {
+      const card = e.target.closest('[data-destination-id]');
+      if (card) {
+        const destId = card.getAttribute('data-destination-id');
+        if (destId) {
+          openDestinationModal(destId);
+        }
+      }
+    });
+  }
+
+  function maybeOpenModalFromUrl() {
+    try {
+      const url = new URL(window.location.href);
+      const destParam = url.searchParams.get('destination');
+      if (destParam) {
+        // Wait briefly to ensure data is loaded
+        setTimeout(() => openDestinationModal(destParam), 100);
+      }
+    } catch (e) {
+      /* no-op */
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    updateClock();
+    setInterval(updateClock, 60000);
+    updateDate();
+    const arrivalsData = await loadArrivalsData();
+    _modalArrivalsData = arrivalsData;
+    updateStats(arrivalsData);
+    renderHeatingUp(arrivalsData);
+    renderCoolingDown(arrivalsData);
+    renderWorldMap(arrivalsData);
+    attachModalCloseHandlers();
+    attachDestinationCardClickHandlers();
+    maybeOpenModalFromUrl();
+  });
 
 </script>
 </body>
