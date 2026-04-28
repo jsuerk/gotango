@@ -1435,7 +1435,7 @@
 
   <!-- STATUS BAR -->
   <header class="status-bar">
-    <div class="status-time" id="utc-clock">—— UTC</div>
+    <div class="status-time" id="utc-clock">— UTC</div>
     <div class="logo">
       <span class="logo-mark">G</span><span class="logo-mark-t">T</span>
       <span class="logo-dot"></span>
@@ -1448,25 +1448,25 @@
   <div class="tab-content active" id="tab-now">
 
     <section class="hero">
-      <div class="hero-kicker">The Index · Friday, 20 April</div>
+      <div class="hero-kicker" id="hero-kicker">The Index · TUESDAY, 28 APRIL</div>
       <h1 class="hero-headline">Where the world is <em>going.</em></h1>
       <p class="hero-sub">Travel intelligence for top destinations. Surges, cool-downs, and the reasons behind both — refreshed hourly from public ADS-B data.<br><span style="color: var(--amber);">Real data without the fluff.</span></p>
 
       <div class="hero-stats">
         <div class="stat-cell">
           <div class="stat-label">Arrivals · 24h</div>
-          <div class="stat-value">14,082</div>
-          <div class="stat-delta delta-up">↑ 6.2% w/w</div>
+          <div class="stat-value" id="stat-arrivals">—</div>
+          <div class="stat-delta delta-up" id="stat-arrivals-delta">—</div>
         </div>
         <div class="stat-cell">
           <div class="stat-label">Private %</div>
-          <div class="stat-value">23.4</div>
-          <div class="stat-delta delta-up">↑ 1.8 pts</div>
+          <div class="stat-value" id="stat-private">—</div>
+          <div class="stat-delta delta-up" id="stat-private-delta">—</div>
         </div>
         <div class="stat-cell">
           <div class="stat-label">Surging</div>
-          <div class="stat-value">9</div>
-          <div class="stat-delta delta-down">↓ 4 cooling</div>
+          <div class="stat-value" id="stat-surging">—</div>
+          <div class="stat-delta delta-down" id="stat-surging-delta">—</div>
         </div>
       </div>
     </section>
@@ -1887,15 +1887,89 @@
 <div class="toast" id="toast">Saved</div>
 
 <script>
-  // ============ UTC CLOCK ============
-  function tickClock() {
-    const now = new Date();
-    const h = String(now.getUTCHours()).padStart(2, '0');
-    const m = String(now.getUTCMinutes()).padStart(2, '0');
-    document.getElementById('utc-clock').textContent = `${h}:${m} UTC`;
+  // ============ HERO DATA (PHASE 5A PASS 1) ============
+  async function loadArrivalsData() {
+    try {
+      const response = await fetch('/api/get-arrivals');
+      if (!response.ok) {
+        console.warn('Failed to fetch /api/get-arrivals:', response.status);
+        return null;
+      }
+      return await response.json();
+    } catch (error) {
+      console.warn('Error fetching arrivals data:', error);
+      return null;
+    }
   }
-  tickClock();
-  setInterval(tickClock, 30000);
+
+  function updateClock() {
+    try {
+      const now = new Date();
+      const h = String(now.getUTCHours()).padStart(2, '0');
+      const m = String(now.getUTCMinutes()).padStart(2, '0');
+      const el = document.getElementById('utc-clock');
+      if (el) el.textContent = `${h}:${m} UTC`;
+    } catch (error) {
+      console.warn('Error updating UTC clock:', error);
+    }
+  }
+
+  function updateDate() {
+    try {
+      const now = new Date();
+      const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      const monthNames = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+      const dayName = dayNames[now.getDay()];
+      const dayOfMonth = String(now.getDate()).padStart(2, '0');
+      const monthName = monthNames[now.getMonth()];
+      const kicker = document.getElementById('hero-kicker');
+      if (kicker) kicker.textContent = `The Index · ${dayName}, ${dayOfMonth} ${monthName}`;
+    } catch (error) {
+      console.warn('Error updating hero date:', error);
+    }
+  }
+
+  function updateStats(data) {
+    const payload = data && data.data;
+    const destinations = payload && Array.isArray(payload.destinations) ? payload.destinations : null;
+    if (!destinations) return;
+
+    try {
+      const arrivalsEl = document.getElementById('stat-arrivals');
+      const totalArrivals = Number(payload.total_arrivals_across_all);
+      if (arrivalsEl && Number.isFinite(totalArrivals)) {
+        arrivalsEl.textContent = totalArrivals.toLocaleString();
+      }
+    } catch (error) {
+      console.warn('Error updating arrivals stat:', error);
+    }
+
+    try {
+      const privateEl = document.getElementById('stat-private');
+      const totalGA = destinations.reduce((sum, dest) => sum + Number(dest.general_aviation_count || 0), 0);
+      const totalArr = destinations.reduce((sum, dest) => sum + Number(dest.arrivals_count || 0), 0);
+      if (privateEl && totalArr > 0) {
+        privateEl.textContent = ((totalGA / totalArr) * 100).toFixed(1);
+      }
+    } catch (error) {
+      console.warn('Error updating private percentage stat:', error);
+    }
+
+    try {
+      const surgingEl = document.getElementById('stat-surging');
+      if (surgingEl) surgingEl.textContent = '—';
+    } catch (error) {
+      console.warn('Error updating surging stat:', error);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    updateClock();
+    setInterval(updateClock, 60000);
+    updateDate();
+    const arrivalsData = await loadArrivalsData();
+    updateStats(arrivalsData);
+  });
 
   // ============ TABS ============
   document.querySelectorAll('.nav-btn').forEach(btn => {
