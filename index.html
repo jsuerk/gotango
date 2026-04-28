@@ -1978,11 +1978,20 @@
 
         let whyLine = '';
         if (arrivalsCount === 0) {
-          whyLine = 'No recorded arrivals — destination quiet';
-        } else if (arrivalsCount <= 2) {
-          whyLine = `Very low activity — only ${arrivalsCount} arrivals`;
+          const regionLower = String(dest && dest.region || '').toLowerCase();
+          if (regionLower.includes('alps') || regionLower.includes('rockies')) {
+            whyLine = 'Off-season — alpine activity dormant';
+          } else if (regionLower.includes('caribbean')) {
+            whyLine = 'Quiet day — no tracked arrivals';
+          } else {
+            whyLine = 'No tracked arrivals in last 24h';
+          }
+        } else if (arrivalsCount === 1) {
+          whyLine = 'Single arrival logged — minimal activity';
+        } else if (arrivalsCount === 2) {
+          whyLine = 'Only 2 arrivals — well below typical volume';
         } else {
-          whyLine = `Lower volume — ${arrivalsCount} total arrivals`;
+          whyLine = `Lower volume — ${arrivalsCount} arrivals`;
         }
 
         const card = document.createElement('div');
