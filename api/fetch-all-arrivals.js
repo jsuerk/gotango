@@ -153,6 +153,8 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls) {
     id: dest.id,
     name: dest.name,
     region: dest.region,
+    lat: dest.lat,
+    lng: dest.lng,
     icao: [...icaos],
     ok: destOk,
     arrivals_count,
