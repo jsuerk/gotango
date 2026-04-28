@@ -1,5 +1,5 @@
 import { kv } from '@vercel/kv';
-import { DESTINATIONS } from '../destinations.config.js';
+import { DESTINATIONS, PEER_DESTINATIONS, EDITORIAL_BLURBS } from '../destinations.config.js';
 
 const TIMEOUT_MS = 25_000;
 
@@ -211,6 +211,8 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls) {
     sample_flight,
     errors,
     fetched_at,
+    editorial: EDITORIAL_BLURBS[dest.id] || null,
+    peers: PEER_DESTINATIONS[dest.id] || [],
   };
 
   const errTag = result.errors.length ? ` errors=${result.errors.map((e) => e.icao).join(',')}` : '';
