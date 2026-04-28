@@ -229,6 +229,7 @@ export default async function handler(req, res) {
       duration_ms,
       destinations,
       kv_saved: false,
+      history_appended: false,
     };
 
     const okDestinationCount = destinations.filter((d) => d.ok).length;
@@ -247,9 +248,9 @@ export default async function handler(req, res) {
       }
       console.warn('Sanity check failed, skipping save:', parts.join('; '));
     } else {
+      const savedAt = new Date().toISOString();
       console.log('Sanity check passed, saving to KV...');
       try {
-        const savedAt = new Date().toISOString();
         const latestPayload = { ...responseBody, kv_saved: true };
         await kv.set('gotango:arrivals:latest', latestPayload);
         await kv.set('gotango:arrivals:meta', {
@@ -263,6 +264,36 @@ export default async function handler(req, res) {
       } catch (kvErr) {
         const msg = kvErr instanceof Error ? kvErr.message : String(kvErr);
         console.log(`Failed to save to KV: ${msg}`);
+      }
+
+      if (total_arrivals_across_all > 0 && successful >= 15) {
+        try {
+          const historyKey = 'gotango:arrivals:history';
+          const per_destination = destinations.map((d) => ({
+            id: d.id,
+            arrivals_count: d.arrivals_count,
+            general_aviation_count: d.general_aviation_count,
+            commercial_count: d.commercial_count,
+          }));
+          const historyRecord = {
+            saved_at: savedAt,
+            total_arrivals: total_arrivals_across_all,
+            successful_count: successful,
+            duration_ms,
+            per_destination,
+          };
+          const sizeBeforePush = await kv.llen(historyKey);
+          console.log(
+            `Appending to history (current size before trim: ${sizeBeforePush + 1})...`,
+          );
+          await kv.lpush(historyKey, JSON.stringify(historyRecord));
+          await kv.ltrim(historyKey, 0, 29);
+          responseBody.history_appended = true;
+          console.log('History appended successfully');
+        } catch (histErr) {
+          const histMsg = histErr instanceof Error ? histErr.message : String(histErr);
+          console.warn(`History append failed: ${histMsg}`);
+        }
       }
     }
 
