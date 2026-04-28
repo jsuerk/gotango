@@ -23,20 +23,63 @@ function topOriginsFromArrivals(arrivals) {
     if (!m.has(code)) m.set(code, { code, name, count: 0 });
     m.get(code).count++;
   }
-  return [...m.values()].sort((a, b) => b.count - a.count).slice(0, 5);
+  return [...m.values()].sort((a, b) => b.count - a.count).slice(0, 8);
 }
 
-function topAircraftFromArrivals(arrivals) {
+function aircraftBreakdownFromArrivals(arrivals) {
   const m = new Map();
   for (const f of arrivals) {
     const t = f?.aircraft_type;
     const key = t && String(t).trim() ? String(t).trim() : 'UNKNOWN';
-    m.set(key, (m.get(key) || 0) + 1);
+    if (!m.has(key)) {
+      m.set(key, {
+        type: key,
+        count: 0,
+        ga_count: 0,
+      });
+    }
+    const entry = m.get(key);
+    entry.count += 1;
+    if (classifyType(f) === 'ga') entry.ga_count += 1;
   }
-  return [...m.entries()]
-    .map(([type, count]) => ({ type, count }))
+  return [...m.values()]
+    .map(({ type, count, ga_count }) => ({
+      type,
+      count,
+      is_ga: ga_count > 0,
+    }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
+    .slice(0, 8);
+}
+
+function flightTimeMs(flight) {
+  const candidates = [
+    flight?.actual_on,
+    flight?.arrival_time,
+    flight?.scheduled_on,
+    flight?.estimated_on,
+    flight?.filed_ete,
+  ];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const parsed = Date.parse(candidate);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  return 0;
+}
+
+function recentFlightsFromArrivals(arrivals) {
+  return [...arrivals]
+    .sort((a, b) => flightTimeMs(b) - flightTimeMs(a))
+    .slice(0, 15)
+    .map((f) => ({
+      arrival_time: f?.actual_on || f?.arrival_time || f?.scheduled_on || f?.estimated_on || null,
+      callsign: f?.ident || f?.callsign || null,
+      aircraft_type: f?.aircraft_type || null,
+      origin_icao: f?.origin?.code_icao || f?.origin?.code || null,
+      origin_name: f?.origin?.name || f?.origin?.city || null,
+      is_general_aviation: classifyType(f) === 'ga',
+    }));
 }
 
 function countTypes(arrivals) {
@@ -145,7 +188,8 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls) {
   const stats = countTypes(combined);
   const { general_aviation_count, commercial_count, unknown_type_count } = stats;
   const top_origins = topOriginsFromArrivals(combined);
-  const top_aircraft = topAircraftFromArrivals(combined);
+  const aircraft_breakdown = aircraftBreakdownFromArrivals(combined);
+  const recent_flights = recentFlightsFromArrivals(combined);
   const sample_flight = combined.length > 0 ? combined[0] : null;
   const fetched_at = new Date().toISOString();
 
@@ -162,7 +206,8 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls) {
     commercial_count: destOk ? commercial_count : 0,
     unknown_type_count: destOk ? unknown_type_count : 0,
     top_origins: destOk ? top_origins : [],
-    top_aircraft: destOk ? top_aircraft : [],
+    aircraft_breakdown: destOk ? aircraft_breakdown : [],
+    recent_flights: destOk ? recent_flights : [],
     sample_flight,
     errors,
     fetched_at,

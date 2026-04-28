@@ -200,3 +200,69 @@ export const DESTINATIONS = [
     priority: 'tier-1',
   },
 ];
+
+export const PEER_DESTINATIONS = {
+  'st-barts': ['mustique', 'anguilla', 'harbour-island'],
+  'mustique': ['st-barts', 'anguilla', 'harbour-island'],
+  'anguilla': ['st-barts', 'turks-caicos', 'mustique'],
+  'turks-caicos': ['anguilla', 'harbour-island', 'st-barts'],
+  'harbour-island': ['turks-caicos', 'mustique', 'anguilla'],
+  mykonos: ['ibiza', 'st-tropez', 'sardinia-olbia'],
+  ibiza: ['mykonos', 'st-tropez', 'sardinia-olbia'],
+  'st-tropez': ['sardinia-olbia', 'ibiza', 'mykonos'],
+  'sardinia-olbia': ['st-tropez', 'mykonos', 'ibiza'],
+  aspen: ['jackson-hole', 'courchevel', 'st-moritz'],
+  courchevel: ['st-moritz', 'aspen', 'jackson-hole'],
+  'st-moritz': ['courchevel', 'aspen', 'jackson-hole'],
+  'jackson-hole': ['aspen', 'st-moritz', 'courchevel'],
+  hamptons: ['nantucket', 'marthas-vineyard', 'palm-beach'],
+  nantucket: ['marthas-vineyard', 'hamptons', 'palm-beach'],
+  'marthas-vineyard': ['nantucket', 'hamptons', 'palm-beach'],
+  'palm-beach': ['hamptons', 'cabo-san-lucas', 'tulum'],
+  tulum: ['cabo-san-lucas', 'palm-beach', 'turks-caicos'],
+  'cabo-san-lucas': ['tulum', 'palm-beach', 'st-barts'],
+  comporta: ['st-tropez', 'ibiza', 'mykonos'],
+};
+
+export const EDITORIAL_BLURBS = {
+  'st-barts':
+    "The Caribbean's most enduring private-aviation destination, where the runway approach itself is the entrance fee. Year-round demand spikes around New Year's, Easter, and the Bucket Regatta in March.",
+  'turks-caicos':
+    "Providenciales has quietly become the Caribbean's largest private-aviation hub by volume, balancing Aman-grade resorts with a still-functional commercial gateway. The market has matured from emerging to established over the past decade.",
+  anguilla:
+    'Smaller and quieter than its St. Barts neighbor, Anguilla draws repeat visitors who prize empty beaches over scene. Activity clusters tightly around late December and February school breaks.',
+  mustique:
+    "A Grenadines private island operating closer to a members' club than a destination, with a fixed villa inventory and decades-long family tenancies. Aviation traffic is small but unusually consistent.",
+  'harbour-island':
+    'Pink-sand and clapboard New England aesthetic an hour from Nassau, increasingly favored by Hamptons and Palm Beach families seeking a lower-key Bahamian alternative. North Eleuthera handles the inbound traffic.',
+  mykonos:
+    "The Aegean's loudest summer destination, where July-August arrivals routinely overwhelm the airport's nominal capacity. Activity peaks late June through early September, then collapses.",
+  ibiza:
+    'A Balearic island with two distinct economies -- the club circuit and the discreet northern villa scene -- converging on the same airport. Late June through September drives nearly all annual volume.',
+  'st-tropez':
+    "La Mole's short runway forces a tight aircraft mix, but the Cote d'Azur's enduring appeal keeps the airfield among Europe's busiest summer private-aviation strips. Cannes Film Festival in May is the unofficial season opener.",
+  'sardinia-olbia':
+    "Costa Smeralda's gateway, dominated by Italian and German charter activity through August. Less Anglo-American than the French Riviera but increasingly on the radar of US ultra-high-net-worth families.",
+  aspen:
+    "The Rockies' definitive private-aviation hub, with a winter ski-week peak and a quieter but rising summer Music Festival and Ideas Festival season. Shoulder seasons are genuinely quiet -- April and October show the lowest activity.",
+  courchevel:
+    'An altiport requiring specialized pilot certification, which functions as a soft barrier to entry and concentrates traffic among repeat visitors. December-February is essentially the entire commercial year.',
+  'st-moritz':
+    "Samedan handles the inbound for the Engadin valley's winter season, with a tightly defined Christmas-February peak. Polo on the frozen lake in late January is the calendar's commercial high-water mark.",
+  'jackson-hole':
+    "Wyoming's primary luxury gateway, balancing winter ski season with strong summer demand for Yellowstone and the Tetons. Among the most consistent year-round private-aviation destinations in the US Mountain West.",
+  hamptons:
+    "The Long Island airfields handle one of the densest summer private-aviation patterns in the world, with Friday-afternoon and Sunday-evening peaks visible in the data. Memorial Day to Labor Day defines the commercial year.",
+  nantucket:
+    'An island whose summer aviation profile reflects its 90-minute helicopter and short-hop jet patterns from New York and Boston. July through August accounts for the majority of annual arrivals.',
+  'marthas-vineyard':
+    'Quieter and more politically networked than Nantucket, with a similar but somewhat smaller summer arrival pattern. August in particular draws disproportionate Washington and Boston traffic.',
+  'palm-beach':
+    "The US winter capital of private aviation by some measures, with January-March traffic that rivals Aspen's ski week sustained over twelve weeks. The post-pandemic Florida migration pushed baseline volumes structurally higher.",
+  tulum:
+    "The Riviera Maya's wellness-luxury anchor, drawing a specific NYC and LA cohort distinct from Cancun's broader resort traffic. Demand has shifted noticeably toward the new Tulum airport since its 2023 opening.",
+  'cabo-san-lucas':
+    "Baja's primary private-aviation gateway, serving both the Cabo resort cluster and the quieter East Cape. Activity is genuinely year-round, with Thanksgiving and Easter as the most reliable peaks.",
+  comporta:
+    "A quiet Atlantic stretch an hour south of Lisbon that has been the European fashion and design industry's open secret for two decades. Activity is modest by Mediterranean standards but unusually loyal -- repeat visitors dominate.",
+};
