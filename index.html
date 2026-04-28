@@ -1474,7 +1474,7 @@
     <!-- MAP -->
     <div class="section-head">
       <h2 class="section-title">Live <em>map</em></h2>
-      <span class="section-meta">20 destinations · 04:17z</span>
+      <span class="section-meta">20 destinations · <span id="map-meta-time">04:17z</span></span>
     </div>
     <div class="world-strip">
       <svg id="world-map" viewBox="0 0 480 150" preserveAspectRatio="xMidYMid slice"></svg>
@@ -1483,7 +1483,7 @@
         <span><span class="dot" style="background:#5EAAA8"></span>Steady</span>
         <span><span class="dot" style="background:#E07856"></span>Cool</span>
       </div>
-      <div class="world-overlay">20 destinations · Hourly refresh</div>
+      <div class="world-overlay">20 destinations · <span id="map-overlay-time">Hourly refresh</span></div>
     </div>
 
     <!-- HOT LIST -->
@@ -2041,6 +2041,7 @@
     updateStats(arrivalsData);
     renderHeatingUp(arrivalsData);
     renderCoolingDown(arrivalsData);
+    renderWorldMap(arrivalsData);
   });
 
   // ============ TABS ============
@@ -2764,7 +2765,7 @@
   const mapColors = { surge: '#E8A317', steady: '#5EAAA8', cool: '#E07856' };
   const mapGlowOpacity = { surge: 0.75, steady: 0.5, cool: 0.55 };
 
-  function renderWorldMap() {
+  function renderWorldMap(arrivalsData) {
     const svg = d3.select('#world-map');
     if (svg.empty()) return;
 
@@ -2775,6 +2776,53 @@
     const pathGen = d3.geoPath().projection(projection);
 
     d3.json(WORLD_TOPO_URL).then(world => {
+      const overlayTimeEl = document.getElementById('map-overlay-time');
+      const metaTimeEl = document.getElementById('map-meta-time');
+      const savedAtRaw = arrivalsData && arrivalsData.meta && arrivalsData.meta.saved_at;
+      const savedAtDate = savedAtRaw ? new Date(savedAtRaw) : null;
+      const hasValidSavedAt = savedAtDate instanceof Date && !Number.isNaN(savedAtDate.getTime());
+      if (overlayTimeEl) {
+        if (hasValidSavedAt) {
+          const hh = String(savedAtDate.getUTCHours()).padStart(2, '0');
+          const mm = String(savedAtDate.getUTCMinutes()).padStart(2, '0');
+          overlayTimeEl.textContent = `Updated ${hh}:${mm}z`;
+        } else {
+          overlayTimeEl.textContent = 'Hourly refresh';
+        }
+      }
+      if (metaTimeEl) {
+        if (hasValidSavedAt) {
+          const hh = String(savedAtDate.getUTCHours()).padStart(2, '0');
+          const mm = String(savedAtDate.getUTCMinutes()).padStart(2, '0');
+          metaTimeEl.textContent = `${hh}:${mm}z`;
+        } else {
+          metaTimeEl.textContent = '—';
+        }
+      }
+
+      let resolvedMapDestinations = mapDestinations;
+      const allDests = arrivalsData && arrivalsData.data && Array.isArray(arrivalsData.data.destinations)
+        ? arrivalsData.data.destinations
+        : null;
+      if (allDests && allDests.length > 0) {
+        const validDests = allDests
+          .filter(dest => typeof dest.lat === 'number' && typeof dest.lng === 'number')
+          .sort((a, b) => Number(b.arrivals_count || 0) - Number(a.arrivals_count || 0));
+        if (validDests.length > 0) {
+          resolvedMapDestinations = validDests.map((dest, index) => {
+            const arrivalsCount = Number(dest.arrivals_count || 0);
+            const type = index < 6 ? 'surge' : (index < 17 ? 'steady' : 'cool');
+            const size = arrivalsCount <= 0 ? 2 : Math.max(2, Math.min(8, 2 + (arrivalsCount / 5)));
+            return {
+              lng: dest.lng,
+              lat: dest.lat,
+              type,
+              size
+            };
+          });
+        }
+      }
+
       const land = topojson.feature(world, world.objects.land);
 
       svg.append('g')
@@ -2788,7 +2836,7 @@
         .attr('opacity', 0.85);
 
       const dotGroup = svg.append('g').attr('class', 'map-dots');
-      mapDestinations.forEach(d => {
+      resolvedMapDestinations.forEach(d => {
         const [x, y] = projection([d.lng, d.lat]);
         const color = mapColors[d.type];
         const opac = mapGlowOpacity[d.type];
@@ -2812,7 +2860,6 @@
     }).catch(err => console.error('Map load failed:', err));
   }
 
-  renderWorldMap();
 </script>
 </body>
 </html>
