@@ -3696,6 +3696,12 @@
     if (modal) {
       modal.style.display = 'flex';
       modal.setAttribute('aria-hidden', 'false');
+
+      // Reset scroll position to top so the hero is always visible first
+      const scrollContainer = modal.querySelector('.dest-modal__container');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = 0;
+      }
     }
 
     // Lock body scroll
