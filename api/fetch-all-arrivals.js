@@ -1,5 +1,5 @@
 import { kv } from '@vercel/kv';
-import { DESTINATIONS } from '../destinations.config.js';
+import { DESTINATIONS, PEER_DESTINATIONS, EDITORIAL_BLURBS } from '../destinations.config.js';
 
 const TIMEOUT_MS = 25_000;
 
@@ -23,20 +23,63 @@ function topOriginsFromArrivals(arrivals) {
     if (!m.has(code)) m.set(code, { code, name, count: 0 });
     m.get(code).count++;
   }
-  return [...m.values()].sort((a, b) => b.count - a.count).slice(0, 5);
+  return [...m.values()].sort((a, b) => b.count - a.count).slice(0, 8);
 }
 
-function topAircraftFromArrivals(arrivals) {
+function aircraftBreakdownFromArrivals(arrivals) {
   const m = new Map();
   for (const f of arrivals) {
     const t = f?.aircraft_type;
     const key = t && String(t).trim() ? String(t).trim() : 'UNKNOWN';
-    m.set(key, (m.get(key) || 0) + 1);
+    if (!m.has(key)) {
+      m.set(key, {
+        type: key,
+        count: 0,
+        ga_count: 0,
+      });
+    }
+    const entry = m.get(key);
+    entry.count += 1;
+    if (classifyType(f) === 'ga') entry.ga_count += 1;
   }
-  return [...m.entries()]
-    .map(([type, count]) => ({ type, count }))
+  return [...m.values()]
+    .map(({ type, count, ga_count }) => ({
+      type,
+      count,
+      is_ga: ga_count > 0,
+    }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
+    .slice(0, 8);
+}
+
+function flightTimeMs(flight) {
+  const candidates = [
+    flight?.actual_on,
+    flight?.estimated_on,
+    flight?.scheduled_on,
+    flight?.arrival_time,
+    flight?.filed_ete,
+  ];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const parsed = Date.parse(candidate);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  return 0;
+}
+
+function recentFlightsFromArrivals(arrivals) {
+  return [...arrivals]
+    .sort((a, b) => flightTimeMs(b) - flightTimeMs(a))
+    .slice(0, 15)
+    .map((f) => ({
+      arrival_time: f?.actual_on || f?.estimated_on || f?.scheduled_on || f?.arrival_time || null,
+      callsign: f?.ident || f?.ident_icao || null,
+      aircraft_type: f?.aircraft_type || null,
+      origin_icao: f?.origin?.code_icao || null,
+      origin_name: f?.origin?.name || f?.origin?.city || null,
+      is_general_aviation: classifyType(f) === 'ga',
+    }));
 }
 
 function countTypes(arrivals) {
@@ -145,7 +188,8 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls) {
   const stats = countTypes(combined);
   const { general_aviation_count, commercial_count, unknown_type_count } = stats;
   const top_origins = topOriginsFromArrivals(combined);
-  const top_aircraft = topAircraftFromArrivals(combined);
+  const top_aircraft = aircraftBreakdownFromArrivals(combined);
+  const recent_flights = recentFlightsFromArrivals(combined);
   const sample_flight = combined.length > 0 ? combined[0] : null;
   const fetched_at = new Date().toISOString();
 
@@ -153,6 +197,8 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls) {
     id: dest.id,
     name: dest.name,
     region: dest.region,
+    lat: dest.lat,
+    lng: dest.lng,
     icao: [...icaos],
     ok: destOk,
     arrivals_count,
@@ -161,9 +207,12 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls) {
     unknown_type_count: destOk ? unknown_type_count : 0,
     top_origins: destOk ? top_origins : [],
     top_aircraft: destOk ? top_aircraft : [],
+    recent_flights: destOk ? recent_flights : [],
     sample_flight,
     errors,
     fetched_at,
+    editorial: EDITORIAL_BLURBS[dest.id] || null,
+    peers: PEER_DESTINATIONS[dest.id] || [],
   };
 
   const errTag = result.errors.length ? ` errors=${result.errors.map((e) => e.icao).join(',')}` : '';
@@ -229,6 +278,7 @@ export default async function handler(req, res) {
       duration_ms,
       destinations,
       kv_saved: false,
+      history_appended: false,
     };
 
     const okDestinationCount = destinations.filter((d) => d.ok).length;
@@ -247,9 +297,9 @@ export default async function handler(req, res) {
       }
       console.warn('Sanity check failed, skipping save:', parts.join('; '));
     } else {
+      const savedAt = new Date().toISOString();
       console.log('Sanity check passed, saving to KV...');
       try {
-        const savedAt = new Date().toISOString();
         const latestPayload = { ...responseBody, kv_saved: true };
         await kv.set('gotango:arrivals:latest', latestPayload);
         await kv.set('gotango:arrivals:meta', {
@@ -263,6 +313,36 @@ export default async function handler(req, res) {
       } catch (kvErr) {
         const msg = kvErr instanceof Error ? kvErr.message : String(kvErr);
         console.log(`Failed to save to KV: ${msg}`);
+      }
+
+      if (total_arrivals_across_all > 0 && successful >= 15) {
+        try {
+          const historyKey = 'gotango:arrivals:history';
+          const per_destination = destinations.map((d) => ({
+            id: d.id,
+            arrivals_count: d.arrivals_count,
+            general_aviation_count: d.general_aviation_count,
+            commercial_count: d.commercial_count,
+          }));
+          const historyRecord = {
+            saved_at: savedAt,
+            total_arrivals: total_arrivals_across_all,
+            successful_count: successful,
+            duration_ms,
+            per_destination,
+          };
+          const sizeBeforePush = await kv.llen(historyKey);
+          console.log(
+            `Appending to history (current size before trim: ${sizeBeforePush + 1})...`,
+          );
+          await kv.lpush(historyKey, historyRecord);
+          await kv.ltrim(historyKey, 0, 29);
+          responseBody.history_appended = true;
+          console.log('History appended successfully');
+        } catch (histErr) {
+          const histMsg = histErr instanceof Error ? histErr.message : String(histErr);
+          console.warn(`History append failed: ${histMsg}`);
+        }
       }
     }
 

@@ -1426,6 +1426,723 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+
+  /* === Destination Detail Modal === */
+  .dest-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-family: inherit;
+  }
+
+  .dest-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 8, 12, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    cursor: pointer;
+    animation: dest-modal-fade-in 200ms ease-out;
+  }
+
+  .dest-modal__container {
+    position: relative;
+    background: #0f0f14;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    width: min(720px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    margin: 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    animation: dest-modal-slide-up 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .dest-modal__close {
+    position: sticky;
+    top: 16px;
+    margin-left: auto;
+    margin-right: 16px;
+    margin-top: 16px;
+    margin-bottom: -52px; /* pull subsequent content up so button overlays without taking layout space */
+    z-index: 10;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(20, 20, 28, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    line-height: 1;
+    transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+    flex-shrink: 0;
+    align-self: flex-end;
+  }
+
+  .dest-modal__close:hover {
+    background: rgba(40, 40, 50, 0.95);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+  }
+
+  .dest-modal__close:focus-visible {
+    outline: 2px solid #f5b73d;
+    outline-offset: 2px;
+  }
+
+  .dest-modal__body {
+    padding: 32px 28px 36px;
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  .dest-modal__placeholder-title {
+    font-family: inherit;
+    font-size: 28px;
+    font-weight: 400;
+    margin: 0 0 12px 0;
+    color: white;
+  }
+
+  .dest-modal__placeholder-text {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 14px;
+    margin: 0;
+  }
+
+  /* === Destination Modal Sections === */
+  .dest-modal__body {
+    /* Override the existing minimal padding to match mockup section padding */
+    padding: 0 0 32px;
+  }
+
+  .d-hero {
+    padding: 32px 24px 24px;
+    border-bottom: 1px solid var(--border, #252C37);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .d-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(245,241,232,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,241,232,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .d-hero > * { position: relative; z-index: 1; }
+
+  .d-vibe {
+    display: inline-block;
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: 3px;
+    margin-bottom: 16px;
+  }
+
+  .d-vibe.surge {
+    color: var(--amber, #E8A317);
+    background: rgba(232, 163, 23, 0.1);
+    border: 1px solid rgba(232, 163, 23, 0.3);
+  }
+  .d-vibe.cool {
+    color: var(--signal-down, #E07856);
+    background: rgba(224, 120, 86, 0.1);
+    border: 1px solid rgba(224, 120, 86, 0.3);
+  }
+  .d-vibe.steady {
+    color: var(--teal, #5EAAA8);
+    background: rgba(94, 170, 168, 0.1);
+    border: 1px solid rgba(94, 170, 168, 0.3);
+  }
+
+  .d-name {
+    font-family: 'Fraunces', serif;
+    font-size: 38px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 0.95;
+    margin: 0 0 8px 0;
+    color: var(--text, #F5F1E8);
+  }
+
+  .d-meta {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint, #6B6557);
+    letter-spacing: 0.08em;
+  }
+
+  .d-meta-sep {
+    color: var(--border-light, #313945);
+    margin: 0 8px;
+  }
+
+  .d-section {
+    padding: 26px 24px;
+    border-bottom: 1px solid var(--border, #252C37);
+  }
+
+  .d-section:last-child {
+    border-bottom: none;
+  }
+
+  .d-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .d-section-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text-faint, #6B6557);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .d-section-label::before {
+    content: "";
+    width: 18px;
+    height: 1px;
+    background: var(--amber, #E8A317);
+  }
+
+  .d-section-meta {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint, #6B6557);
+    letter-spacing: 0.08em;
+  }
+
+  /* Stats grid (3 cells) */
+  .d-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border, #252C37);
+    border: 1px solid var(--border, #252C37);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .d-stat {
+    background: var(--surface, #161B23);
+    padding: 14px 12px;
+    min-width: 0;
+  }
+
+  .d-stat-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--text-faint, #6B6557);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .d-stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--text, #F5F1E8);
+    word-break: break-word;
+  }
+
+  .d-stat-value.accent {
+    color: var(--amber, #E8A317);
+  }
+
+  .d-stat-sub {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    margin-top: 5px;
+    color: var(--text-dim, #A8A293);
+  }
+
+  /* Trajectory placeholder (skeleton chart) */
+  .d-trajectory-placeholder {
+    height: 140px;
+    border: 1px dashed var(--border-light, #313945);
+    border-radius: 8px;
+    background:
+      repeating-linear-gradient(
+        to right,
+        transparent,
+        transparent 39px,
+        rgba(255, 255, 255, 0.025) 39px,
+        rgba(255, 255, 255, 0.025) 40px
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 27px,
+        rgba(255, 255, 255, 0.025) 27px,
+        rgba(255, 255, 255, 0.025) 28px
+      );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .d-placeholder-msg {
+    text-align: center;
+    padding: 16px 24px;
+  }
+
+  .d-placeholder-icon {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 24px;
+    color: var(--amber, #E8A317);
+    opacity: 0.5;
+    margin-bottom: 6px;
+  }
+
+  .d-placeholder-title {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--amber, #E8A317);
+    margin-bottom: 4px;
+  }
+
+  .d-placeholder-text {
+    font-size: 12px;
+    color: var(--text-dim, #A8A293);
+    line-height: 1.5;
+    max-width: 280px;
+    margin: 0 auto;
+  }
+
+  /* Pulse placeholder */
+  .d-pulse-placeholder {
+    display: grid;
+    gap: 16px;
+  }
+
+  .d-pulse-skeleton {
+    height: 80px;
+    background: var(--surface, #161B23);
+    border: 1px dashed var(--border-light, #313945);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Editorial note */
+  .d-note {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text, #F5F1E8);
+    margin: 0;
+  }
+
+  .d-note-byline {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint, #6B6557);
+    letter-spacing: 0.1em;
+    margin-top: 14px;
+  }
+
+  .d-note-empty {
+    font-style: italic;
+    color: var(--text-faint, #6B6557);
+    font-size: 13px;
+  }
+
+  /* Click affordance for destination cards */
+  .dest-card,
+  .cooling-card {
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease;
+  }
+
+  .dest-card:hover,
+  .cooling-card:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  /* Map dot click affordance */
+  .map-dot {
+    cursor: pointer;
+  }
+
+  /* Mobile: full-screen takeover */
+  @media (max-width: 640px) {
+    .dest-modal__container {
+      width: 100vw;
+      max-height: 100vh;
+      height: 100vh;
+      margin: 0;
+      border-radius: 0;
+      border: none;
+    }
+
+    .dest-modal__body {
+      padding: 56px 20px 24px;
+    }
+
+    .dest-modal__close {
+      top: 12px;
+      margin-right: 12px;
+      margin-top: 12px;
+      margin-bottom: -48px;
+      width: 40px;
+      height: 40px;
+      font-size: 22px;
+    }
+
+    .d-hero {
+      padding: 28px 20px 20px;
+    }
+
+    .d-name {
+      font-size: 32px;
+    }
+
+    .d-section {
+      padding: 22px 20px;
+    }
+
+    .d-stat {
+      padding: 12px 10px;
+    }
+
+    .d-stat-value {
+      font-size: 19px;
+    }
+  }
+
+  @keyframes dest-modal-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes dest-modal-slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* When modal is open, prevent body scroll */
+  body.dest-modal-open {
+    overflow: hidden;
+  }
+
+/* === Origins (horizontal bar chart) === */
+.d-origins {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.d-origin {
+  display: grid;
+  grid-template-columns: minmax(0, 140px) 1fr 64px;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.d-origin-name {
+  color: var(--text, #F5F1E8);
+  font-family: 'Geist', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d-origin-sub {
+  color: var(--text-faint, #6B6557);
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+.d-origin-bar {
+  height: 6px;
+  background: var(--surface-2, #1E242E);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.d-origin-bar-fill {
+  height: 100%;
+  background: linear-gradient(to right, var(--teal, #5EAAA8), var(--amber, #E8A317));
+  border-radius: 2px;
+  transform-origin: left;
+  animation: barIn 0.8s ease-out;
+}
+
+@keyframes barIn {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.d-origin-val {
+  text-align: right;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  color: var(--text, #F5F1E8);
+}
+
+.d-origin-val small {
+  display: block;
+  color: var(--text-faint, #6B6557);
+  font-size: 9px;
+  margin-top: 2px;
+}
+
+/* === Aircraft mix === */
+.d-aircraft {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.d-craft {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--surface, #161B23);
+  border: 1px solid var(--border, #252C37);
+  border-radius: 7px;
+}
+
+.d-craft-name {
+  font-family: 'Geist', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text, #F5F1E8);
+}
+
+.d-craft-class {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  color: var(--text-faint, #6B6557);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+
+.d-craft-class.ga { color: var(--amber-soft, #C28A1A); }
+.d-craft-class.com { color: var(--teal, #5EAAA8); }
+
+.d-craft-count {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  color: var(--amber, #E8A317);
+}
+
+/* === Recent flights feed === */
+.d-feed {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border, #252C37);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.d-feed-item {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  background: var(--surface, #161B23);
+  border-bottom: 1px solid var(--border, #252C37);
+  font-size: 12px;
+}
+
+.d-feed-item:last-child {
+  border-bottom: none;
+}
+
+.d-feed-time {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  color: var(--text-faint, #6B6557);
+}
+
+.d-feed-main {
+  min-width: 0;
+}
+
+.d-feed-callsign {
+  font-family: 'Geist Mono', monospace;
+  font-weight: 500;
+  color: var(--text, #F5F1E8);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.d-feed-aircraft {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim, #A8A293);
+  margin-left: 6px;
+}
+
+.d-feed-route {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  color: var(--text-faint, #6B6557);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d-feed-tag {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  padding: 3px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+}
+
+.d-feed-tag.private {
+  color: var(--amber, #E8A317);
+  background: rgba(232, 163, 23, 0.1);
+}
+
+.d-feed-tag.commercial {
+  color: var(--teal, #5EAAA8);
+  background: rgba(94, 170, 168, 0.1);
+}
+
+.d-feed-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-faint, #6B6557);
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* === Peer destinations === */
+.d-peers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.d-peer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 15px;
+  background: var(--surface, #161B23);
+  border: 1px solid var(--border, #252C37);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.d-peer:hover {
+  background: var(--surface-2, #1E242E);
+  border-color: var(--border-light, #313945);
+}
+
+.d-peer-info {
+  min-width: 0;
+}
+
+.d-peer-name {
+  font-family: 'Fraunces', serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text, #F5F1E8);
+  letter-spacing: -0.01em;
+}
+
+.d-peer-region {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  color: var(--text-faint, #6B6557);
+  margin-top: 3px;
+  letter-spacing: 0.05em;
+}
+
+.d-peer-stats {
+  text-align: right;
+}
+
+.d-peer-arrivals {
+  font-family: 'Fraunces', serif;
+  font-size: 18px;
+  color: var(--text, #F5F1E8);
+  line-height: 1;
+}
+
+.d-peer-tier {
+  font-family: 'Geist Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.d-peer-tier.surge { color: var(--amber, #E8A317); }
+.d-peer-tier.cool { color: var(--signal-down, #E07856); }
+.d-peer-tier.steady { color: var(--teal, #5EAAA8); }
+
+/* Mobile adjustments */
+@media (max-width: 640px) {
+  .d-origin {
+    grid-template-columns: minmax(0, 110px) 1fr 56px;
+    gap: 10px;
+  }
+
+  .d-origin-name { font-size: 12px; }
+
+  .d-feed-item {
+    grid-template-columns: 50px 1fr auto;
+    padding: 10px;
+  }
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
@@ -1435,7 +2152,7 @@
 
   <!-- STATUS BAR -->
   <header class="status-bar">
-    <div class="status-time" id="utc-clock">—— UTC</div>
+    <div class="status-time" id="utc-clock">— UTC</div>
     <div class="logo">
       <span class="logo-mark">G</span><span class="logo-mark-t">T</span>
       <span class="logo-dot"></span>
@@ -1448,25 +2165,25 @@
   <div class="tab-content active" id="tab-now">
 
     <section class="hero">
-      <div class="hero-kicker">The Index · Friday, 20 April</div>
-      <h1 class="hero-headline">Where the world is <em>going.</em></h1>
-      <p class="hero-sub">Travel intelligence for top destinations. Surges, cool-downs, and the reasons behind both — refreshed hourly from public ADS-B data.<br><span style="color: var(--amber);">Real data without the fluff.</span></p>
+      <div class="hero-kicker" id="hero-kicker">The Index · TUESDAY, 28 APRIL</div>
+      <h1 class="hero-headline">Where the world's <em>going.</em></h1>
+      <p class="hero-sub">Travel intelligence for top destinations. Surges, cool-downs, and the reasons behind both — built daily from public ADS-B data.<br><span style="color: var(--amber);">Real data without the fluff.</span></p>
 
       <div class="hero-stats">
         <div class="stat-cell">
           <div class="stat-label">Arrivals · 24h</div>
-          <div class="stat-value">14,082</div>
-          <div class="stat-delta delta-up">↑ 6.2% w/w</div>
+          <div class="stat-value" id="stat-arrivals">—</div>
+          <div class="stat-delta delta-up" id="stat-arrivals-delta">—</div>
         </div>
         <div class="stat-cell">
           <div class="stat-label">Private %</div>
-          <div class="stat-value">23.4</div>
-          <div class="stat-delta delta-up">↑ 1.8 pts</div>
+          <div class="stat-value" id="stat-private">—</div>
+          <div class="stat-delta delta-up" id="stat-private-delta">—</div>
         </div>
         <div class="stat-cell">
           <div class="stat-label">Surging</div>
-          <div class="stat-value">9</div>
-          <div class="stat-delta delta-down">↓ 4 cooling</div>
+          <div class="stat-value" id="stat-surging">—</div>
+          <div class="stat-delta delta-down" id="stat-surging-delta">—</div>
         </div>
       </div>
     </section>
@@ -1474,7 +2191,7 @@
     <!-- MAP -->
     <div class="section-head">
       <h2 class="section-title">Live <em>map</em></h2>
-      <span class="section-meta">20 destinations · 04:17z</span>
+      <span class="section-meta">20 destinations · <span id="map-meta-time">04:17z</span></span>
     </div>
     <div class="world-strip">
       <svg id="world-map" viewBox="0 0 480 150" preserveAspectRatio="xMidYMid slice"></svg>
@@ -1483,7 +2200,7 @@
         <span><span class="dot" style="background:#5EAAA8"></span>Steady</span>
         <span><span class="dot" style="background:#E07856"></span>Cool</span>
       </div>
-      <div class="world-overlay">20 destinations · Hourly refresh</div>
+      <div class="world-overlay">20 destinations · <span id="map-overlay-time">Hourly refresh</span></div>
     </div>
 
     <!-- HOT LIST -->
@@ -1492,127 +2209,7 @@
       <span class="section-meta">Top 6 · Mover score</span>
     </div>
 
-    <div class="dest-list">
-      <div class="dest-card" data-dest="stbarts">
-        <div class="dest-rank">I</div>
-        <div class="dest-main">
-          <div class="dest-row1">
-            <span class="dest-name">St. Barthélemy</span>
-            <span class="dest-code">TFFJ</span>
-          </div>
-          <div class="dest-vibe">Easter pulls NYC and London in synchronized waves</div>
-          <div class="dest-meta">
-            <span><b>74%</b> private</span>
-            <span><b>NYC, MIA, LON</b></span>
-          </div>
-        </div>
-        <div class="dest-arrivals">
-          <div class="dest-arrivals-num">312</div>
-          <div class="dest-arrivals-label">24h arr</div>
-          <div class="dest-trend up">↑ 38% wow</div>
-        </div>
-      </div>
-
-      <div class="dest-card" data-dest="mykonos">
-        <div class="dest-rank">II</div>
-        <div class="dest-main">
-          <div class="dest-row1">
-            <span class="dest-name">Mykonos</span>
-            <span class="dest-code">LGMK</span>
-          </div>
-          <div class="dest-vibe">First private scouts of the season — Rome and Athens early</div>
-          <div class="dest-meta">
-            <span><b>42%</b> private</span>
-            <span><b>ATH, ROM, LON</b></span>
-          </div>
-        </div>
-        <div class="dest-arrivals">
-          <div class="dest-arrivals-num">87</div>
-          <div class="dest-arrivals-label">24h arr</div>
-          <div class="dest-trend up">↑ 67% wow</div>
-        </div>
-      </div>
-
-      <div class="dest-card" data-dest="hamptons">
-        <div class="dest-rank">III</div>
-        <div class="dest-main">
-          <div class="dest-row1">
-            <span class="dest-name">The Hamptons</span>
-            <span class="dest-code">KJPX · KFOK</span>
-          </div>
-          <div class="dest-vibe">Early memorial day openings drive first summer spike</div>
-          <div class="dest-meta">
-            <span><b>68%</b> private</span>
-            <span><b>TEB, HPN, BOS</b></span>
-          </div>
-        </div>
-        <div class="dest-arrivals">
-          <div class="dest-arrivals-num">142</div>
-          <div class="dest-arrivals-label">24h arr</div>
-          <div class="dest-trend up">↑ 52% wow</div>
-        </div>
-      </div>
-
-      <div class="dest-card" data-dest="comporta">
-        <div class="dest-rank">IV</div>
-        <div class="dest-main">
-          <div class="dest-row1">
-            <span class="dest-name">Comporta</span>
-            <span class="dest-code">LPMT</span>
-          </div>
-          <div class="dest-vibe">Quietly the fastest-growing destination on our index</div>
-          <div class="dest-meta">
-            <span><b>58%</b> private</span>
-            <span><b>LIS, LON, PAR</b></span>
-          </div>
-        </div>
-        <div class="dest-arrivals">
-          <div class="dest-arrivals-num">64</div>
-          <div class="dest-arrivals-label">24h arr</div>
-          <div class="dest-trend up">↑ 41% wow</div>
-        </div>
-      </div>
-
-      <div class="dest-card" data-dest="ibiza">
-        <div class="dest-rank">V</div>
-        <div class="dest-main">
-          <div class="dest-row1">
-            <span class="dest-name">Ibiza</span>
-            <span class="dest-code">LEIB</span>
-          </div>
-          <div class="dest-vibe">Pre-season property set arriving ahead of May openings</div>
-          <div class="dest-meta">
-            <span><b>38%</b> private</span>
-            <span><b>BCN, LON, GVA</b></span>
-          </div>
-        </div>
-        <div class="dest-arrivals">
-          <div class="dest-arrivals-num">124</div>
-          <div class="dest-arrivals-label">24h arr</div>
-          <div class="dest-trend up">↑ 28% wow</div>
-        </div>
-      </div>
-
-      <div class="dest-card" data-dest="tulum">
-        <div class="dest-rank">VI</div>
-        <div class="dest-main">
-          <div class="dest-row1">
-            <span class="dest-name">Tulum</span>
-            <span class="dest-code">MMTO · MMUN</span>
-          </div>
-          <div class="dest-vibe">Weekly party cycle — Thursday-Friday spike forming</div>
-          <div class="dest-meta">
-            <span><b>34%</b> private</span>
-            <span><b>JFK, LAX, ATL</b></span>
-          </div>
-        </div>
-        <div class="dest-arrivals">
-          <div class="dest-arrivals-num">446</div>
-          <div class="dest-arrivals-label">24h arr</div>
-          <div class="dest-trend up">↑ 9% wow</div>
-        </div>
-      </div>
-    </div>
+    <div class="dest-list" id="heating-up-list"></div>
 
     <!-- COOLING -->
     <div class="section-head">
@@ -1620,59 +2217,35 @@
       <span class="section-meta">Last 7 days</span>
     </div>
 
-    <div class="cooling-list">
-      <div class="cooling-card" data-dest="aspen">
-        <div>
-          <div class="cooling-name">Aspen · <span style="font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--text-faint);">KASE</span></div>
-          <div class="cooling-why">Ski season tail — fifteen straight days of decline</div>
-        </div>
-        <div class="cooling-pct">−22%</div>
-      </div>
-      <div class="cooling-card" data-dest="courchevel">
-        <div>
-          <div class="cooling-name">Courchevel · <span style="font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--text-faint);">LFLJ</span></div>
-          <div class="cooling-why">Alpine season ending; final UK arrivals this weekend</div>
-        </div>
-        <div class="cooling-pct">−18%</div>
-      </div>
-      <div class="cooling-card" data-dest="palmbeach">
-        <div>
-          <div class="cooling-name">Palm Beach · <span style="font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--text-faint);">KPBI</span></div>
-          <div class="cooling-why">Snowbird reversal — northbound traffic up 31%</div>
-        </div>
-        <div class="cooling-pct">−14%</div>
-      </div>
-    </div>
+    <div class="cooling-list" id="cooling-down-list"></div>
 
     <!-- SLEEPER -->
     <div class="section-head">
       <h2 class="section-title"><em>Sleeper</em> pick</h2>
       <span class="section-meta">Editor's note</span>
     </div>
-    <div class="sleeper" onclick="openDetail(destData.comporta)">
-      <div class="sleeper-label">⏷ Below Radar</div>
+    <div class="sleeper" id="todays-pick-card" data-destination-id="comporta">
+      <div class="sleeper-label">★ TODAY'S PICK</div>
       <div class="sleeper-name">Comporta, Portugal</div>
-      <div class="sleeper-code">LPMT · 38.4°N · 8.8°W</div>
-      <p class="sleeper-desc">The Hamptons crowd that quietly migrated to this stretch of Atlantic pine forest post-pandemic is <em>finally showing up in the data.</em> Private arrivals from Paris, London, and New York have quadrupled year-over-year.</p>
+      <div class="sleeper-code">LPMT · 38.40°N · 8.59°W</div>
+      <p class="sleeper-desc">An hour south of Lisbon, the Atlantic coast's quietest stretch has been the European fashion and design industry's worst-kept secret for two decades. A pine-forest seam between rice paddies and undeveloped beaches — too small to attract the Mediterranean crowd, too sophisticated for mass tourism, too loyal a clientele to lose its character. Activity is modest by Greek-island standards but unusually consistent year-round, with a tightly held repeat-visitor base. <em>The data says it's still under the radar. The market increasingly disagrees.</em></p>
       <div class="sleeper-stats">
-        <span><b>+4.1×</b> YoY</span>
-        <span><b>58%</b> private</span>
-        <span>64 arr / 24h</span>
+        <span id="todays-pick-arrivals"><b>—</b> arr / 24h</span>
+        <span id="todays-pick-private"><b>—%</b> private</span>
+        <span>Tier-1 destination</span>
       </div>
     </div>
 
     <!-- BRIEF SIGNUP -->
     <div class="brief-card">
       <div class="brief-label">The Tuesday Brief</div>
-      <h3 class="brief-title">Five surging,<br>three <em>cooling.</em></h3>
-      <p class="brief-desc">Every Tuesday, a 90-second read on where the world's most mobile 1% is actually going — and why. No ads, no press release recycling, no affiliate links. Only signal.</p>
+      <h3 class="brief-title">Launching <em>May 2026.</em></h3>
+      <p class="brief-desc">A 90-second weekly read on where the world's most mobile travelers are actually going — and why. No ads, no press release recycling, no affiliate links. Be the first to know when we ship.</p>
       <div class="brief-form">
-        <input type="email" class="brief-input" placeholder="your@email.com" id="brief-email">
-        <button class="brief-btn" onclick="signup()">Subscribe</button>
+        <input type="email" class="brief-input" placeholder="your@email.com" id="brief-email" autocomplete="email">
+        <button class="brief-btn" id="brief-subscribe-btn" type="button">Join the waitlist</button>
       </div>
-      <div class="brief-meta">
-        <span>22,481 readers</span>
-        <span>·</span>
+      <div class="brief-meta" id="brief-meta">
         <span>Free forever</span>
         <span>·</span>
         <span>Unsubscribe anytime</span>
@@ -1886,16 +2459,331 @@
 <!-- TOAST -->
 <div class="toast" id="toast">Saved</div>
 
+<div id="destination-modal" class="dest-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="dest-modal-title" style="display: none;">
+  <div class="dest-modal__backdrop" data-modal-close></div>
+  <div class="dest-modal__container" role="document">
+    <button class="dest-modal__close" data-modal-close aria-label="Close destination detail">
+      <span aria-hidden="true">×</span>
+    </button>
+    <div class="dest-modal__body" id="dest-modal-body">
+      <h2 id="dest-modal-title" class="dest-modal__placeholder-title">Loading...</h2>
+      <p class="dest-modal__placeholder-text">Loading destination details...</p>
+    </div>
+  </div>
+</div>
+
 <script>
-  // ============ UTC CLOCK ============
-  function tickClock() {
-    const now = new Date();
-    const h = String(now.getUTCHours()).padStart(2, '0');
-    const m = String(now.getUTCMinutes()).padStart(2, '0');
-    document.getElementById('utc-clock').textContent = `${h}:${m} UTC`;
+  // ============ HERO DATA (PHASE 5A PASS 1) ============
+  async function loadArrivalsData() {
+    try {
+      const response = await fetch('/api/get-arrivals');
+      if (!response.ok) {
+        console.warn('Failed to fetch /api/get-arrivals:', response.status);
+        return null;
+      }
+      return await response.json();
+    } catch (error) {
+      console.warn('Error fetching arrivals data:', error);
+      return null;
+    }
   }
-  tickClock();
-  setInterval(tickClock, 30000);
+
+  function updateClock() {
+    try {
+      const now = new Date();
+      const h = String(now.getUTCHours()).padStart(2, '0');
+      const m = String(now.getUTCMinutes()).padStart(2, '0');
+      const el = document.getElementById('utc-clock');
+      if (el) el.textContent = `${h}:${m} UTC`;
+    } catch (error) {
+      console.warn('Error updating UTC clock:', error);
+    }
+  }
+
+  function updateDate() {
+    try {
+      const now = new Date();
+      const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      const monthNames = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+      const dayName = dayNames[now.getDay()];
+      const dayOfMonth = String(now.getDate()).padStart(2, '0');
+      const monthName = monthNames[now.getMonth()];
+      const kicker = document.getElementById('hero-kicker');
+      if (kicker) kicker.textContent = `The Index · ${dayName}, ${dayOfMonth} ${monthName}`;
+    } catch (error) {
+      console.warn('Error updating hero date:', error);
+    }
+  }
+
+  function updateStats(data) {
+    const payload = data && data.data;
+    const destinations = payload && Array.isArray(payload.destinations) ? payload.destinations : null;
+    if (!destinations) return;
+
+    try {
+      const arrivalsEl = document.getElementById('stat-arrivals');
+      const totalArrivals = Number(payload.total_arrivals_across_all);
+      if (arrivalsEl && Number.isFinite(totalArrivals)) {
+        arrivalsEl.textContent = totalArrivals.toLocaleString();
+      }
+    } catch (error) {
+      console.warn('Error updating arrivals stat:', error);
+    }
+
+    try {
+      const privateEl = document.getElementById('stat-private');
+      const totalGA = destinations.reduce((sum, dest) => sum + Number(dest.general_aviation_count || 0), 0);
+      const totalArr = destinations.reduce((sum, dest) => sum + Number(dest.arrivals_count || 0), 0);
+      if (privateEl && totalArr > 0) {
+        privateEl.textContent = ((totalGA / totalArr) * 100).toFixed(1);
+      }
+    } catch (error) {
+      console.warn('Error updating private percentage stat:', error);
+    }
+
+    try {
+      const surgingEl = document.getElementById('stat-surging');
+      if (surgingEl) surgingEl.textContent = '—';
+    } catch (error) {
+      console.warn('Error updating surging stat:', error);
+    }
+  }
+
+  function updateTodaysPick(arrivalsData) {
+    const payload = arrivalsData && arrivalsData.data;
+    if (!payload || !Array.isArray(payload.destinations)) return;
+
+    const comporta = payload.destinations.find(d => d.id === 'comporta');
+    if (!comporta) return;
+
+    const arrivalsEl = document.getElementById('todays-pick-arrivals');
+    const privateEl = document.getElementById('todays-pick-private');
+
+    const arrivals = (typeof comporta.arrivals_count === 'number') ? comporta.arrivals_count : 0;
+    const ga = (typeof comporta.general_aviation_count === 'number') ? comporta.general_aviation_count : 0;
+    const pvtPct = arrivals > 0 ? Math.round((ga / arrivals) * 100) : null;
+
+    if (arrivalsEl) {
+      arrivalsEl.innerHTML = `<b>${arrivals}</b> arr / 24h`;
+    }
+    if (privateEl) {
+      privateEl.innerHTML = `<b>${pvtPct == null ? '—%' : pvtPct + '%'}</b> private`;
+    }
+  }
+
+  function renderHeatingUp(data) {
+    if (!data || !data.data || !Array.isArray(data.data.destinations)) return;
+
+    const container = document.getElementById('heating-up-list');
+    if (!container) return;
+
+    try {
+      const romans = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+      const destinations = data.data.destinations;
+      const top6 = destinations
+        .filter(dest => Number(dest && dest.arrivals_count) > 0)
+        .sort((a, b) => Number(b.arrivals_count || 0) - Number(a.arrivals_count || 0))
+        .slice(0, 6);
+
+      container.innerHTML = '';
+
+      top6.forEach((dest, i) => {
+        const arrivalsCount = Number(dest.arrivals_count || 0);
+        const gaCount = Number(dest.general_aviation_count || 0);
+        const commercialCount = Number(dest.commercial_count || 0);
+        const privatePct = arrivalsCount > 0 ? Math.round((gaCount / arrivalsCount) * 100) : 0;
+        const originCodes = Array.isArray(dest.top_origins)
+          ? dest.top_origins.slice(0, 3).map(o => o && o.code).filter(Boolean)
+          : [];
+        const topOriginCodes = originCodes.length > 0 ? originCodes.join(', ') : '—';
+        const insightOrigins = originCodes.length > 0 ? topOriginCodes : 'mixed origins';
+
+        let insightLine = '';
+        if (privatePct >= 70) {
+          insightLine = `Heavily private — ${privatePct}% GA from ${insightOrigins}`;
+        } else if (privatePct >= 40) {
+          insightLine = `Mixed traffic — ${privatePct}% private aviation`;
+        } else {
+          insightLine = `Mostly commercial — ${commercialCount} airline arrivals`;
+        }
+
+        const card = document.createElement('div');
+        card.className = 'dest-card';
+        card.dataset.dest = String(dest.id || '');
+        card.setAttribute('data-destination-id', String(dest.id || ''));
+
+        const rank = document.createElement('div');
+        rank.className = 'dest-rank';
+        rank.textContent = romans[i] || '';
+
+        const main = document.createElement('div');
+        main.className = 'dest-main';
+
+        const row1 = document.createElement('div');
+        row1.className = 'dest-row1';
+
+        const name = document.createElement('span');
+        name.className = 'dest-name';
+        name.textContent = String(dest.name || '');
+
+        const code = document.createElement('span');
+        code.className = 'dest-code';
+        code.textContent = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
+
+        row1.appendChild(name);
+        row1.appendChild(code);
+
+        const vibe = document.createElement('div');
+        vibe.className = 'dest-vibe';
+        vibe.textContent = insightLine;
+
+        const meta = document.createElement('div');
+        meta.className = 'dest-meta';
+
+        const privateSpan = document.createElement('span');
+        const privateBold = document.createElement('b');
+        privateBold.textContent = `${privatePct}%`;
+        privateSpan.appendChild(privateBold);
+        privateSpan.appendChild(document.createTextNode(' private'));
+
+        const originsSpan = document.createElement('span');
+        const originsBold = document.createElement('b');
+        originsBold.textContent = topOriginCodes;
+        originsSpan.appendChild(originsBold);
+
+        meta.appendChild(privateSpan);
+        meta.appendChild(originsSpan);
+
+        main.appendChild(row1);
+        main.appendChild(vibe);
+        main.appendChild(meta);
+
+        const arrivals = document.createElement('div');
+        arrivals.className = 'dest-arrivals';
+
+        const arrivalsNum = document.createElement('div');
+        arrivalsNum.className = 'dest-arrivals-num';
+        arrivalsNum.textContent = String(arrivalsCount);
+
+        const arrivalsLabel = document.createElement('div');
+        arrivalsLabel.className = 'dest-arrivals-label';
+        arrivalsLabel.textContent = '24h arr';
+
+        const trend = document.createElement('div');
+        trend.className = 'dest-trend';
+        trend.textContent = '—';
+
+        arrivals.appendChild(arrivalsNum);
+        arrivals.appendChild(arrivalsLabel);
+        arrivals.appendChild(trend);
+
+        card.appendChild(rank);
+        card.appendChild(main);
+        card.appendChild(arrivals);
+        container.appendChild(card);
+      });
+    } catch (error) {
+      container.innerHTML = '';
+      console.warn('Error rendering heating up list:', error);
+    }
+  }
+
+  function renderCoolingDown(data) {
+    const container = document.getElementById('cooling-down-list');
+    if (!container) return;
+
+    try {
+      container.innerHTML = '';
+      if (!data || !data.data || !Array.isArray(data.data.destinations)) return;
+
+      const destinations = data.data.destinations;
+      const inactive = destinations.filter(dest => Number(dest && dest.arrivals_count) === 0);
+      const sortedByLowestArrivals = destinations
+        .slice()
+        .sort((a, b) => Number(a && a.arrivals_count || 0) - Number(b && b.arrivals_count || 0));
+
+      const coolingPicks = [];
+      const seenIds = new Set();
+
+      inactive.forEach(dest => {
+        if (coolingPicks.length >= 3) return;
+        const destId = String(dest && dest.id || '');
+        if (seenIds.has(destId)) return;
+        seenIds.add(destId);
+        coolingPicks.push(dest);
+      });
+
+      sortedByLowestArrivals.forEach(dest => {
+        if (coolingPicks.length >= 3) return;
+        const destId = String(dest && dest.id || '');
+        if (seenIds.has(destId)) return;
+        seenIds.add(destId);
+        coolingPicks.push(dest);
+      });
+
+      coolingPicks.forEach(dest => {
+        const arrivalsCount = Number(dest && dest.arrivals_count || 0);
+        const destName = String(dest && dest.name || '');
+        const destId = String(dest && dest.id || '');
+        const icaoCode = Array.isArray(dest && dest.icao) ? String(dest.icao[0] || '') : '';
+
+        let whyLine = '';
+        if (arrivalsCount === 0) {
+          const regionLower = String(dest && dest.region || '').toLowerCase();
+          if (regionLower.includes('alps') || regionLower.includes('rockies')) {
+            whyLine = 'Off-season — alpine activity dormant';
+          } else if (regionLower.includes('caribbean')) {
+            whyLine = 'Quiet day — no tracked arrivals';
+          } else {
+            whyLine = 'No tracked arrivals in last 24h';
+          }
+        } else if (arrivalsCount === 1) {
+          whyLine = 'Single arrival logged — minimal activity';
+        } else if (arrivalsCount === 2) {
+          whyLine = 'Only 2 arrivals — well below typical volume';
+        } else {
+          whyLine = `Lower volume — ${arrivalsCount} arrivals`;
+        }
+
+        const card = document.createElement('div');
+        card.className = 'cooling-card';
+        card.dataset.dest = destId;
+        card.setAttribute('data-destination-id', destId);
+
+        const leftCol = document.createElement('div');
+
+        const nameRow = document.createElement('div');
+        nameRow.className = 'cooling-name';
+        nameRow.appendChild(document.createTextNode(`${destName} · `));
+
+        const codeSpan = document.createElement('span');
+        codeSpan.className = 'cooling-code';
+        codeSpan.style.fontFamily = "'Geist Mono', monospace";
+        codeSpan.style.fontSize = '10px';
+        codeSpan.style.color = 'var(--text-faint)';
+        codeSpan.textContent = icaoCode;
+        nameRow.appendChild(codeSpan);
+
+        const why = document.createElement('div');
+        why.className = 'cooling-why';
+        why.textContent = whyLine;
+
+        leftCol.appendChild(nameRow);
+        leftCol.appendChild(why);
+
+        const pct = document.createElement('div');
+        pct.className = 'cooling-pct';
+        pct.textContent = '—';
+
+        card.appendChild(leftCol);
+        card.appendChild(pct);
+        container.appendChild(card);
+      });
+    } catch (error) {
+      container.innerHTML = '';
+      console.warn('Error rendering cooling down list:', error);
+    }
+  }
 
   // ============ TABS ============
   document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -2587,13 +3475,65 @@
     closeDetail();
   }
 
-  function signup() {
-    const email = document.getElementById('brief-email').value;
-    if (email && email.includes('@')) {
-      showToast('✓ Welcome aboard. First brief Tuesday.');
-      document.getElementById('brief-email').value = '';
+  async function handleBriefSubscribe() {
+    const emailEl = document.getElementById('brief-email');
+    const btn = document.getElementById('brief-subscribe-btn');
+    const metaEl = document.getElementById('brief-meta');
+
+    if (!emailEl || !btn) return;
+
+    const email = (emailEl.value || '').trim();
+
+    if (!email || email.length < 5 || !email.includes('@') || !email.includes('.')) {
+      showToastMessage('Please enter a valid email');
+      return;
+    }
+    if (email.length > 200) {
+      showToastMessage('Email too long');
+      return;
+    }
+
+    const originalText = btn.textContent;
+    btn.textContent = 'Joining...';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const result = await res.json().catch(() => ({}));
+
+      if (res.ok && result.ok) {
+        emailEl.value = '';
+        btn.textContent = '✓ You\'re on the list';
+        btn.disabled = true;
+        if (metaEl) {
+          metaEl.innerHTML = '<span style="color: var(--amber);">First brief lands May 2026.</span>';
+        }
+      } else {
+        const errMsg = (result && result.error) ? result.error : 'Could not subscribe. Try again?';
+        showToastMessage(errMsg);
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }
+    } catch (err) {
+      console.error('[subscribe] error:', err);
+      showToastMessage('Network error. Try again?');
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  function showToastMessage(msg) {
+    const toast = document.getElementById('toast');
+    if (toast) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2400);
     } else {
-      showToast('Please enter a valid email');
+      console.log('[toast]', msg);
     }
   }
 
@@ -2601,24 +3541,24 @@
   const WORLD_TOPO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
 
   const mapDestinations = [
-    { name: 'St. Barts',    lng: -62.84, lat: 17.90, type: 'surge', size: 14 },
-    { name: 'Hamptons',     lng: -72.25, lat: 40.96, type: 'surge', size: 12 },
-    { name: 'Tulum',        lng: -87.40, lat: 20.25, type: 'surge', size: 11 },
-    { name: 'Mykonos',      lng:  25.35, lat: 37.43, type: 'surge', size: 14 },
-    { name: 'Ibiza',        lng:   1.37, lat: 38.87, type: 'surge', size: 11 },
-    { name: 'St. Tropez',   lng:   6.40, lat: 43.27, type: 'surge', size: 13 },
-    { name: 'Comporta',     lng:  -8.78, lat: 38.38, type: 'surge', size: 10 },
-    { name: 'Dubai',        lng:  55.36, lat: 25.25, type: 'steady', size: 8 },
-    { name: 'Cabo',         lng:-109.92, lat: 22.89, type: 'steady', size: 8 },
-    { name: 'Aspen',        lng:-106.87, lat: 39.22, type: 'cool', size: 7 },
-    { name: 'Palm Beach',   lng: -80.10, lat: 26.68, type: 'cool', size: 7 },
-    { name: 'Courchevel',   lng:   6.64, lat: 45.40, type: 'cool', size: 7 }
+    { id: 'st-barts',   name: 'St. Barts',  lng: -62.84, lat: 17.90, type: 'surge', size: 14 },
+    { id: 'hamptons',   name: 'Hamptons',   lng: -72.25, lat: 40.96, type: 'surge', size: 12 },
+    { id: 'tulum',      name: 'Tulum',      lng: -87.40, lat: 20.25, type: 'surge', size: 11 },
+    { id: 'mykonos',    name: 'Mykonos',    lng:  25.35, lat: 37.43, type: 'surge', size: 14 },
+    { id: 'ibiza',      name: 'Ibiza',      lng:   1.37, lat: 38.87, type: 'surge', size: 11 },
+    { id: 'st-tropez',  name: 'St. Tropez', lng:   6.40, lat: 43.27, type: 'surge', size: 13 },
+    { id: 'comporta',   name: 'Comporta',   lng:  -8.78, lat: 38.38, type: 'surge', size: 10 },
+    { id: 'dubai',      name: 'Dubai',      lng:  55.36, lat: 25.25, type: 'steady', size: 8 },
+    { id: 'cabo',       name: 'Cabo',       lng:-109.92, lat: 22.89, type: 'steady', size: 8 },
+    { id: 'aspen',      name: 'Aspen',      lng:-106.87, lat: 39.22, type: 'cool', size: 7 },
+    { id: 'palm-beach', name: 'Palm Beach', lng: -80.10, lat: 26.68, type: 'cool', size: 7 },
+    { id: 'courchevel', name: 'Courchevel', lng:   6.64, lat: 45.40, type: 'cool', size: 7 }
   ];
 
   const mapColors = { surge: '#E8A317', steady: '#5EAAA8', cool: '#E07856' };
   const mapGlowOpacity = { surge: 0.75, steady: 0.5, cool: 0.55 };
 
-  function renderWorldMap() {
+  function renderWorldMap(arrivalsData) {
     const svg = d3.select('#world-map');
     if (svg.empty()) return;
 
@@ -2629,6 +3569,54 @@
     const pathGen = d3.geoPath().projection(projection);
 
     d3.json(WORLD_TOPO_URL).then(world => {
+      const overlayTimeEl = document.getElementById('map-overlay-time');
+      const metaTimeEl = document.getElementById('map-meta-time');
+      const savedAtRaw = arrivalsData && arrivalsData.meta && arrivalsData.meta.saved_at;
+      const savedAtDate = savedAtRaw ? new Date(savedAtRaw) : null;
+      const hasValidSavedAt = savedAtDate instanceof Date && !Number.isNaN(savedAtDate.getTime());
+      if (overlayTimeEl) {
+        if (hasValidSavedAt) {
+          const hh = String(savedAtDate.getUTCHours()).padStart(2, '0');
+          const mm = String(savedAtDate.getUTCMinutes()).padStart(2, '0');
+          overlayTimeEl.textContent = `Updated ${hh}:${mm}z`;
+        } else {
+          overlayTimeEl.textContent = 'Hourly refresh';
+        }
+      }
+      if (metaTimeEl) {
+        if (hasValidSavedAt) {
+          const hh = String(savedAtDate.getUTCHours()).padStart(2, '0');
+          const mm = String(savedAtDate.getUTCMinutes()).padStart(2, '0');
+          metaTimeEl.textContent = `${hh}:${mm}z`;
+        } else {
+          metaTimeEl.textContent = '—';
+        }
+      }
+
+      let resolvedMapDestinations = mapDestinations;
+      const allDests = arrivalsData && arrivalsData.data && Array.isArray(arrivalsData.data.destinations)
+        ? arrivalsData.data.destinations
+        : null;
+      if (allDests && allDests.length > 0) {
+        const validDests = allDests
+          .filter(dest => typeof dest.lat === 'number' && typeof dest.lng === 'number')
+          .sort((a, b) => Number(b.arrivals_count || 0) - Number(a.arrivals_count || 0));
+        if (validDests.length > 0) {
+          resolvedMapDestinations = validDests.map((dest, index) => {
+            const arrivalsCount = Number(dest.arrivals_count || 0);
+            const type = index < 6 ? 'surge' : (index < 17 ? 'steady' : 'cool');
+            const size = arrivalsCount <= 0 ? 2 : Math.max(2, Math.min(8, 2 + (arrivalsCount / 5)));
+            return {
+              id: dest.id,
+              lng: dest.lng,
+              lat: dest.lat,
+              type,
+              size
+            };
+          });
+        }
+      }
+
       const land = topojson.feature(world, world.objects.land);
 
       svg.append('g')
@@ -2642,31 +3630,616 @@
         .attr('opacity', 0.85);
 
       const dotGroup = svg.append('g').attr('class', 'map-dots');
-      mapDestinations.forEach(d => {
+      resolvedMapDestinations.forEach(d => {
         const [x, y] = projection([d.lng, d.lat]);
         const color = mapColors[d.type];
         const opac = mapGlowOpacity[d.type];
 
         dotGroup.append('circle')
           .attr('cx', x).attr('cy', y).attr('r', d.size)
+          .attr('class', 'map-dot')
+          .attr('data-destination-id', d.id)
           .attr('fill', color).attr('opacity', 0)
           .transition().duration(600).attr('opacity', opac * 0.3);
 
         dotGroup.append('circle')
           .attr('cx', x).attr('cy', y).attr('r', d.size * 0.55)
+          .attr('class', 'map-dot')
+          .attr('data-destination-id', d.id)
           .attr('fill', color).attr('opacity', 0)
           .transition().duration(600).attr('opacity', opac * 0.6);
 
         dotGroup.append('circle')
           .attr('cx', x).attr('cy', y)
           .attr('r', d.type === 'surge' ? 3 : 2)
+          .attr('class', 'map-dot')
+          .attr('data-destination-id', d.id)
           .attr('fill', color).attr('opacity', 0)
           .transition().duration(600).attr('opacity', 1);
       });
     }).catch(err => console.error('Map load failed:', err));
   }
 
-  renderWorldMap();
+  // === Destination Detail Modal ===
+
+  let _modalCurrentDestId = null;
+  let _modalArrivalsData = null;
+
+  function openDestinationModal(destinationId) {
+    if (!destinationId) return;
+
+    // Find the destination in the cached data
+    const data = _modalArrivalsData;
+    const destinations = data && Array.isArray(data.destinations)
+      ? data.destinations
+      : (data && data.data && Array.isArray(data.data.destinations) ? data.data.destinations : null);
+    if (!destinations) {
+      console.warn('[modal] No arrivals data available yet');
+      return;
+    }
+
+    const dest = destinations.find(d => d.id === destinationId);
+    if (!dest) {
+      console.warn('[modal] Destination not found:', destinationId);
+      return;
+    }
+
+    _modalCurrentDestId = destinationId;
+
+    const bodyEl = document.getElementById('dest-modal-body');
+    if (bodyEl) {
+      bodyEl.innerHTML = renderDestinationCard(dest, destinations);
+    }
+
+    // Show modal
+    const modal = document.getElementById('destination-modal');
+    if (modal) {
+      modal.style.display = 'flex';
+      modal.setAttribute('aria-hidden', 'false');
+    }
+
+    // Lock body scroll
+    document.body.classList.add('dest-modal-open');
+
+    // Update URL with deep-link param
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('destination', destinationId);
+      window.history.replaceState({ destination: destinationId }, '', url.toString());
+    } catch (e) {
+      /* no-op */
+    }
+
+    // Focus the close button for keyboard accessibility
+    const closeBtn = modal && modal.querySelector('.dest-modal__close');
+    if (closeBtn) {
+      setTimeout(() => closeBtn.focus(), 50);
+    }
+  }
+
+  function closeDestinationModal() {
+    const modal = document.getElementById('destination-modal');
+    if (modal) {
+      modal.style.display = 'none';
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
+    document.body.classList.remove('dest-modal-open');
+    _modalCurrentDestId = null;
+
+    // Remove deep-link param from URL
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('destination');
+      window.history.replaceState({}, '', url.toString());
+    } catch (e) {
+      /* no-op */
+    }
+  }
+
+  function attachModalCloseHandlers() {
+    // Close on backdrop click or X button click
+    document.querySelectorAll('[data-modal-close]').forEach(el => {
+      el.addEventListener('click', closeDestinationModal);
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && _modalCurrentDestId) {
+        closeDestinationModal();
+      }
+    });
+  }
+
+  function attachDestinationCardClickHandlers() {
+    // Heating Up cards — each .dest-card needs to know its destination id
+    // Cooling Down cards — each .cooling-card needs to know its destination id
+    // Map dots — each map dot circle needs to know its destination id
+    //
+    // The card-rendering functions (renderHeatingUp, renderCoolingDown) need to be modified
+    // to set a data-destination-id attribute on each card.
+    // The map rendering function (renderWorldMap) needs to set a data-destination-id on each dot.
+
+    // Use event delegation on document so handlers work for dynamically rendered cards
+    document.addEventListener('click', (e) => {
+      const card = e.target.closest('[data-destination-id]');
+      if (card) {
+        const destId = card.getAttribute('data-destination-id');
+        if (destId) {
+          openDestinationModal(destId);
+        }
+      }
+    });
+  }
+
+  function maybeOpenModalFromUrl() {
+    try {
+      const url = new URL(window.location.href);
+      const destParam = url.searchParams.get('destination');
+      if (destParam) {
+        // Wait briefly to ensure data is loaded
+        setTimeout(() => openDestinationModal(destParam), 100);
+      }
+    } catch (e) {
+      /* no-op */
+    }
+  }
+
+  // === Destination Detail Card Renderers ===
+
+  function _safeNum(v) {
+    return (typeof v === 'number' && Number.isFinite(v)) ? v : 0;
+  }
+
+  function _formatCoords(lat, lng) {
+    if (typeof lat !== 'number' || typeof lng !== 'number') return '';
+    const ns = lat >= 0 ? 'N' : 'S';
+    const ew = lng >= 0 ? 'E' : 'W';
+    return `${Math.abs(lat).toFixed(2)}°${ns} · ${Math.abs(lng).toFixed(2)}°${ew}`;
+  }
+
+  function _escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function _computeTier(dest, allDestinations) {
+    // Determine vibe tier based on rank within all destinations
+    // Top 6 by arrivals_count = 'surge'
+    // Bottom 3 (or those with 0 arrivals) = 'cool'
+    // Middle = 'steady'
+    if (!allDestinations || !Array.isArray(allDestinations)) return 'steady';
+
+    const sorted = [...allDestinations]
+      .filter(d => d && d.ok)
+      .sort((a, b) => _safeNum(b.arrivals_count) - _safeNum(a.arrivals_count));
+
+    const idx = sorted.findIndex(d => d.id === dest.id);
+    if (idx === -1) return 'steady';
+
+    // Zero arrivals always = cool
+    if (_safeNum(dest.arrivals_count) === 0) return 'cool';
+
+    const total = sorted.length;
+    if (idx < 6) return 'surge';
+    if (idx >= total - 3) return 'cool';
+    return 'steady';
+  }
+
+  function _tierLabel(tier) {
+    if (tier === 'surge') return 'Heating up';
+    if (tier === 'cool') return 'Cooling';
+    return 'Steady';
+  }
+
+  function _computePrivatePct(dest) {
+    const total = _safeNum(dest.arrivals_count);
+    const ga = _safeNum(dest.general_aviation_count);
+    if (total <= 0) return null;
+    return Math.round((ga / total) * 100);
+  }
+
+  function _topAircraftType(dest) {
+    if (!dest.top_aircraft || !Array.isArray(dest.top_aircraft)) return null;
+    // Skip "UNKNOWN" if there's a real type below it
+    const real = dest.top_aircraft.filter(a => a && a.type && a.type !== 'UNKNOWN');
+    const pick = real.length > 0 ? real[0] : (dest.top_aircraft[0] || null);
+    if (!pick || !pick.type) return null;
+    return String(pick.type).trim();
+  }
+
+  function renderModalHero(dest, tier) {
+    const tierLabel = _tierLabel(tier);
+    const coords = _formatCoords(dest.lat, dest.lng);
+    const icaoStr = Array.isArray(dest.icao) ? dest.icao.join(' · ') : (dest.icao || '');
+    const region = _escapeHtml(dest.region || '');
+    const metaParts = [];
+    if (icaoStr) metaParts.push(_escapeHtml(icaoStr));
+    if (coords) metaParts.push(_escapeHtml(coords));
+    if (region) metaParts.push(region);
+
+    return `
+      <div class="d-hero">
+        <span class="d-vibe ${tier}">${_escapeHtml(tierLabel)}</span>
+        <h2 id="dest-modal-title" class="d-name">${_escapeHtml(dest.name || '')}</h2>
+        <div class="d-meta">${metaParts.join('<span class="d-meta-sep">·</span>')}</div>
+      </div>
+    `;
+  }
+
+  function renderModalStats(dest) {
+    const arrivals = _safeNum(dest.arrivals_count);
+    const pvtPct = _computePrivatePct(dest);
+    const pvtStr = pvtPct == null ? '—' : `${pvtPct}%`;
+    const pvtSub = pvtPct == null ? 'No data' : `${_safeNum(dest.general_aviation_count)} of ${arrivals} flights`;
+    const topAircraft = _topAircraftType(dest);
+    const topAircraftStr = topAircraft || '—';
+    const topAircraftSub = topAircraft ? 'Most common type' : 'No data';
+
+    return `
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">At a glance</span>
+          <span class="d-section-meta">Last 24h</span>
+        </div>
+        <div class="d-stats">
+          <div class="d-stat">
+            <div class="d-stat-label">24h arrivals</div>
+            <div class="d-stat-value">${arrivals}</div>
+            <div class="d-stat-sub">${arrivals === 1 ? 'flight' : 'flights'}</div>
+          </div>
+          <div class="d-stat">
+            <div class="d-stat-label">Private</div>
+            <div class="d-stat-value accent">${pvtStr}</div>
+            <div class="d-stat-sub">${_escapeHtml(pvtSub)}</div>
+          </div>
+          <div class="d-stat">
+            <div class="d-stat-label">Top type</div>
+            <div class="d-stat-value">${_escapeHtml(topAircraftStr)}</div>
+            <div class="d-stat-sub">${_escapeHtml(topAircraftSub)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTrajectoryPlaceholder() {
+    return `
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">30-day trajectory</span>
+          <span class="d-section-meta">Daily arrivals</span>
+        </div>
+        <div class="d-trajectory-placeholder">
+          <div class="d-placeholder-msg">
+            <div class="d-placeholder-icon">GT</div>
+            <div class="d-placeholder-title">Building data</div>
+            <div class="d-placeholder-text">Trajectory chart unlocks once we've collected at least 7 days of history. Currently collecting.</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderPulsePlaceholder() {
+    return `
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">The pulse</span>
+          <span class="d-section-meta">Hour and day patterns</span>
+        </div>
+        <div class="d-pulse-placeholder">
+          <div class="d-pulse-skeleton">
+            <div class="d-placeholder-msg">
+              <div class="d-placeholder-title">Building data</div>
+              <div class="d-placeholder-text">Hourly and day-of-week patterns appear after 7 days of history.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderEditorial(dest) {
+    const text = dest.editorial && String(dest.editorial).trim();
+    if (!text) {
+      return `
+        <div class="d-section">
+          <div class="d-section-head">
+            <span class="d-section-label">Editor's note</span>
+          </div>
+          <p class="d-note d-note-empty">Editorial coverage launching soon.</p>
+        </div>
+      `;
+    }
+    return `
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">Editor's note</span>
+        </div>
+        <p class="d-note">${_escapeHtml(text)}</p>
+        <div class="d-note-byline">— Go Tango Editorial</div>
+      </div>
+    `;
+  }
+
+  // === Helper: filter out coordinate-formatted origins ===
+  function _isValidOrigin(origin) {
+    if (!origin || !origin.code) return false;
+    const code = String(origin.code);
+    // Filter out raw coordinate strings like "L 17.51667 -62.56667"
+    if (code.startsWith('L ') || /^[LK]?\s*-?\d+\.\d+/.test(code.replace('L ', ''))) {
+      return false;
+    }
+    return true;
+  }
+
+  // === Helper: format ISO timestamp as HH:MMz ===
+  function _formatFlightTime(iso) {
+    if (!iso) return '——z';
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '——z';
+      const hh = String(d.getUTCHours()).padStart(2, '0');
+      const mm = String(d.getUTCMinutes()).padStart(2, '0');
+      return `${hh}:${mm}z`;
+    } catch (e) {
+      return '——z';
+    }
+  }
+
+  // === Helper: get destination ICAO for route display ===
+  function _destIcao(dest) {
+    if (Array.isArray(dest.icao) && dest.icao.length > 0) return dest.icao[0];
+    if (typeof dest.icao === 'string') return dest.icao;
+    return '';
+  }
+
+  function renderModalOrigins(dest) {
+    const origins = Array.isArray(dest.top_origins) ? dest.top_origins : [];
+    const valid = origins.filter(_isValidOrigin);
+
+    if (valid.length === 0) {
+      return `
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">Where they're coming from</span>
+          <span class="d-section-meta">Last 24h</span>
+        </div>
+        <p class="d-feed-empty">No origin data for this period.</p>
+      </div>
+    `;
+    }
+
+    const total = valid.reduce((s, o) => s + _safeNum(o.count), 0);
+    const max = Math.max(...valid.map(o => _safeNum(o.count)), 1);
+
+    const rows = valid.map(o => {
+      const count = _safeNum(o.count);
+      const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+      const widthPct = (count / max) * 100;
+      const name = _escapeHtml(o.name || o.code || 'Unknown');
+      const code = _escapeHtml(o.code || '');
+      return `
+      <div class="d-origin">
+        <div>
+          <div class="d-origin-name">${name}</div>
+          <div class="d-origin-sub">${code}</div>
+        </div>
+        <div class="d-origin-bar">
+          <div class="d-origin-bar-fill" style="width: ${widthPct}%"></div>
+        </div>
+        <div class="d-origin-val">
+          ${pct}%<small>${count} fl</small>
+        </div>
+      </div>
+    `;
+    }).join('');
+
+    return `
+    <div class="d-section">
+      <div class="d-section-head">
+        <span class="d-section-label">Where they're coming from</span>
+        <span class="d-section-meta">Last 24h · ${valid.length} ${valid.length === 1 ? 'origin' : 'origins'}</span>
+      </div>
+      <div class="d-origins">${rows}</div>
+    </div>
+  `;
+  }
+
+  function renderModalAircraft(dest) {
+    const aircraft = Array.isArray(dest.top_aircraft) ? dest.top_aircraft : [];
+
+    if (aircraft.length === 0) {
+      return `
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">What's landing</span>
+          <span class="d-section-meta">Aircraft mix</span>
+        </div>
+        <p class="d-feed-empty">No aircraft data for this period.</p>
+      </div>
+    `;
+    }
+
+    const rows = aircraft.map(a => {
+      const type = a.type ? String(a.type).trim() : 'Unknown';
+      const isGa = a.is_ga === true;
+      const classLabel = type === 'UNKNOWN' ? 'Type not reported' : (isGa ? 'Private aviation' : 'Commercial');
+      const classClass = type === 'UNKNOWN' ? '' : (isGa ? 'ga' : 'com');
+      return `
+      <div class="d-craft">
+        <div>
+          <div class="d-craft-name">${_escapeHtml(type)}</div>
+          <div class="d-craft-class ${classClass}">${_escapeHtml(classLabel)}</div>
+        </div>
+        <div class="d-craft-count">${_safeNum(a.count)}</div>
+      </div>
+    `;
+    }).join('');
+
+    return `
+    <div class="d-section">
+      <div class="d-section-head">
+        <span class="d-section-label">What's landing</span>
+        <span class="d-section-meta">Aircraft mix · Last 24h</span>
+      </div>
+      <div class="d-aircraft">${rows}</div>
+    </div>
+  `;
+  }
+
+  function renderModalRecentFlights(dest) {
+    const flights = Array.isArray(dest.recent_flights) ? dest.recent_flights : [];
+    const destIcao = _destIcao(dest);
+
+    if (flights.length === 0) {
+      return `
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">Recent arrivals</span>
+          <span class="d-section-meta">Last 24h</span>
+        </div>
+        <p class="d-feed-empty">No recent arrivals to display.</p>
+      </div>
+    `;
+    }
+
+    const rows = flights.map(f => {
+      const time = _formatFlightTime(f.arrival_time);
+      const callsign = f.callsign ? String(f.callsign).trim() : '——';
+      const aircraftRaw = f.aircraft_type ? String(f.aircraft_type).trim() : '';
+      const aircraftStr = aircraftRaw ? ` · ${aircraftRaw}` : '';
+      const originIcao = f.origin_icao ? String(f.origin_icao).trim() : null;
+      const originName = f.origin_name ? String(f.origin_name).trim() : null;
+      const originDisplay = originIcao || originName || '——';
+      const route = `${originDisplay} → ${destIcao}`;
+      const tagLabel = f.is_general_aviation ? 'PVT' : 'COM';
+      const tagClass = f.is_general_aviation ? 'private' : 'commercial';
+
+      return `
+      <div class="d-feed-item">
+        <div class="d-feed-time">${_escapeHtml(time)}</div>
+        <div class="d-feed-main">
+          <div>
+            <span class="d-feed-callsign">${_escapeHtml(callsign)}</span>
+            <span class="d-feed-aircraft">${_escapeHtml(aircraftStr)}</span>
+          </div>
+          <div class="d-feed-route">${_escapeHtml(route)}</div>
+        </div>
+        <div class="d-feed-tag ${tagClass}">${tagLabel}</div>
+      </div>
+    `;
+    }).join('');
+
+    return `
+    <div class="d-section">
+      <div class="d-section-head">
+        <span class="d-section-label">Recent arrivals</span>
+        <span class="d-section-meta">Last ${flights.length} · Live</span>
+      </div>
+      <div class="d-feed">${rows}</div>
+    </div>
+  `;
+  }
+
+  function renderModalPeers(dest, allDestinations) {
+    const peerIds = Array.isArray(dest.peers) ? dest.peers : [];
+    if (peerIds.length === 0 || !Array.isArray(allDestinations)) {
+      return '';
+    }
+
+    const peerObjects = peerIds
+      .map(id => allDestinations.find(d => d.id === id))
+      .filter(Boolean);
+
+    if (peerObjects.length === 0) return '';
+
+    const rows = peerObjects.map(peer => {
+      const tier = _computeTier(peer, allDestinations);
+      const arrivals = _safeNum(peer.arrivals_count);
+      const tierLabel = tier === 'surge' ? 'Heating' : (tier === 'cool' ? 'Cooling' : 'Steady');
+      const region = _escapeHtml(peer.region || '');
+      const peerIcao = _escapeHtml(_destIcao(peer));
+      const subParts = [region, peerIcao].filter(Boolean).join(' · ');
+
+      return `
+      <div class="d-peer" data-destination-id="${_escapeHtml(peer.id)}">
+        <div class="d-peer-info">
+          <div class="d-peer-name">${_escapeHtml(peer.name || '')}</div>
+          <div class="d-peer-region">${subParts}</div>
+        </div>
+        <div class="d-peer-stats">
+          <div class="d-peer-arrivals">${arrivals}</div>
+          <div class="d-peer-tier ${tier}">${tierLabel}</div>
+        </div>
+      </div>
+    `;
+    }).join('');
+
+    return `
+    <div class="d-section">
+      <div class="d-section-head">
+        <span class="d-section-label">Similar destinations</span>
+        <span class="d-section-meta">Editorial peers</span>
+      </div>
+      <div class="d-peers">${rows}</div>
+    </div>
+  `;
+  }
+
+  function renderDestinationCard(dest, allDestinations) {
+    if (!dest) return '<div class="dest-modal__body"><p>Destination not found.</p></div>';
+    const tier = _computeTier(dest, allDestinations);
+
+    return [
+      renderModalHero(dest, tier),
+      renderModalStats(dest),
+      renderEditorial(dest),
+      renderModalOrigins(dest),
+      renderModalAircraft(dest),
+      renderModalRecentFlights(dest),
+      renderTrajectoryPlaceholder(),
+      renderPulsePlaceholder(),
+      renderModalPeers(dest, allDestinations),
+    ].join('');
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    updateClock();
+    setInterval(updateClock, 60000);
+    updateDate();
+    const arrivalsData = await loadArrivalsData();
+    _modalArrivalsData = arrivalsData;
+    updateStats(arrivalsData);
+    updateTodaysPick(arrivalsData);
+    renderHeatingUp(arrivalsData);
+    renderCoolingDown(arrivalsData);
+    renderWorldMap(arrivalsData);
+    attachModalCloseHandlers();
+    attachDestinationCardClickHandlers();
+    maybeOpenModalFromUrl();
+
+    const briefBtn = document.getElementById('brief-subscribe-btn');
+    if (briefBtn) {
+      briefBtn.addEventListener('click', handleBriefSubscribe);
+    }
+    const briefEmailInput = document.getElementById('brief-email');
+    if (briefEmailInput) {
+      briefEmailInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleBriefSubscribe();
+        }
+      });
+    }
+  });
+
 </script>
 </body>
 </html>
