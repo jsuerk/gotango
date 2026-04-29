@@ -4115,12 +4115,12 @@
     return [
       renderModalHero(dest, tier),
       renderModalStats(dest),
-      renderTrajectoryPlaceholder(),
-      renderPulsePlaceholder(),
+      renderEditorial(dest),
       renderModalOrigins(dest),
       renderModalAircraft(dest),
       renderModalRecentFlights(dest),
-      renderEditorial(dest),
+      renderTrajectoryPlaceholder(),
+      renderPulsePlaceholder(),
       renderModalPeers(dest, allDestinations),
     ].join('');
   }
