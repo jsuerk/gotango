@@ -2167,7 +2167,7 @@
     <section class="hero">
       <div class="hero-kicker" id="hero-kicker">The Index · TUESDAY, 28 APRIL</div>
       <h1 class="hero-headline">Where the world's <em>going.</em></h1>
-      <p class="hero-sub">Travel intelligence for top destinations. Surges, cool-downs, and the reasons behind both — refreshed hourly from public ADS-B data.<br><span style="color: var(--amber);">Real data without the fluff.</span></p>
+      <p class="hero-sub">Travel intelligence for top destinations. Surges, cool-downs, and the reasons behind both — built daily from public ADS-B data.<br><span style="color: var(--amber);">Real data without the fluff.</span></p>
 
       <div class="hero-stats">
         <div class="stat-cell">
@@ -2224,30 +2224,28 @@
       <h2 class="section-title"><em>Sleeper</em> pick</h2>
       <span class="section-meta">Editor's note</span>
     </div>
-    <div class="sleeper" onclick="openDetail(destData.comporta)">
-      <div class="sleeper-label">⏷ Below Radar</div>
+    <div class="sleeper" id="todays-pick-card" data-destination-id="comporta">
+      <div class="sleeper-label">★ TODAY'S PICK</div>
       <div class="sleeper-name">Comporta, Portugal</div>
-      <div class="sleeper-code">LPMT · 38.4°N · 8.8°W</div>
-      <p class="sleeper-desc">The Hamptons crowd that quietly migrated to this stretch of Atlantic pine forest post-pandemic is <em>finally showing up in the data.</em> Private arrivals from Paris, London, and New York have quadrupled year-over-year.</p>
+      <div class="sleeper-code">LPMT · 38.40°N · 8.59°W</div>
+      <p class="sleeper-desc">An hour south of Lisbon, the Atlantic coast's quietest stretch has been the European fashion and design industry's worst-kept secret for two decades. A pine-forest seam between rice paddies and undeveloped beaches — too small to attract the Mediterranean crowd, too sophisticated for mass tourism, too loyal a clientele to lose its character. Activity is modest by Greek-island standards but unusually consistent year-round, with a tightly held repeat-visitor base. <em>The data says it's still under the radar. The market increasingly disagrees.</em></p>
       <div class="sleeper-stats">
-        <span><b>+4.1×</b> YoY</span>
-        <span><b>58%</b> private</span>
-        <span>64 arr / 24h</span>
+        <span id="todays-pick-arrivals"><b>—</b> arr / 24h</span>
+        <span id="todays-pick-private"><b>—%</b> private</span>
+        <span>Tier-1 destination</span>
       </div>
     </div>
 
     <!-- BRIEF SIGNUP -->
     <div class="brief-card">
       <div class="brief-label">The Tuesday Brief</div>
-      <h3 class="brief-title">Five surging,<br>three <em>cooling.</em></h3>
-      <p class="brief-desc">Every Tuesday, a 90-second read on where the world's most mobile 1% is actually going — and why. No ads, no press release recycling, no affiliate links. Only signal.</p>
+      <h3 class="brief-title">Launching <em>May 2026.</em></h3>
+      <p class="brief-desc">A 90-second weekly read on where the world's most mobile travelers are actually going — and why. No ads, no press release recycling, no affiliate links. Be the first to know when we ship.</p>
       <div class="brief-form">
-        <input type="email" class="brief-input" placeholder="your@email.com" id="brief-email">
-        <button class="brief-btn" onclick="signup()">Subscribe</button>
+        <input type="email" class="brief-input" placeholder="your@email.com" id="brief-email" autocomplete="email">
+        <button class="brief-btn" id="brief-subscribe-btn" type="button">Join the waitlist</button>
       </div>
-      <div class="brief-meta">
-        <span>22,481 readers</span>
-        <span>·</span>
+      <div class="brief-meta" id="brief-meta">
         <span>Free forever</span>
         <span>·</span>
         <span>Unsubscribe anytime</span>
@@ -2548,6 +2546,28 @@
       if (surgingEl) surgingEl.textContent = '—';
     } catch (error) {
       console.warn('Error updating surging stat:', error);
+    }
+  }
+
+  function updateTodaysPick(arrivalsData) {
+    const payload = arrivalsData && arrivalsData.data;
+    if (!payload || !Array.isArray(payload.destinations)) return;
+
+    const comporta = payload.destinations.find(d => d.id === 'comporta');
+    if (!comporta) return;
+
+    const arrivalsEl = document.getElementById('todays-pick-arrivals');
+    const privateEl = document.getElementById('todays-pick-private');
+
+    const arrivals = (typeof comporta.arrivals_count === 'number') ? comporta.arrivals_count : 0;
+    const ga = (typeof comporta.general_aviation_count === 'number') ? comporta.general_aviation_count : 0;
+    const pvtPct = arrivals > 0 ? Math.round((ga / arrivals) * 100) : null;
+
+    if (arrivalsEl) {
+      arrivalsEl.innerHTML = `<b>${arrivals}</b> arr / 24h`;
+    }
+    if (privateEl) {
+      privateEl.innerHTML = `<b>${pvtPct == null ? '—%' : pvtPct + '%'}</b> private`;
     }
   }
 
@@ -3455,13 +3475,65 @@
     closeDetail();
   }
 
-  function signup() {
-    const email = document.getElementById('brief-email').value;
-    if (email && email.includes('@')) {
-      showToast('✓ Welcome aboard. First brief Tuesday.');
-      document.getElementById('brief-email').value = '';
+  async function handleBriefSubscribe() {
+    const emailEl = document.getElementById('brief-email');
+    const btn = document.getElementById('brief-subscribe-btn');
+    const metaEl = document.getElementById('brief-meta');
+
+    if (!emailEl || !btn) return;
+
+    const email = (emailEl.value || '').trim();
+
+    if (!email || email.length < 5 || !email.includes('@') || !email.includes('.')) {
+      showToastMessage('Please enter a valid email');
+      return;
+    }
+    if (email.length > 200) {
+      showToastMessage('Email too long');
+      return;
+    }
+
+    const originalText = btn.textContent;
+    btn.textContent = 'Joining...';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const result = await res.json().catch(() => ({}));
+
+      if (res.ok && result.ok) {
+        emailEl.value = '';
+        btn.textContent = '✓ You\'re on the list';
+        btn.disabled = true;
+        if (metaEl) {
+          metaEl.innerHTML = '<span style="color: var(--amber);">First brief lands May 2026.</span>';
+        }
+      } else {
+        const errMsg = (result && result.error) ? result.error : 'Could not subscribe. Try again?';
+        showToastMessage(errMsg);
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }
+    } catch (err) {
+      console.error('[subscribe] error:', err);
+      showToastMessage('Network error. Try again?');
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  function showToastMessage(msg) {
+    const toast = document.getElementById('toast');
+    if (toast) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2400);
     } else {
-      showToast('Please enter a valid email');
+      console.log('[toast]', msg);
     }
   }
 
@@ -4145,12 +4217,27 @@
     const arrivalsData = await loadArrivalsData();
     _modalArrivalsData = arrivalsData;
     updateStats(arrivalsData);
+    updateTodaysPick(arrivalsData);
     renderHeatingUp(arrivalsData);
     renderCoolingDown(arrivalsData);
     renderWorldMap(arrivalsData);
     attachModalCloseHandlers();
     attachDestinationCardClickHandlers();
     maybeOpenModalFromUrl();
+
+    const briefBtn = document.getElementById('brief-subscribe-btn');
+    if (briefBtn) {
+      briefBtn.addEventListener('click', handleBriefSubscribe);
+    }
+    const briefEmailInput = document.getElementById('brief-email');
+    if (briefEmailInput) {
+      briefEmailInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleBriefSubscribe();
+        }
+      });
+    }
   });
 
 </script>
