@@ -1851,6 +1851,285 @@
   body.dest-modal-open {
     overflow: hidden;
   }
+
+/* === Origins (horizontal bar chart) === */
+.d-origins {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.d-origin {
+  display: grid;
+  grid-template-columns: minmax(0, 140px) 1fr 64px;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.d-origin-name {
+  color: var(--text, #F5F1E8);
+  font-family: 'Geist', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d-origin-sub {
+  color: var(--text-faint, #6B6557);
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+.d-origin-bar {
+  height: 6px;
+  background: var(--surface-2, #1E242E);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.d-origin-bar-fill {
+  height: 100%;
+  background: linear-gradient(to right, var(--teal, #5EAAA8), var(--amber, #E8A317));
+  border-radius: 2px;
+  transform-origin: left;
+  animation: barIn 0.8s ease-out;
+}
+
+@keyframes barIn {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.d-origin-val {
+  text-align: right;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  color: var(--text, #F5F1E8);
+}
+
+.d-origin-val small {
+  display: block;
+  color: var(--text-faint, #6B6557);
+  font-size: 9px;
+  margin-top: 2px;
+}
+
+/* === Aircraft mix === */
+.d-aircraft {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.d-craft {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--surface, #161B23);
+  border: 1px solid var(--border, #252C37);
+  border-radius: 7px;
+}
+
+.d-craft-name {
+  font-family: 'Geist', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text, #F5F1E8);
+}
+
+.d-craft-class {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  color: var(--text-faint, #6B6557);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+
+.d-craft-class.ga { color: var(--amber-soft, #C28A1A); }
+.d-craft-class.com { color: var(--teal, #5EAAA8); }
+
+.d-craft-count {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  color: var(--amber, #E8A317);
+}
+
+/* === Recent flights feed === */
+.d-feed {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border, #252C37);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.d-feed-item {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  background: var(--surface, #161B23);
+  border-bottom: 1px solid var(--border, #252C37);
+  font-size: 12px;
+}
+
+.d-feed-item:last-child {
+  border-bottom: none;
+}
+
+.d-feed-time {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  color: var(--text-faint, #6B6557);
+}
+
+.d-feed-main {
+  min-width: 0;
+}
+
+.d-feed-callsign {
+  font-family: 'Geist Mono', monospace;
+  font-weight: 500;
+  color: var(--text, #F5F1E8);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.d-feed-aircraft {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim, #A8A293);
+  margin-left: 6px;
+}
+
+.d-feed-route {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  color: var(--text-faint, #6B6557);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d-feed-tag {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  padding: 3px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+}
+
+.d-feed-tag.private {
+  color: var(--amber, #E8A317);
+  background: rgba(232, 163, 23, 0.1);
+}
+
+.d-feed-tag.commercial {
+  color: var(--teal, #5EAAA8);
+  background: rgba(94, 170, 168, 0.1);
+}
+
+.d-feed-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-faint, #6B6557);
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* === Peer destinations === */
+.d-peers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.d-peer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 15px;
+  background: var(--surface, #161B23);
+  border: 1px solid var(--border, #252C37);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.d-peer:hover {
+  background: var(--surface-2, #1E242E);
+  border-color: var(--border-light, #313945);
+}
+
+.d-peer-info {
+  min-width: 0;
+}
+
+.d-peer-name {
+  font-family: 'Fraunces', serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text, #F5F1E8);
+  letter-spacing: -0.01em;
+}
+
+.d-peer-region {
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  color: var(--text-faint, #6B6557);
+  margin-top: 3px;
+  letter-spacing: 0.05em;
+}
+
+.d-peer-stats {
+  text-align: right;
+}
+
+.d-peer-arrivals {
+  font-family: 'Fraunces', serif;
+  font-size: 18px;
+  color: var(--text, #F5F1E8);
+  line-height: 1;
+}
+
+.d-peer-tier {
+  font-family: 'Geist Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.d-peer-tier.surge { color: var(--amber, #E8A317); }
+.d-peer-tier.cool { color: var(--signal-down, #E07856); }
+.d-peer-tier.steady { color: var(--teal, #5EAAA8); }
+
+/* Mobile adjustments */
+@media (max-width: 640px) {
+  .d-origin {
+    grid-template-columns: minmax(0, 110px) 1fr 56px;
+    gap: 10px;
+  }
+
+  .d-origin-name { font-size: 12px; }
+
+  .d-feed-item {
+    grid-template-columns: 50px 1fr auto;
+    padding: 10px;
+  }
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
@@ -3604,6 +3883,231 @@
     `;
   }
 
+  // === Helper: filter out coordinate-formatted origins ===
+  function _isValidOrigin(origin) {
+    if (!origin || !origin.code) return false;
+    const code = String(origin.code);
+    // Filter out raw coordinate strings like "L 17.51667 -62.56667"
+    if (code.startsWith('L ') || /^[LK]?\s*-?\d+\.\d+/.test(code.replace('L ', ''))) {
+      return false;
+    }
+    return true;
+  }
+
+  // === Helper: format ISO timestamp as HH:MMz ===
+  function _formatFlightTime(iso) {
+    if (!iso) return '——z';
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '——z';
+      const hh = String(d.getUTCHours()).padStart(2, '0');
+      const mm = String(d.getUTCMinutes()).padStart(2, '0');
+      return `${hh}:${mm}z`;
+    } catch (e) {
+      return '——z';
+    }
+  }
+
+  // === Helper: get destination ICAO for route display ===
+  function _destIcao(dest) {
+    if (Array.isArray(dest.icao) && dest.icao.length > 0) return dest.icao[0];
+    if (typeof dest.icao === 'string') return dest.icao;
+    return '';
+  }
+
+  function renderModalOrigins(dest) {
+    const origins = Array.isArray(dest.top_origins) ? dest.top_origins : [];
+    const valid = origins.filter(_isValidOrigin);
+
+    if (valid.length === 0) {
+      return `
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">Where they're coming from</span>
+          <span class="d-section-meta">Last 24h</span>
+        </div>
+        <p class="d-feed-empty">No origin data for this period.</p>
+      </div>
+    `;
+    }
+
+    const total = valid.reduce((s, o) => s + _safeNum(o.count), 0);
+    const max = Math.max(...valid.map(o => _safeNum(o.count)), 1);
+
+    const rows = valid.map(o => {
+      const count = _safeNum(o.count);
+      const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+      const widthPct = (count / max) * 100;
+      const name = _escapeHtml(o.name || o.code || 'Unknown');
+      const code = _escapeHtml(o.code || '');
+      return `
+      <div class="d-origin">
+        <div>
+          <div class="d-origin-name">${name}</div>
+          <div class="d-origin-sub">${code}</div>
+        </div>
+        <div class="d-origin-bar">
+          <div class="d-origin-bar-fill" style="width: ${widthPct}%"></div>
+        </div>
+        <div class="d-origin-val">
+          ${pct}%<small>${count} fl</small>
+        </div>
+      </div>
+    `;
+    }).join('');
+
+    return `
+    <div class="d-section">
+      <div class="d-section-head">
+        <span class="d-section-label">Where they're coming from</span>
+        <span class="d-section-meta">Last 24h · ${valid.length} ${valid.length === 1 ? 'origin' : 'origins'}</span>
+      </div>
+      <div class="d-origins">${rows}</div>
+    </div>
+  `;
+  }
+
+  function renderModalAircraft(dest) {
+    const aircraft = Array.isArray(dest.top_aircraft) ? dest.top_aircraft : [];
+
+    if (aircraft.length === 0) {
+      return `
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">What's landing</span>
+          <span class="d-section-meta">Aircraft mix</span>
+        </div>
+        <p class="d-feed-empty">No aircraft data for this period.</p>
+      </div>
+    `;
+    }
+
+    const rows = aircraft.map(a => {
+      const type = a.type ? String(a.type).trim() : 'Unknown';
+      const isGa = a.is_ga === true;
+      const classLabel = type === 'UNKNOWN' ? 'Type not reported' : (isGa ? 'Private aviation' : 'Commercial');
+      const classClass = type === 'UNKNOWN' ? '' : (isGa ? 'ga' : 'com');
+      return `
+      <div class="d-craft">
+        <div>
+          <div class="d-craft-name">${_escapeHtml(type)}</div>
+          <div class="d-craft-class ${classClass}">${_escapeHtml(classLabel)}</div>
+        </div>
+        <div class="d-craft-count">${_safeNum(a.count)}</div>
+      </div>
+    `;
+    }).join('');
+
+    return `
+    <div class="d-section">
+      <div class="d-section-head">
+        <span class="d-section-label">What's landing</span>
+        <span class="d-section-meta">Aircraft mix · Last 24h</span>
+      </div>
+      <div class="d-aircraft">${rows}</div>
+    </div>
+  `;
+  }
+
+  function renderModalRecentFlights(dest) {
+    const flights = Array.isArray(dest.recent_flights) ? dest.recent_flights : [];
+    const destIcao = _destIcao(dest);
+
+    if (flights.length === 0) {
+      return `
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">Recent arrivals</span>
+          <span class="d-section-meta">Last 24h</span>
+        </div>
+        <p class="d-feed-empty">No recent arrivals to display.</p>
+      </div>
+    `;
+    }
+
+    const rows = flights.map(f => {
+      const time = _formatFlightTime(f.arrival_time);
+      const callsign = f.callsign ? String(f.callsign).trim() : '——';
+      const aircraftRaw = f.aircraft_type ? String(f.aircraft_type).trim() : '';
+      const aircraftStr = aircraftRaw ? ` · ${aircraftRaw}` : '';
+      const originIcao = f.origin_icao ? String(f.origin_icao).trim() : null;
+      const originName = f.origin_name ? String(f.origin_name).trim() : null;
+      const originDisplay = originIcao || originName || '——';
+      const route = `${originDisplay} → ${destIcao}`;
+      const tagLabel = f.is_general_aviation ? 'PVT' : 'COM';
+      const tagClass = f.is_general_aviation ? 'private' : 'commercial';
+
+      return `
+      <div class="d-feed-item">
+        <div class="d-feed-time">${_escapeHtml(time)}</div>
+        <div class="d-feed-main">
+          <div>
+            <span class="d-feed-callsign">${_escapeHtml(callsign)}</span>
+            <span class="d-feed-aircraft">${_escapeHtml(aircraftStr)}</span>
+          </div>
+          <div class="d-feed-route">${_escapeHtml(route)}</div>
+        </div>
+        <div class="d-feed-tag ${tagClass}">${tagLabel}</div>
+      </div>
+    `;
+    }).join('');
+
+    return `
+    <div class="d-section">
+      <div class="d-section-head">
+        <span class="d-section-label">Recent arrivals</span>
+        <span class="d-section-meta">Last ${flights.length} · Live</span>
+      </div>
+      <div class="d-feed">${rows}</div>
+    </div>
+  `;
+  }
+
+  function renderModalPeers(dest, allDestinations) {
+    const peerIds = Array.isArray(dest.peers) ? dest.peers : [];
+    if (peerIds.length === 0 || !Array.isArray(allDestinations)) {
+      return '';
+    }
+
+    const peerObjects = peerIds
+      .map(id => allDestinations.find(d => d.id === id))
+      .filter(Boolean);
+
+    if (peerObjects.length === 0) return '';
+
+    const rows = peerObjects.map(peer => {
+      const tier = _computeTier(peer, allDestinations);
+      const arrivals = _safeNum(peer.arrivals_count);
+      const tierLabel = tier === 'surge' ? 'Heating' : (tier === 'cool' ? 'Cooling' : 'Steady');
+      const region = _escapeHtml(peer.region || '');
+      const peerIcao = _escapeHtml(_destIcao(peer));
+      const subParts = [region, peerIcao].filter(Boolean).join(' · ');
+
+      return `
+      <div class="d-peer" data-destination-id="${_escapeHtml(peer.id)}">
+        <div class="d-peer-info">
+          <div class="d-peer-name">${_escapeHtml(peer.name || '')}</div>
+          <div class="d-peer-region">${subParts}</div>
+        </div>
+        <div class="d-peer-stats">
+          <div class="d-peer-arrivals">${arrivals}</div>
+          <div class="d-peer-tier ${tier}">${tierLabel}</div>
+        </div>
+      </div>
+    `;
+    }).join('');
+
+    return `
+    <div class="d-section">
+      <div class="d-section-head">
+        <span class="d-section-label">Similar destinations</span>
+        <span class="d-section-meta">Editorial peers</span>
+      </div>
+      <div class="d-peers">${rows}</div>
+    </div>
+  `;
+  }
+
   function renderDestinationCard(dest, allDestinations) {
     if (!dest) return '<div class="dest-modal__body"><p>Destination not found.</p></div>';
     const tier = _computeTier(dest, allDestinations);
@@ -3613,7 +4117,11 @@
       renderModalStats(dest),
       renderTrajectoryPlaceholder(),
       renderPulsePlaceholder(),
+      renderModalOrigins(dest),
+      renderModalAircraft(dest),
+      renderModalRecentFlights(dest),
       renderEditorial(dest),
+      renderModalPeers(dest, allDestinations),
     ].join('');
   }
 
