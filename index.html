@@ -2214,7 +2214,7 @@
     <!-- COOLING -->
     <div class="section-head">
       <h2 class="section-title"><em>Cooling down</em></h2>
-      <span class="section-meta">Last 7 days</span>
+      <span class="section-meta" id="cooling-down-meta">Last 7 days</span>
     </div>
 
     <div class="cooling-list" id="cooling-down-list"></div>
@@ -2531,6 +2531,105 @@
     return Number.isFinite(n) ? Math.round(n) : 0;
   }
 
+  function _quietMarketPrivateArrivals24h(dest) {
+    if (!dest) return 0;
+    const n = Number(dest.private_arrivals_24h ?? dest.raw_ga_arrivals_24h ?? dest.arrivals_count ?? 0);
+    return Number.isFinite(n) ? Math.round(n) : 0;
+  }
+
+  function setCoolingDownSectionMeta(text) {
+    const meta = document.getElementById('cooling-down-meta');
+    if (meta) meta.textContent = text;
+  }
+
+  function pickQuietMarkets(destinations, heatingUp) {
+    const heatingIds = new Set(
+      (Array.isArray(heatingUp) ? heatingUp : []).map(d => String(d.id || ''))
+    );
+    const excludedStatuses = new Set(['heating', 'warming', 'sleeper']);
+    return destinations
+      .filter(d => d && d.ok === true)
+      .filter(d => !heatingIds.has(String(d.id || '')))
+      .filter(d => !excludedStatuses.has(String(d.status || '')))
+      .sort((a, b) => {
+        const arrDiff = _quietMarketPrivateArrivals24h(a) - _quietMarketPrivateArrivals24h(b);
+        if (arrDiff !== 0) return arrDiff;
+        const scoreDiff = Number(a.signal_score || 0) - Number(b.signal_score || 0);
+        if (scoreDiff !== 0) return scoreDiff;
+        return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+      })
+      .slice(0, 3);
+  }
+
+  function renderQuietMarketCard(dest, container) {
+    const arrivalsCount = _quietMarketPrivateArrivals24h(dest);
+    const destName = String(dest.name || '');
+    const destId = String(dest.id || '');
+    const icaoCode = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
+
+    let subtitle = 'Quiet market · private baseline building';
+    if (dest.commercial_backdrop_label) {
+      subtitle += ` · ${formatCommercialBackdropLabel(dest.commercial_backdrop_label)}`;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'cooling-card';
+    card.dataset.dest = destId;
+    card.setAttribute('data-destination-id', destId);
+
+    const leftCol = document.createElement('div');
+
+    const nameRow = document.createElement('div');
+    nameRow.className = 'cooling-name';
+    nameRow.appendChild(document.createTextNode(`${destName} · `));
+
+    const codeSpan = document.createElement('span');
+    codeSpan.className = 'cooling-code';
+    codeSpan.style.fontFamily = "'Geist Mono', monospace";
+    codeSpan.style.fontSize = '10px';
+    codeSpan.style.color = 'var(--text-faint)';
+    codeSpan.textContent = icaoCode;
+    nameRow.appendChild(codeSpan);
+
+    const why = document.createElement('div');
+    why.className = 'cooling-why';
+    why.textContent = subtitle;
+
+    leftCol.appendChild(nameRow);
+    leftCol.appendChild(why);
+
+    const rightCol = document.createElement('div');
+    rightCol.style.textAlign = 'right';
+
+    const num = document.createElement('div');
+    num.className = 'cooling-pct';
+    num.style.color = 'var(--text)';
+    num.textContent = String(arrivalsCount);
+
+    const label = document.createElement('div');
+    label.style.fontFamily = "'Geist Mono', monospace";
+    label.style.fontSize = '9px';
+    label.style.letterSpacing = '0.12em';
+    label.style.color = 'var(--text-faint)';
+    label.style.marginTop = '2px';
+    label.textContent = 'PRIVATE 24H';
+
+    const trend = document.createElement('div');
+    trend.style.fontSize = '11px';
+    trend.style.color = 'var(--text-faint)';
+    trend.style.fontStyle = 'italic';
+    trend.style.marginTop = '4px';
+    trend.textContent = 'Not a cooling signal yet';
+
+    rightCol.appendChild(num);
+    rightCol.appendChild(label);
+    rightCol.appendChild(trend);
+
+    card.appendChild(leftCol);
+    card.appendChild(rightCol);
+    container.appendChild(card);
+  }
+
   function formatDisplayCopy(text) {
     if (text == null || text === '') return text;
     const s = String(text).trim();
@@ -2809,12 +2908,22 @@
 
       if (homepageCooling !== undefined) {
         if (homepageCooling.length === 0) {
+          setCoolingDownSectionMeta('QUIET MARKETS');
+
           const empty = document.createElement('div');
           empty.className = 'cooling-card';
-          empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No clear cooling signal today.<br>Private baseline building.</div>';
+          empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No clear cooling signal today.<br>Showing quiet private markets instead.</div>';
           container.appendChild(empty);
+
+          const quietPicks = pickQuietMarkets(
+            payload.destinations,
+            payload.homepage && payload.homepage.heating_up
+          );
+          quietPicks.forEach(dest => renderQuietMarketCard(dest, container));
           return;
         }
+
+        setCoolingDownSectionMeta('Last 7 days');
 
         homepageCooling.forEach(dest => {
           const arrivalsCount = _integerArrivals24h(dest);
@@ -2859,6 +2968,8 @@
         });
         return;
       }
+
+      setCoolingDownSectionMeta('Last 7 days');
 
       const destinations = payload.destinations;
       const coolingPicks = destinations
