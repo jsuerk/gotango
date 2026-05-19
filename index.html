@@ -2171,17 +2171,17 @@
 
       <div class="hero-stats">
         <div class="stat-cell">
-          <div class="stat-label">Arrivals · 24h</div>
+          <div class="stat-label">Private arrivals · 24h</div>
           <div class="stat-value" id="stat-arrivals">—</div>
           <div class="stat-delta delta-up" id="stat-arrivals-delta">—</div>
         </div>
         <div class="stat-cell">
-          <div class="stat-label">Private %</div>
+          <div class="stat-label">Signal score</div>
           <div class="stat-value" id="stat-private">—</div>
           <div class="stat-delta delta-up" id="stat-private-delta">—</div>
         </div>
         <div class="stat-cell">
-          <div class="stat-label">Surging</div>
+          <div class="stat-label">Heating</div>
           <div class="stat-value" id="stat-surging">—</div>
           <div class="stat-delta delta-down" id="stat-surging-delta">—</div>
         </div>
@@ -2191,7 +2191,7 @@
     <!-- MAP -->
     <div class="section-head">
       <h2 class="section-title">Live <em>map</em></h2>
-      <span class="section-meta">20 destinations · <span id="map-meta-time">04:17z</span></span>
+      <span class="section-meta"><span id="map-dest-count">—</span> destinations · <span id="map-meta-time">04:17z</span></span>
     </div>
     <div class="world-strip">
       <svg id="world-map" viewBox="0 0 480 150" preserveAspectRatio="xMidYMid slice"></svg>
@@ -2200,13 +2200,13 @@
         <span><span class="dot" style="background:#5EAAA8"></span>Steady</span>
         <span><span class="dot" style="background:#E07856"></span>Cool</span>
       </div>
-      <div class="world-overlay">20 destinations · <span id="map-overlay-time">Hourly refresh</span></div>
+      <div class="world-overlay"><span id="map-overlay-dest-count">—</span> destinations · <span id="map-overlay-time">Hourly refresh</span></div>
     </div>
 
     <!-- HOT LIST -->
     <div class="section-head">
       <h2 class="section-title"><em>Heating up</em></h2>
-      <span class="section-meta">Top 6 · Mover score</span>
+      <span class="section-meta">Top 6 · Signal score</span>
     </div>
 
     <div class="dest-list" id="heating-up-list"></div>
@@ -2257,7 +2257,7 @@
       Go Tango · Independent travel intelligence<br>
       Built on public ADS-B data · No advertiser influence<br>
       <div style="margin-top: 10px;">
-        <a href="#">About the 20</a>·<a href="#">Methodology</a>·<a href="#">Contact</a>
+        <a href="#">About the index</a>·<a href="#">Methodology</a>·<a href="#">Contact</a>
       </div>
     </div>
   </div>
@@ -2515,14 +2515,45 @@
     }
   }
 
+  function getTotalDestinations(payload) {
+    if (!payload) return null;
+    const totals = payload.homepage && payload.homepage.totals;
+    if (totals && Number.isFinite(Number(totals.total_destinations))) {
+      return Number(totals.total_destinations);
+    }
+    if (Array.isArray(payload.destinations)) return payload.destinations.length;
+    return null;
+  }
+
+  function _integerArrivals24h(dest) {
+    if (!dest) return 0;
+    const n = Number(dest.arrivals_count ?? dest.private_arrivals_24h ?? dest.raw_ga_arrivals_24h);
+    return Number.isFinite(n) ? Math.round(n) : 0;
+  }
+
+  function updateDestinationCounts(payload) {
+    const n = getTotalDestinations(payload);
+    if (n == null) return;
+    const label = String(n);
+    const mapCount = document.getElementById('map-dest-count');
+    const overlayCount = document.getElementById('map-overlay-dest-count');
+    if (mapCount) mapCount.textContent = label;
+    if (overlayCount) overlayCount.textContent = label;
+  }
+
   function updateStats(data) {
     const payload = data && data.data;
     const destinations = payload && Array.isArray(payload.destinations) ? payload.destinations : null;
     if (!destinations) return;
 
+    updateDestinationCounts(payload);
+
     try {
       const arrivalsEl = document.getElementById('stat-arrivals');
-      const totalArrivals = Number(payload.total_arrivals_across_all);
+      const totals = payload.homepage && payload.homepage.totals;
+      const totalArrivals = totals
+        ? Number(totals.total_private_arrivals_24h)
+        : Number(payload.total_arrivals_across_all);
       if (arrivalsEl && Number.isFinite(totalArrivals)) {
         arrivalsEl.textContent = totalArrivals.toLocaleString();
       }
@@ -2532,20 +2563,30 @@
 
     try {
       const privateEl = document.getElementById('stat-private');
-      const totalGA = destinations.reduce((sum, dest) => sum + Number(dest.general_aviation_count || 0), 0);
-      const totalArr = destinations.reduce((sum, dest) => sum + Number(dest.arrivals_count || 0), 0);
-      if (privateEl && totalArr > 0) {
-        privateEl.textContent = ((totalGA / totalArr) * 100).toFixed(1);
+      const heating = payload.homepage && Array.isArray(payload.homepage.heating_up)
+        ? payload.homepage.heating_up
+        : destinations;
+      const scores = heating
+        .map(d => Number(d && d.signal_score))
+        .filter(n => Number.isFinite(n));
+      if (privateEl && scores.length > 0) {
+        const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+        privateEl.textContent = String(avg);
       }
     } catch (error) {
-      console.warn('Error updating private percentage stat:', error);
+      console.warn('Error updating signal score stat:', error);
     }
 
     try {
       const surgingEl = document.getElementById('stat-surging');
-      if (surgingEl) surgingEl.textContent = '—';
+      const heatingCount = payload.homepage && payload.homepage.totals
+        ? Number(payload.homepage.totals.heating_count)
+        : null;
+      if (surgingEl && heatingCount != null && Number.isFinite(heatingCount)) {
+        surgingEl.textContent = String(heatingCount);
+      }
     } catch (error) {
-      console.warn('Error updating surging stat:', error);
+      console.warn('Error updating heating stat:', error);
     }
   }
 
@@ -2553,21 +2594,38 @@
     const payload = arrivalsData && arrivalsData.data;
     if (!payload || !Array.isArray(payload.destinations)) return;
 
-    const comporta = payload.destinations.find(d => d.id === 'comporta');
-    if (!comporta) return;
+    const sleeper = payload.homepage && payload.homepage.sleeper_pick;
+    const pick = sleeper || payload.destinations.find(d => d.id === 'comporta');
+    if (!pick) return;
 
+    const card = document.getElementById('todays-pick-card');
+    const nameEl = card && card.querySelector('.sleeper-name');
+    const codeEl = card && card.querySelector('.sleeper-code');
+    const descEl = card && card.querySelector('.sleeper-desc');
     const arrivalsEl = document.getElementById('todays-pick-arrivals');
     const privateEl = document.getElementById('todays-pick-private');
 
-    const arrivals = (typeof comporta.arrivals_count === 'number') ? comporta.arrivals_count : 0;
-    const ga = (typeof comporta.general_aviation_count === 'number') ? comporta.general_aviation_count : 0;
-    const pvtPct = arrivals > 0 ? Math.round((ga / arrivals) * 100) : null;
+    if (sleeper && card) {
+      card.dataset.destinationId = String(pick.id || '');
+      if (nameEl) nameEl.textContent = String(pick.name || '');
+      const icao = Array.isArray(pick.icao) ? pick.icao[0] : '';
+      const coords = (typeof pick.lat === 'number' && typeof pick.lng === 'number')
+        ? `${Math.abs(pick.lat).toFixed(2)}°${pick.lat >= 0 ? 'N' : 'S'} · ${Math.abs(pick.lng).toFixed(2)}°${pick.lng >= 0 ? 'E' : 'W'}`
+        : '';
+      if (codeEl) codeEl.textContent = [icao, coords].filter(Boolean).join(' · ');
+      if (descEl && pick.editorial_note) {
+        descEl.innerHTML = `${pick.editorial_note} <em>${pick.status_label || 'Sleeper signal'}</em>`;
+      }
+    }
+
+    const arrivalsCount = _integerArrivals24h(pick);
+    const signalScore = Number(pick.signal_score);
 
     if (arrivalsEl) {
-      arrivalsEl.innerHTML = `<b>${arrivals}</b> arr / 24h`;
+      arrivalsEl.innerHTML = `<b>${arrivalsCount}</b> private / 24h`;
     }
     if (privateEl) {
-      privateEl.innerHTML = `<b>${pvtPct == null ? '—%' : pvtPct + '%'}</b> private`;
+      privateEl.innerHTML = `<b>${Number.isFinite(signalScore) ? signalScore : '—'}</b> signal`;
     }
   }
 
@@ -2579,32 +2637,33 @@
 
     try {
       const romans = ['I', 'II', 'III', 'IV', 'V', 'VI'];
-      const destinations = data.data.destinations;
-      const top6 = destinations
-        .filter(dest => Number(dest && dest.arrivals_count) > 0)
-        .sort((a, b) => Number(b.arrivals_count || 0) - Number(a.arrivals_count || 0))
+      const payload = data.data;
+      const homepageHeating = payload.homepage && Array.isArray(payload.homepage.heating_up)
+        ? payload.homepage.heating_up
+        : null;
+      const top6 = homepageHeating || payload.destinations
+        .filter(dest => _integerArrivals24h(dest) > 0)
+        .sort((a, b) => Number(b.signal_score || 0) - Number(a.signal_score || 0))
         .slice(0, 6);
 
       container.innerHTML = '';
 
       top6.forEach((dest, i) => {
-        const arrivalsCount = Number(dest.arrivals_count || 0);
-        const gaCount = Number(dest.general_aviation_count || 0);
-        const commercialCount = Number(dest.commercial_count || 0);
-        const privatePct = arrivalsCount > 0 ? Math.round((gaCount / arrivalsCount) * 100) : 0;
+        const arrivalsCount = _integerArrivals24h(dest);
+        const signalScore = Number(dest.signal_score);
+        const signalLabel = Number.isFinite(signalScore) ? String(signalScore) : '—';
         const originCodes = Array.isArray(dest.top_origins)
           ? dest.top_origins.slice(0, 3).map(o => o && o.code).filter(Boolean)
           : [];
         const topOriginCodes = originCodes.length > 0 ? originCodes.join(', ') : '—';
         const insightOrigins = originCodes.length > 0 ? topOriginCodes : 'mixed origins';
 
-        let insightLine = '';
-        if (privatePct >= 70) {
-          insightLine = `Heavily private — ${privatePct}% GA from ${insightOrigins}`;
-        } else if (privatePct >= 40) {
-          insightLine = `Mixed traffic — ${privatePct}% private aviation`;
-        } else {
-          insightLine = `Mostly commercial — ${commercialCount} airline arrivals`;
+        let insightLine = dest.status_label || dest.algorithm_read || '';
+        if (!insightLine) {
+          insightLine = `Private signal from ${insightOrigins}`;
+        }
+        if (dest.commercial_backdrop_label) {
+          insightLine += ` · ${dest.commercial_backdrop_label}`;
         }
 
         const card = document.createElement('div');
@@ -2642,9 +2701,9 @@
 
         const privateSpan = document.createElement('span');
         const privateBold = document.createElement('b');
-        privateBold.textContent = `${privatePct}%`;
+        privateBold.textContent = signalLabel;
         privateSpan.appendChild(privateBold);
-        privateSpan.appendChild(document.createTextNode(' private'));
+        privateSpan.appendChild(document.createTextNode(' score'));
 
         const originsSpan = document.createElement('span');
         const originsBold = document.createElement('b');
@@ -2667,11 +2726,11 @@
 
         const arrivalsLabel = document.createElement('div');
         arrivalsLabel.className = 'dest-arrivals-label';
-        arrivalsLabel.textContent = '24h arr';
+        arrivalsLabel.textContent = 'Private 24h';
 
         const trend = document.createElement('div');
         trend.className = 'dest-trend';
-        trend.textContent = '—';
+        trend.textContent = dest.display_dod_change || dest.display_wow_change || '—';
 
         arrivals.appendChild(arrivalsNum);
         arrivals.appendChild(arrivalsLabel);
@@ -2696,54 +2755,24 @@
       container.innerHTML = '';
       if (!data || !data.data || !Array.isArray(data.data.destinations)) return;
 
-      const destinations = data.data.destinations;
-      const inactive = destinations.filter(dest => Number(dest && dest.arrivals_count) === 0);
-      const sortedByLowestArrivals = destinations
-        .slice()
-        .sort((a, b) => Number(a && a.arrivals_count || 0) - Number(b && b.arrivals_count || 0));
+      const payload = data.data;
+      const homepageCooling = payload.homepage && payload.homepage.cooling_down;
 
-      const coolingPicks = [];
-      const seenIds = new Set();
-
-      inactive.forEach(dest => {
-        if (coolingPicks.length >= 3) return;
-        const destId = String(dest && dest.id || '');
-        if (seenIds.has(destId)) return;
-        seenIds.add(destId);
-        coolingPicks.push(dest);
-      });
-
-      sortedByLowestArrivals.forEach(dest => {
-        if (coolingPicks.length >= 3) return;
-        const destId = String(dest && dest.id || '');
-        if (seenIds.has(destId)) return;
-        seenIds.add(destId);
-        coolingPicks.push(dest);
-      });
-
-      coolingPicks.forEach(dest => {
-        const arrivalsCount = Number(dest && dest.arrivals_count || 0);
-        const destName = String(dest && dest.name || '');
-        const destId = String(dest && dest.id || '');
-        const icaoCode = Array.isArray(dest && dest.icao) ? String(dest.icao[0] || '') : '';
-
-        let whyLine = '';
-        if (arrivalsCount === 0) {
-          const regionLower = String(dest && dest.region || '').toLowerCase();
-          if (regionLower.includes('alps') || regionLower.includes('rockies')) {
-            whyLine = 'Off-season — alpine activity dormant';
-          } else if (regionLower.includes('caribbean')) {
-            whyLine = 'Quiet day — no tracked arrivals';
-          } else {
-            whyLine = 'No tracked arrivals in last 24h';
-          }
-        } else if (arrivalsCount === 1) {
-          whyLine = 'Single arrival logged — minimal activity';
-        } else if (arrivalsCount === 2) {
-          whyLine = 'Only 2 arrivals — well below typical volume';
-        } else {
-          whyLine = `Lower volume — ${arrivalsCount} arrivals`;
+      if (homepageCooling !== undefined) {
+        if (homepageCooling.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'cooling-card';
+          empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No clear cooling signal today.<br>Clean private baseline building.</div>';
+          container.appendChild(empty);
+          return;
         }
+
+        homepageCooling.forEach(dest => {
+          const arrivalsCount = _integerArrivals24h(dest);
+          const destName = String(dest.name || '');
+          const destId = String(dest.id || '');
+          const icaoCode = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
+          const whyLine = dest.status_label || dest.display_wow_change || dest.display_dod_change || 'Private signal softening';
 
         const card = document.createElement('div');
         card.className = 'cooling-card';
@@ -2773,7 +2802,63 @@
 
         const pct = document.createElement('div');
         pct.className = 'cooling-pct';
-        pct.textContent = '—';
+        pct.textContent = dest.display_wow_change || dest.display_dod_change || '—';
+
+        card.appendChild(leftCol);
+        card.appendChild(pct);
+        container.appendChild(card);
+        });
+        return;
+      }
+
+      const destinations = payload.destinations;
+      const coolingPicks = destinations
+        .filter(dest => dest.status === 'cooling' || dest.status === 'softening')
+        .sort((a, b) => Number(a.signal_score || 0) - Number(b.signal_score || 0))
+        .slice(0, 3);
+
+      if (coolingPicks.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'cooling-card';
+        empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No clear cooling signal today.<br>Clean private baseline building.</div>';
+        container.appendChild(empty);
+        return;
+      }
+
+      coolingPicks.forEach(dest => {
+        const destName = String(dest.name || '');
+        const destId = String(dest.id || '');
+        const icaoCode = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
+        const whyLine = dest.status_label || 'Private signal softening';
+
+        const card = document.createElement('div');
+        card.className = 'cooling-card';
+        card.dataset.dest = destId;
+        card.setAttribute('data-destination-id', destId);
+
+        const leftCol = document.createElement('div');
+        const nameRow = document.createElement('div');
+        nameRow.className = 'cooling-name';
+        nameRow.appendChild(document.createTextNode(`${destName} · `));
+
+        const codeSpan = document.createElement('span');
+        codeSpan.className = 'cooling-code';
+        codeSpan.style.fontFamily = "'Geist Mono', monospace";
+        codeSpan.style.fontSize = '10px';
+        codeSpan.style.color = 'var(--text-faint)';
+        codeSpan.textContent = icaoCode;
+        nameRow.appendChild(codeSpan);
+
+        const why = document.createElement('div');
+        why.className = 'cooling-why';
+        why.textContent = whyLine;
+
+        leftCol.appendChild(nameRow);
+        leftCol.appendChild(why);
+
+        const pct = document.createElement('div');
+        pct.className = 'cooling-pct';
+        pct.textContent = dest.display_wow_change || dest.display_dod_change || '—';
 
         card.appendChild(leftCol);
         card.appendChild(pct);
@@ -3279,7 +3364,7 @@
         </div>
         <div class="d-stats">
           <div class="d-stat">
-            <div class="d-stat-label">24h arrivals</div>
+            <div class="d-stat-label">Private 24h</div>
             <div class="d-stat-value">${d.arr24}</div>
             <div class="d-stat-delta ${wowClass}">${d.wow} wow</div>
           </div>
@@ -3289,7 +3374,7 @@
             <div class="d-stat-delta ${momClass}">${d.mom} mom</div>
           </div>
           <div class="d-stat">
-            <div class="d-stat-label">Private</div>
+            <div class="d-stat-label">Signal score</div>
             <div class="d-stat-value accent">${d.pvt}</div>
             <div class="d-stat-delta" style="color: var(--text-dim);">${d.pvtCount} flights</div>
           </div>
@@ -3336,7 +3421,7 @@
 
       <div class="d-section">
         <div class="d-section-head">
-          <span class="d-section-label">What's landing</span>
+          <span class="d-section-label">Private aircraft mix</span>
           <span class="d-section-meta">Top 5 · 7d</span>
         </div>
         <div class="d-aircraft">
@@ -3600,11 +3685,11 @@
       if (allDests && allDests.length > 0) {
         const validDests = allDests
           .filter(dest => typeof dest.lat === 'number' && typeof dest.lng === 'number')
-          .sort((a, b) => Number(b.arrivals_count || 0) - Number(a.arrivals_count || 0));
+          .sort((a, b) => Number(b.signal_score || 0) - Number(a.signal_score || 0));
         if (validDests.length > 0) {
-          resolvedMapDestinations = validDests.map((dest, index) => {
-            const arrivalsCount = Number(dest.arrivals_count || 0);
-            const type = index < 6 ? 'surge' : (index < 17 ? 'steady' : 'cool');
+          resolvedMapDestinations = validDests.map((dest) => {
+            const arrivalsCount = _integerArrivals24h(dest);
+            const type = _computeTier(dest, validDests);
             const size = arrivalsCount <= 0 ? 2 : Math.max(2, Math.min(8, 2 + (arrivalsCount / 5)));
             return {
               id: dest.id,
@@ -3815,21 +3900,20 @@
   }
 
   function _computeTier(dest, allDestinations) {
-    // Determine vibe tier based on rank within all destinations
-    // Top 6 by arrivals_count = 'surge'
-    // Bottom 3 (or those with 0 arrivals) = 'cool'
-    // Middle = 'steady'
     if (!allDestinations || !Array.isArray(allDestinations)) return 'steady';
+
+    const status = dest && dest.status;
+    if (status === 'heating' || status === 'warming') return 'surge';
+    if (status === 'cooling' || status === 'softening' || status === 'off_season') return 'cool';
 
     const sorted = [...allDestinations]
       .filter(d => d && d.ok)
-      .sort((a, b) => _safeNum(b.arrivals_count) - _safeNum(a.arrivals_count));
+      .sort((a, b) => _safeNum(b.signal_score) - _safeNum(a.signal_score));
 
     const idx = sorted.findIndex(d => d.id === dest.id);
     if (idx === -1) return 'steady';
 
-    // Zero arrivals always = cool
-    if (_safeNum(dest.arrivals_count) === 0) return 'cool';
+    if (_integerArrivals24h(dest) === 0) return 'cool';
 
     const total = sorted.length;
     if (idx < 6) return 'surge';
@@ -3844,6 +3928,8 @@
   }
 
   function _computePrivatePct(dest) {
+    const score = _safeNum(dest.signal_score);
+    if (score > 0) return score;
     const total = _safeNum(dest.arrivals_count);
     const ga = _safeNum(dest.general_aviation_count);
     if (total <= 0) return null;
@@ -3879,13 +3965,16 @@
   }
 
   function renderModalStats(dest) {
-    const arrivals = _safeNum(dest.arrivals_count);
-    const pvtPct = _computePrivatePct(dest);
-    const pvtStr = pvtPct == null ? '—' : `${pvtPct}%`;
-    const pvtSub = pvtPct == null ? 'No data' : `${_safeNum(dest.general_aviation_count)} of ${arrivals} flights`;
+    const arrivals = _integerArrivals24h(dest);
+    const signalScore = _safeNum(dest.signal_score);
+    const pvtStr = signalScore > 0 ? String(signalScore) : '—';
+    const pvtSub = dest.display_dod_change || dest.status_label || 'Private signal';
     const topAircraft = _topAircraftType(dest);
     const topAircraftStr = topAircraft || '—';
     const topAircraftSub = topAircraft ? 'Most common type' : 'No data';
+    const commercialLabel = dest.commercial_backdrop_label
+      ? String(dest.commercial_backdrop_label).trim()
+      : '';
 
     return `
       <div class="d-section">
@@ -3895,12 +3984,12 @@
         </div>
         <div class="d-stats">
           <div class="d-stat">
-            <div class="d-stat-label">24h arrivals</div>
+            <div class="d-stat-label">Private 24h</div>
             <div class="d-stat-value">${arrivals}</div>
-            <div class="d-stat-sub">${arrivals === 1 ? 'flight' : 'flights'}</div>
+            <div class="d-stat-sub">${arrivals === 1 ? 'qualified arrival' : 'qualified arrivals'}</div>
           </div>
           <div class="d-stat">
-            <div class="d-stat-label">Private</div>
+            <div class="d-stat-label">Signal score</div>
             <div class="d-stat-value accent">${pvtStr}</div>
             <div class="d-stat-sub">${_escapeHtml(pvtSub)}</div>
           </div>
@@ -3910,6 +3999,7 @@
             <div class="d-stat-sub">${_escapeHtml(topAircraftSub)}</div>
           </div>
         </div>
+        ${commercialLabel ? `<p class="d-stat-sub" style="margin-top: 10px; color: var(--text-faint, #6B6557);">${_escapeHtml(commercialLabel)}</p>` : ''}
       </div>
     `;
   }
@@ -4065,7 +4155,7 @@
       return `
       <div class="d-section">
         <div class="d-section-head">
-          <span class="d-section-label">What's landing</span>
+          <span class="d-section-label">Private aircraft mix</span>
           <span class="d-section-meta">Aircraft mix</span>
         </div>
         <p class="d-feed-empty">No aircraft data for this period.</p>
@@ -4092,8 +4182,8 @@
     return `
     <div class="d-section">
       <div class="d-section-head">
-        <span class="d-section-label">What's landing</span>
-        <span class="d-section-meta">Aircraft mix · Last 24h</span>
+          <span class="d-section-label">Private aircraft mix</span>
+          <span class="d-section-meta">Aircraft mix · Last 24h</span>
       </div>
       <div class="d-aircraft">${rows}</div>
     </div>
@@ -4108,7 +4198,7 @@
       return `
       <div class="d-section">
         <div class="d-section-head">
-          <span class="d-section-label">Recent arrivals</span>
+          <span class="d-section-label">Recent private arrivals</span>
           <span class="d-section-meta">Last 24h</span>
         </div>
         <p class="d-feed-empty">No recent arrivals to display.</p>
@@ -4146,7 +4236,7 @@
     return `
     <div class="d-section">
       <div class="d-section-head">
-        <span class="d-section-label">Recent arrivals</span>
+        <span class="d-section-label">Recent private arrivals</span>
         <span class="d-section-meta">Last ${flights.length} · Live</span>
       </div>
       <div class="d-feed">${rows}</div>
