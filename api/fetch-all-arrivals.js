@@ -2,9 +2,46 @@ import { kv } from '@vercel/kv';
 import { DESTINATIONS, PEER_DESTINATIONS, EDITORIAL_BLURBS } from '../destinations.config.js';
 
 const TIMEOUT_MS = 25_000;
+const GA_MAX_PAGES = Number(process.env.GA_MAX_PAGES || 3);
+const AIRLINE_CONTEXT_MAX_PAGES = Number(process.env.AIRLINE_CONTEXT_MAX_PAGES || 1);
+const HISTORY_VERSION = 'ga_filtered_v2';
+
+const PREMIUM_PRIVATE_PREFIXES = [
+  'GLF', 'GLEX', 'G650', 'G550', 'G600', 'G700', 'C25', 'C56', 'C68', 'C75',
+  'CL30', 'CL35', 'CL60', 'FA7X', 'F2TH', 'LJ', 'E50P', 'E55P', 'E75L', 'H25B', 'BE40',
+];
+const TURBOPROP_PREFIXES = ['PC12', 'TBM', 'BE9L', 'B350', 'B300', 'C208'];
+const LIGHT_GA_PREFIXES = ['C172', 'C182', 'PA28', 'SR20', 'SR22'];
 
 function formatAeroTime(d) {
   return d.toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+function countAirportIcaos() {
+  let n = 0;
+  for (const d of DESTINATIONS) {
+    n += Array.isArray(d.icao) ? d.icao.length : 0;
+  }
+  return n;
+}
+
+function matchesAircraftPrefix(typeUpper, prefixes) {
+  return prefixes.some((p) => typeUpper.startsWith(p) || typeUpper.includes(p));
+}
+
+function classifyAircraftBucket(aircraftType) {
+  if (!aircraftType || !String(aircraftType).trim()) return 'unknown';
+  const t = String(aircraftType).trim().toUpperCase();
+  if (matchesAircraftPrefix(t, PREMIUM_PRIVATE_PREFIXES)) return 'premium_private';
+  if (matchesAircraftPrefix(t, TURBOPROP_PREFIXES)) return 'turboprop';
+  if (matchesAircraftPrefix(t, LIGHT_GA_PREFIXES)) return 'light_ga';
+  return 'unknown';
+}
+
+function isLoopFlight(flight) {
+  const o = flight?.origin?.code_icao;
+  const d = flight?.destination?.code_icao;
+  return o && d && o === d;
 }
 
 function classifyType(flight) {
@@ -32,11 +69,7 @@ function aircraftBreakdownFromArrivals(arrivals) {
     const t = f?.aircraft_type;
     const key = t && String(t).trim() ? String(t).trim() : 'UNKNOWN';
     if (!m.has(key)) {
-      m.set(key, {
-        type: key,
-        count: 0,
-        ga_count: 0,
-      });
+      m.set(key, { type: key, count: 0, ga_count: 0 });
     }
     const entry = m.get(key);
     entry.count += 1;
@@ -78,26 +111,308 @@ function recentFlightsFromArrivals(arrivals) {
       aircraft_type: f?.aircraft_type || null,
       origin_icao: f?.origin?.code_icao || null,
       origin_name: f?.origin?.name || f?.origin?.city || null,
-      is_general_aviation: classifyType(f) === 'ga',
+      is_general_aviation: true,
     }));
 }
 
-function countTypes(arrivals) {
-  let general_aviation_count = 0;
-  let commercial_count = 0;
-  let unknown_type_count = 0;
-  for (const f of arrivals) {
-    const c = classifyType(f);
-    if (c === 'ga') general_aviation_count++;
-    else if (c === 'commercial') commercial_count++;
-    else unknown_type_count++;
+function analyzeGaArrivals(gaArrivals) {
+  let premium_private_arrivals_24h = 0;
+  let light_ga_arrivals_24h = 0;
+  let turbopropCount = 0;
+  let unknownCount = 0;
+  let excluded_arrivals_24h = 0;
+  let qualifiedSum = 0;
+
+  for (const f of gaArrivals) {
+    if (isLoopFlight(f)) {
+      excluded_arrivals_24h += 1;
+      continue;
+    }
+    const bucket = classifyAircraftBucket(f?.aircraft_type);
+    if (bucket === 'premium_private') premium_private_arrivals_24h += 1;
+    else if (bucket === 'light_ga') light_ga_arrivals_24h += 1;
+    else if (bucket === 'turboprop') turbopropCount += 1;
+    else unknownCount += 1;
+
+    let weight = 0;
+    if (bucket === 'premium_private') weight = 1;
+    else if (bucket === 'turboprop') weight = 1;
+    else if (bucket === 'unknown') weight = 0.5;
+    else if (bucket === 'light_ga') weight = 0.25;
+    qualifiedSum += weight;
   }
-  return { general_aviation_count, commercial_count, unknown_type_count };
+
+  const weighted_private_signal_24h = Math.round(qualifiedSum * 10) / 10;
+
+  return {
+    raw_ga_arrivals_24h: gaArrivals.length,
+    weighted_private_signal_24h,
+    // Backward-compatible alias for historical snapshots
+    qualified_private_arrivals_24h: weighted_private_signal_24h,
+    premium_private_arrivals_24h,
+    light_ga_arrivals_24h,
+    excluded_arrivals_24h,
+    turboprop_arrivals_24h: turbopropCount,
+    unknown_ga_arrivals_24h: unknownCount,
+  };
 }
 
-async function fetchArrivalsForAirport(icao, apiKey, start, end) {
+function aircraftQualityScore(dest) {
+  const raw = _safeNum(dest.raw_ga_arrivals_24h);
+  if (raw <= 0) return 0;
+  const premium = _safeNum(dest.premium_private_arrivals_24h);
+  const turboprop = _safeNum(dest.turboprop_arrivals_24h);
+  return Math.min(100, Math.round(((premium * 1.0 + turboprop * 0.7) / raw) * 100));
+}
+
+function originQualityScore(dest) {
+  const origins = Array.isArray(dest.top_origins) ? dest.top_origins : [];
+  if (origins.length === 0) return 0;
+  const unique = origins.length;
+  const topShare = origins[0]?.count ? origins[0].count / Math.max(1, _safeNum(dest.raw_ga_arrivals_24h)) : 1;
+  const diversity = Math.min(100, unique * 18);
+  const concentrationPenalty = topShare > 0.7 ? 20 : topShare > 0.5 ? 10 : 0;
+  return Math.max(0, Math.min(100, diversity - concentrationPenalty));
+}
+
+function _safeNum(v) {
+  return typeof v === 'number' && Number.isFinite(v) ? v : 0;
+}
+
+function weightedPrivateSignal24h(dest) {
+  if (!dest) return 0;
+  return _safeNum(dest.weighted_private_signal_24h ?? dest.qualified_private_arrivals_24h);
+}
+
+function pctChange(current, baseline) {
+  if (baseline == null || current == null) return null;
+  if (baseline === 0) return current > 0 ? null : 0;
+  return ((current - baseline) / baseline) * 100;
+}
+
+function formatDisplayChange(current, baseline, pct) {
+  if (baseline == null || current == null) return 'Clean baseline building';
+  if (baseline === 0 && current > 0) return 'New private movement';
+  const delta = current - baseline;
+  if (baseline >= 5 && pct != null) {
+    const sign = pct > 0 ? '+' : '';
+    return `${sign}${Math.round(pct)}%`;
+  }
+  if (baseline >= 1 && baseline <= 4) {
+    const sign = delta > 0 ? '+' : '';
+    return `${sign}${delta} vs prior`;
+  }
+  if (baseline === 0) return 'New private movement';
+  return 'Clean baseline building';
+}
+
+function normalizePctForScore(pct) {
+  if (pct == null || !Number.isFinite(pct)) return 50;
+  const clamped = Math.max(-80, Math.min(120, pct));
+  return Math.round(50 + clamped / 2);
+}
+
+function statusFromSignal(score, hasHistory, qualified, dodPct, wowPct) {
+  if (!hasHistory) {
+    if (qualified >= 8) return 'warming';
+    if (qualified >= 3) return 'data_building';
+    return 'data_building';
+  }
+  if (score >= 78) return 'heating';
+  if (score >= 62) return 'warming';
+  if (score >= 48) return 'steady';
+  if (score >= 35) {
+    if (dodPct != null && dodPct < -15) return 'softening';
+    if (wowPct != null && wowPct < -20) return 'cooling';
+    return 'softening';
+  }
+  if (qualified <= 0) return 'off_season';
+  return 'cooling';
+}
+
+function statusLabel(status) {
+  const labels = {
+    heating: 'Heating',
+    warming: 'Warming',
+    steady: 'Steady',
+    softening: 'Softening',
+    cooling: 'Cooling',
+    sleeper: 'Sleeper signal',
+    off_season: 'Off season',
+    data_building: 'Baseline building',
+  };
+  return labels[status] || status;
+}
+
+function commercialBackdrop(airlineOk, airlineCount, airlineHasMore) {
+  if (!airlineOk) {
+    return {
+      commercial_backdrop_tier: 'unknown',
+      commercial_backdrop_label: 'Commercial backdrop unknown',
+      commercial_exact: false,
+    };
+  }
+  if (airlineCount === 0 && !airlineHasMore) {
+    return {
+      commercial_backdrop_tier: 'light',
+      commercial_backdrop_label: 'Commercial backdrop light',
+      commercial_exact: true,
+    };
+  }
+  if (airlineHasMore) {
+    return {
+      commercial_backdrop_tier: 'high_volume',
+      commercial_backdrop_label: 'High-volume commercial airport',
+      commercial_exact: false,
+    };
+  }
+  return {
+    commercial_backdrop_tier: 'active',
+    commercial_backdrop_label: 'Commercial backdrop active',
+    commercial_exact: true,
+  };
+}
+
+function isV2HistoryRecord(rec) {
+  return rec?.history_version === HISTORY_VERSION;
+}
+
+function calendarDateUtc(iso) {
+  if (!iso) return null;
+  const s = String(iso);
+  return s.length >= 10 ? s.slice(0, 10) : null;
+}
+
+function shiftCalendarDateUtc(dateStr, deltaDays) {
+  const d = new Date(`${dateStr}T12:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + deltaDays);
+  return d.toISOString().slice(0, 10);
+}
+
+function calendarDaysBefore(dateStr, todayStr) {
+  const a = new Date(`${dateStr}T12:00:00.000Z`).getTime();
+  const b = new Date(`${todayStr}T12:00:00.000Z`).getTime();
+  return Math.round((b - a) / (24 * 60 * 60 * 1000));
+}
+
+function findHistoryForDestination(historyList, destId, now = new Date()) {
+  const v2 = historyList.filter(isV2HistoryRecord);
+  const byDest = (rec) => {
+    const row = rec?.per_destination?.find((p) => p.id === destId);
+    return row || null;
+  };
+
+  const today = calendarDateUtc(now.toISOString());
+  const yesterday = shiftCalendarDateUtc(today, -1);
+  const weekTarget = shiftCalendarDateUtc(today, -7);
+
+  let priorDay = null;
+  for (const rec of v2) {
+    const recDate = calendarDateUtc(rec?.saved_at);
+    if (recDate !== yesterday) continue;
+    priorDay = byDest(rec);
+    if (priorDay) break;
+  }
+
+  let weekAgo = null;
+  for (const rec of v2) {
+    const recDate = calendarDateUtc(rec?.saved_at);
+    if (recDate !== weekTarget) continue;
+    weekAgo = byDest(rec);
+    if (weekAgo) break;
+  }
+  if (!weekAgo) {
+    for (const rec of v2) {
+      const recDate = calendarDateUtc(rec?.saved_at);
+      if (!recDate) continue;
+      const daysBack = calendarDaysBefore(recDate, today);
+      if (daysBack >= 6 && daysBack <= 8) {
+        weekAgo = byDest(rec);
+        if (weekAgo) break;
+      }
+    }
+  }
+
+  return { priorDay, weekAgo, hasV2: v2.length > 0 };
+}
+
+function computeMovementMetrics(dest, histCtx) {
+  const current = weightedPrivateSignal24h(dest);
+  const { priorDay, weekAgo, hasV2 } = histCtx;
+
+  let dod_change_pct = null;
+  let wow_change_pct = null;
+  let display_dod_change = 'Baseline building';
+  let display_wow_change = 'Baseline building';
+
+  if (priorDay) {
+    const base = weightedPrivateSignal24h(priorDay);
+    dod_change_pct = pctChange(current, base);
+    display_dod_change = formatDisplayChange(current, base, dod_change_pct);
+  }
+
+  if (weekAgo) {
+    const base = weightedPrivateSignal24h(weekAgo);
+    wow_change_pct = pctChange(current, base);
+    display_wow_change = formatDisplayChange(current, base, wow_change_pct);
+  }
+
+  return {
+    dod_change_pct,
+    wow_change_pct,
+    display_dod_change,
+    display_wow_change,
+    hasCleanHistory: Boolean(priorDay || weekAgo),
+  };
+}
+
+function computeSignalScore(dest, movement, hasHistory) {
+  const qualified = weightedPrivateSignal24h(dest);
+  const acQuality = aircraftQualityScore(dest);
+  const origQuality = originQualityScore(dest);
+
+  if (hasHistory) {
+    const dodScore = normalizePctForScore(movement.dod_change_pct);
+    const wowScore = normalizePctForScore(movement.wow_change_pct);
+    const volumeScore = Math.min(100, Math.round((qualified / 20) * 100));
+    const momentum = movement.wow_change_pct != null
+      ? normalizePctForScore(movement.wow_change_pct)
+      : dodScore;
+
+    const score = Math.round(
+      wowScore * 0.4 +
+      dodScore * 0.3 +
+      momentum * 0.15 +
+      acQuality * 0.1 +
+      origQuality * 0.05,
+    );
+    return Math.max(0, Math.min(100, score));
+  }
+
+  const volumeScore = Math.min(100, Math.round((qualified / 15) * 100));
+  const confidence = dest.ok ? 0.85 : 0.5;
+  const provisional = Math.round(
+    volumeScore * 0.5 + acQuality * 0.25 + origQuality * 0.15 + 10 * confidence,
+  );
+  return Math.max(0, Math.min(100, provisional));
+}
+
+function algorithmRead(dest) {
+  const parts = [];
+  parts.push(`GA raw ${dest.raw_ga_arrivals_24h}`);
+  parts.push(`signal ${weightedPrivateSignal24h(dest)}`);
+  if (dest.commercial_backdrop_label) parts.push(dest.commercial_backdrop_label);
+  return parts.join(' · ');
+}
+
+async function fetchArrivalsForAirport(icao, apiKey, start, end, { type, maxPages }) {
   const base = `https://aeroapi.flightaware.com/aeroapi/airports/${encodeURIComponent(icao)}/flights/arrivals`;
-  const params = new URLSearchParams({ start, end, max_pages: '1' });
+  const params = new URLSearchParams({
+    start,
+    end,
+    max_pages: String(maxPages),
+    type,
+  });
   const url = `${base}?${params.toString()}`;
 
   const controller = new AbortController();
@@ -117,6 +432,7 @@ async function fetchArrivalsForAirport(icao, apiKey, start, end) {
     return {
       ok: false,
       arrivals: null,
+      hasMore: false,
       error: isAbort ? 'timeout' : fetchErr instanceof Error ? fetchErr.message : String(fetchErr),
     };
   } finally {
@@ -133,6 +449,7 @@ async function fetchArrivalsForAirport(icao, apiKey, start, end) {
     return {
       ok: false,
       arrivals: null,
+      hasMore: false,
       error: detail || `http_${arrivalsRes.status}`,
     };
   }
@@ -140,58 +457,94 @@ async function fetchArrivalsForAirport(icao, apiKey, start, end) {
   let body;
   try {
     body = await arrivalsRes.json();
-  } catch (parseErr) {
-    return {
-      ok: false,
-      arrivals: null,
-      error: 'json_parse',
-    };
+  } catch {
+    return { ok: false, arrivals: null, hasMore: false, error: 'json_parse' };
   }
 
-  const arrivals = body?.arrivals;
-  if (!Array.isArray(arrivals)) {
-    return {
-      ok: false,
-      arrivals: null,
-      error: 'invalid_arrivals_array',
-    };
+  const rawArrivals = body?.arrivals;
+  if (!Array.isArray(rawArrivals)) {
+    return { ok: false, arrivals: null, hasMore: false, error: 'invalid_arrivals_array' };
   }
-  return { ok: true, arrivals, error: null };
+
+  const expectedType = type;
+  const filtered = rawArrivals.filter((f) => f?.type === expectedType);
+  if (filtered.length !== rawArrivals.length) {
+    console.warn(
+      `[fetch-all-arrivals] Type filter mismatch ${icao} type=${type}: raw=${rawArrivals.length} filtered=${filtered.length}`,
+    );
+  }
+
+  const hasMore = Boolean(body?.links?.next);
+  return { ok: true, arrivals: filtered, hasMore, error: null };
 }
 
-async function processDestination(dest, apiKey, start, end, totalApiCalls) {
+async function processDestination(dest, apiKey, start, end, totalApiCalls, fetchStats) {
   const icaos = Array.isArray(dest.icao) ? dest.icao : [];
   const errors = [];
-  let combined = [];
-  let anyAirportOk = false;
+  let gaCombined = [];
+  let airlineCombined = [];
+  let anyGaOk = false;
+  let anyAirlineOk = false;
+  let airlineHasMore = false;
 
   console.log(`[fetch-all-arrivals] Destination start: ${dest.id} (${dest.name})`);
 
   for (const icao of icaos) {
     try {
       totalApiCalls.count += 1;
-      const r = await fetchArrivalsForAirport(icao, apiKey, start, end);
-      if (r.ok) {
-        anyAirportOk = true;
-        combined = combined.concat(r.arrivals);
+      const gaRes = await fetchArrivalsForAirport(icao, apiKey, start, end, {
+        type: 'General_Aviation',
+        maxPages: GA_MAX_PAGES,
+      });
+      if (gaRes.ok) {
+        anyGaOk = true;
+        gaCombined = gaCombined.concat(gaRes.arrivals);
+        if (gaRes.hasMore) fetchStats.gaHasMore += 1;
       } else {
-        errors.push({ icao, error: r.error });
+        errors.push({ icao, type: 'General_Aviation', error: gaRes.error });
       }
     } catch (err) {
-      console.error(`[fetch-all-arrivals] Airport fetch threw: ${dest.id} ${icao}`, err);
-      errors.push({ icao, error: err instanceof Error ? err.message : String(err) });
+      console.error(`[fetch-all-arrivals] GA fetch threw: ${dest.id} ${icao}`, err);
+      errors.push({
+        icao,
+        type: 'General_Aviation',
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+
+    try {
+      totalApiCalls.count += 1;
+      const airlineRes = await fetchArrivalsForAirport(icao, apiKey, start, end, {
+        type: 'Airline',
+        maxPages: AIRLINE_CONTEXT_MAX_PAGES,
+      });
+      if (airlineRes.ok) {
+        anyAirlineOk = true;
+        airlineCombined = airlineCombined.concat(airlineRes.arrivals);
+        if (airlineRes.hasMore) {
+          airlineHasMore = true;
+          fetchStats.airlineHasMore += 1;
+        }
+      } else {
+        errors.push({ icao, type: 'Airline', error: airlineRes.error });
+      }
+    } catch (err) {
+      console.error(`[fetch-all-arrivals] Airline fetch threw: ${dest.id} ${icao}`, err);
+      errors.push({
+        icao,
+        type: 'Airline',
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
-  const destOk = anyAirportOk;
-  const arrivals_count = destOk ? combined.length : 0;
-  const stats = countTypes(combined);
-  const { general_aviation_count, commercial_count, unknown_type_count } = stats;
-  const top_origins = topOriginsFromArrivals(combined);
-  const top_aircraft = aircraftBreakdownFromArrivals(combined);
-  const recent_flights = recentFlightsFromArrivals(combined);
-  const sample_flight = combined.length > 0 ? combined[0] : null;
-  const fetched_at = new Date().toISOString();
+  const destOk = anyGaOk;
+  const gaMetrics = analyzeGaArrivals(gaCombined);
+  const airline_context_count = anyAirlineOk ? airlineCombined.length : 0;
+  const backdrop = commercialBackdrop(anyAirlineOk, airline_context_count, airlineHasMore);
+
+  const weighted_private_signal_24h = destOk ? gaMetrics.weighted_private_signal_24h : 0;
+  const raw_ga_arrivals_24h = destOk ? gaMetrics.raw_ga_arrivals_24h : 0;
 
   const result = {
     id: dest.id,
@@ -201,26 +554,168 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls) {
     lng: dest.lng,
     icao: [...icaos],
     ok: destOk,
-    arrivals_count,
-    general_aviation_count: destOk ? general_aviation_count : 0,
-    commercial_count: destOk ? commercial_count : 0,
-    unknown_type_count: destOk ? unknown_type_count : 0,
-    top_origins: destOk ? top_origins : [],
-    top_aircraft: destOk ? top_aircraft : [],
-    recent_flights: destOk ? recent_flights : [],
-    sample_flight,
+    arrivals_count: raw_ga_arrivals_24h,
+    private_arrivals_24h: raw_ga_arrivals_24h,
+    general_aviation_count: raw_ga_arrivals_24h,
+    commercial_count: airline_context_count,
+    unknown_type_count: 0,
+    raw_ga_arrivals_24h,
+    weighted_private_signal_24h,
+    qualified_private_arrivals_24h: weighted_private_signal_24h,
+    premium_private_arrivals_24h: destOk ? gaMetrics.premium_private_arrivals_24h : 0,
+    light_ga_arrivals_24h: destOk ? gaMetrics.light_ga_arrivals_24h : 0,
+    excluded_arrivals_24h: destOk ? gaMetrics.excluded_arrivals_24h : 0,
+    turboprop_arrivals_24h: destOk ? gaMetrics.turboprop_arrivals_24h : 0,
+    unknown_ga_arrivals_24h: destOk ? gaMetrics.unknown_ga_arrivals_24h : 0,
+    airline_context_count,
+    airline_has_more: airlineHasMore,
+    ...backdrop,
+    top_origins: destOk ? topOriginsFromArrivals(gaCombined) : [],
+    top_aircraft: destOk ? aircraftBreakdownFromArrivals(gaCombined) : [],
+    recent_flights: destOk ? recentFlightsFromArrivals(gaCombined) : [],
+    sample_flight: gaCombined.length > 0 ? gaCombined[0] : null,
     errors,
-    fetched_at,
+    fetched_at: new Date().toISOString(),
     editorial: EDITORIAL_BLURBS[dest.id] || null,
     peers: PEER_DESTINATIONS[dest.id] || [],
+    signal_score: 0,
+    status: 'data_building',
+    status_label: 'Baseline building',
+    dod_change_pct: null,
+    wow_change_pct: null,
+    display_dod_change: 'Clean baseline building',
+    display_wow_change: 'Clean baseline building',
+    algorithm_read: '',
+    data_quality: destOk ? 'ga_filtered' : 'fetch_failed',
   };
 
-  const errTag = result.errors.length ? ` errors=${result.errors.map((e) => e.icao).join(',')}` : '';
+  const errTag = result.errors.length ? ` errors=${result.errors.length}` : '';
   console.log(
-    `[fetch-all-arrivals] Destination done: ${dest.id} ok=${destOk} arrivals_count=${arrivals_count}${errTag}`,
+    `[fetch-all-arrivals] Destination done: ${dest.id} ok=${destOk} weighted_signal=${weighted_private_signal_24h} raw_ga=${raw_ga_arrivals_24h} airline=${airline_context_count}${errTag}`,
   );
 
   return result;
+}
+
+function enrichDestinationsWithHistory(destinations, historyList) {
+  return destinations.map((dest) => {
+    const histCtx = findHistoryForDestination(historyList, dest.id);
+    const movement = computeMovementMetrics(dest, histCtx);
+    const hasHistory = histCtx.hasV2 && (histCtx.priorDay != null || histCtx.weekAgo != null);
+    const signal_score = computeSignalScore(dest, movement, hasHistory);
+    const status = statusFromSignal(
+      signal_score,
+      hasHistory,
+      weightedPrivateSignal24h(dest),
+      movement.dod_change_pct,
+      movement.wow_change_pct,
+    );
+
+    return {
+      ...dest,
+      ...movement,
+      signal_score,
+      status,
+      status_label: statusLabel(status),
+      algorithm_read: algorithmRead(dest),
+      data_quality: dest.ok ? (hasHistory ? 'ga_filtered_v2' : 'baseline_building') : 'fetch_failed',
+    };
+  });
+}
+
+function buildHomepage(destinations) {
+  const okDests = destinations.filter((d) => d.ok);
+
+  const heating_up = okDests
+    .filter((d) => ['heating', 'warming', 'sleeper'].includes(d.status))
+    .sort((a, b) => _safeNum(b.signal_score) - _safeNum(a.signal_score))
+    .slice(0, 6);
+
+  const cooling_down = okDests
+    .filter((d) => d.status === 'cooling' || d.status === 'softening')
+    .sort((a, b) => _safeNum(a.signal_score) - _safeNum(b.signal_score))
+    .slice(0, 3);
+
+  const heatingIds = new Set(heating_up.map((d) => d.id));
+
+  function sleeperScore(d) {
+    let score = _safeNum(d.signal_score) * 0.35;
+    const weightedSignal = weightedPrivateSignal24h(d);
+    if (weightedSignal > 0 && weightedSignal <= 12) score += 15;
+    if (d.dod_change_pct != null && d.dod_change_pct > 0) score += Math.min(20, d.dod_change_pct);
+    if (d.wow_change_pct != null && d.wow_change_pct > 0) score += Math.min(15, d.wow_change_pct * 0.5);
+    score += aircraftQualityScore(d) * 0.1;
+    score += originQualityScore(d) * 0.1;
+    if (d.commercial_backdrop_tier === 'light') score += 8;
+    else if (d.commercial_backdrop_tier === 'active') score += 4;
+    if (weightedSignal > 20) score -= 10;
+    return score;
+  }
+
+  const sleeperCandidates = okDests
+    .filter((d) => !heatingIds.has(d.id) && weightedPrivateSignal24h(d) > 0)
+    .sort((a, b) => sleeperScore(b) - sleeperScore(a));
+
+  let sleeper_pick = sleeperCandidates[0] || null;
+  if (sleeper_pick) {
+    const noteParts = [];
+    if (weightedPrivateSignal24h(sleeper_pick) <= 12) {
+      noteParts.push('Private activity remains modest, but the signal is building from a low base.');
+    } else {
+      noteParts.push('Private activity is present with emerging momentum relative to peers.');
+    }
+    const originCount = Array.isArray(sleeper_pick.top_origins) ? sleeper_pick.top_origins.length : 0;
+    if (originCount >= 2) {
+      noteParts.push('The current movement is supported by private arrivals and origin diversity,');
+    } else {
+      noteParts.push('The current movement is supported by private arrivals,');
+    }
+    noteParts.push(
+      `while commercial traffic remains only a backdrop (${String(sleeper_pick.commercial_backdrop_label || 'context only').toLowerCase()}).`,
+    );
+    sleeper_pick = {
+      ...sleeper_pick,
+      editorial_note: noteParts.join(' '),
+    };
+  }
+
+  const total_private_arrivals_24h = destinations.reduce(
+    (s, d) => s + _safeNum(d.raw_ga_arrivals_24h),
+    0,
+  );
+  const total_qualified_private_arrivals_24h = destinations.reduce(
+    (s, d) => s + weightedPrivateSignal24h(d),
+    0,
+  );
+  const total_weighted_private_signal_24h = total_qualified_private_arrivals_24h;
+
+  const heating_count = destinations.filter(
+    (d) => d.ok && (d.status === 'heating' || d.status === 'warming'),
+  ).length;
+  const cooling_count = destinations.filter(
+    (d) => d.ok && (d.status === 'cooling' || d.status === 'softening'),
+  ).length;
+  const moving_count = destinations.filter(
+    (d) => d.ok && ['heating', 'warming', 'sleeper'].includes(d.status),
+  ).length;
+
+  return {
+    heating_up,
+    cooling_down,
+    sleeper_pick,
+    totals: {
+      total_destinations: DESTINATIONS.length,
+      total_airport_ids: countAirportIcaos(),
+      total_private_arrivals_24h,
+      total_qualified_private_arrivals_24h,
+      total_weighted_private_signal_24h,
+      heating_count,
+      cooling_count,
+      moving_count,
+      data_building_count: destinations.filter((d) => d.status === 'data_building').length,
+      last_updated_at: new Date().toISOString(),
+    },
+  };
 }
 
 export default async function handler(req, res) {
@@ -248,28 +743,51 @@ export default async function handler(req, res) {
     const end = formatAeroTime(now);
 
     const totalApiCalls = { count: 0 };
+    const fetchStats = { gaHasMore: 0, airlineHasMore: 0 };
+    const totalDestinations = DESTINATIONS.length;
+    const totalAirportIds = countAirportIcaos();
+    const fetchesPerRun = totalAirportIds * 2;
+    const estimatedMaxResultSets = totalAirportIds * (GA_MAX_PAGES + AIRLINE_CONTEXT_MAX_PAGES);
+    const estimatedMonthlyResultSets = estimatedMaxResultSets * 30;
 
-    const total_destinations = DESTINATIONS.length;
-    console.log(`[fetch-all-arrivals] Processing ${total_destinations} destinations in parallel (start=${start} end=${end})`);
+    console.log(
+      `[fetch-all-arrivals] Processing ${totalDestinations} destinations (${totalAirportIds} airport ICAOs) start=${start} end=${end} GA_MAX_PAGES=${GA_MAX_PAGES} AIRLINE_CONTEXT_MAX_PAGES=${AIRLINE_CONTEXT_MAX_PAGES}`,
+    );
+    console.log(
+      `[fetch-all-arrivals] Estimated max result sets this run: ${estimatedMaxResultSets}; ~monthly at daily refresh: ${estimatedMonthlyResultSets}`,
+    );
+
+    let historyList = [];
+    try {
+      const rawHistory = await kv.lrange('gotango:arrivals:history', 0, 29);
+      historyList = Array.isArray(rawHistory) ? rawHistory : [];
+    } catch (histReadErr) {
+      console.warn('[fetch-all-arrivals] Could not read history for movement:', histReadErr);
+    }
 
     const destinationPromises = DESTINATIONS.map((dest) =>
-      processDestination(dest, apiKey, start, end, totalApiCalls),
+      processDestination(dest, apiKey, start, end, totalApiCalls, fetchStats),
     );
-    const destinations = await Promise.all(destinationPromises);
+    let destinations = await Promise.all(destinationPromises);
+    destinations = enrichDestinationsWithHistory(destinations, historyList);
+    const homepage = buildHomepage(destinations);
 
     const successful = destinations.filter((d) => d.ok).length;
     const failed = destinations.filter((d) => !d.ok).length;
-    const total_arrivals_across_all = destinations.reduce((s, d) => s + d.arrivals_count, 0);
+    const total_arrivals_across_all = destinations.reduce(
+      (s, d) => s + _safeNum(d.raw_ga_arrivals_24h),
+      0,
+    );
     const fetched_at = new Date().toISOString();
     const duration_ms = Date.now() - t0;
 
     console.log(
-      `[fetch-all-arrivals] Summary: total_destinations=${total_destinations} successful=${successful} failed=${failed} total_arrivals_across_all=${total_arrivals_across_all} total_api_calls_made=${totalApiCalls.count} duration_ms=${duration_ms}`,
+      `[fetch-all-arrivals] Summary: destinations=${totalDestinations} airports=${totalAirportIds} successful=${successful} failed=${failed} qualified_total=${total_arrivals_across_all} api_calls=${totalApiCalls.count} ga_has_more=${fetchStats.gaHasMore} airline_has_more=${fetchStats.airlineHasMore} heating=${homepage.heating_up.length} cooling=${homepage.cooling_down.length} sleeper=${homepage.sleeper_pick?.id || 'none'} duration_ms=${duration_ms}`,
     );
 
     const responseBody = {
       ok: true,
-      total_destinations,
+      total_destinations: totalDestinations,
       successful,
       failed,
       total_arrivals_across_all,
@@ -277,23 +795,25 @@ export default async function handler(req, res) {
       fetched_at,
       duration_ms,
       destinations,
+      homepage,
       kv_saved: false,
       history_appended: false,
     };
 
     const okDestinationCount = destinations.filter((d) => d.ok).length;
-    const sanityOkDestinations = okDestinationCount >= 15;
+    const minimumOk = Math.max(1, Math.floor(totalDestinations * 0.7));
+    const sanityOkDestinations = okDestinationCount >= minimumOk;
     const sanityTotalArrivals = total_arrivals_across_all > 0;
 
     if (!sanityOkDestinations || !sanityTotalArrivals) {
       const parts = [];
       if (!sanityOkDestinations) {
         parts.push(
-          `only ${okDestinationCount} of 20 destinations have ok: true (need at least 15)`,
+          `only ${okDestinationCount} of ${totalDestinations} destinations have ok: true (need at least ${minimumOk})`,
         );
       }
       if (!sanityTotalArrivals) {
-        parts.push('total_arrivals_across_all is not greater than 0');
+        parts.push('total qualified private arrivals is not greater than 0');
       }
       console.warn('Sanity check failed, skipping save:', parts.join('; '));
     } else {
@@ -315,16 +835,33 @@ export default async function handler(req, res) {
         console.log(`Failed to save to KV: ${msg}`);
       }
 
-      if (total_arrivals_across_all > 0 && successful >= 15) {
+      if (total_arrivals_across_all > 0 && okDestinationCount >= minimumOk) {
         try {
           const historyKey = 'gotango:arrivals:history';
           const per_destination = destinations.map((d) => ({
             id: d.id,
+            date: savedAt.slice(0, 10),
+            saved_at: savedAt,
+            raw_ga_arrivals_24h: d.raw_ga_arrivals_24h,
+            weighted_private_signal_24h: d.weighted_private_signal_24h,
+            qualified_private_arrivals_24h: d.qualified_private_arrivals_24h,
+            private_arrivals_24h: d.private_arrivals_24h,
+            premium_private_arrivals_24h: d.premium_private_arrivals_24h,
+            light_ga_arrivals_24h: d.light_ga_arrivals_24h,
+            excluded_arrivals_24h: d.excluded_arrivals_24h,
+            airline_context_count: d.airline_context_count,
+            airline_has_more: d.airline_has_more,
+            commercial_backdrop_tier: d.commercial_backdrop_tier,
+            signal_score: d.signal_score,
+            status: d.status,
+            top_origins: d.top_origins,
+            top_aircraft: d.top_aircraft,
             arrivals_count: d.arrivals_count,
             general_aviation_count: d.general_aviation_count,
             commercial_count: d.commercial_count,
           }));
           const historyRecord = {
+            history_version: HISTORY_VERSION,
             saved_at: savedAt,
             total_arrivals: total_arrivals_across_all,
             successful_count: successful,
@@ -333,7 +870,7 @@ export default async function handler(req, res) {
           };
           const sizeBeforePush = await kv.llen(historyKey);
           console.log(
-            `Appending to history (current size before trim: ${sizeBeforePush + 1})...`,
+            `Appending ga_filtered_v2 history (size before trim: ${sizeBeforePush + 1})...`,
           );
           await kv.lpush(historyKey, historyRecord);
           await kv.ltrim(historyKey, 0, 29);
