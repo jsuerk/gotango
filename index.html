@@ -2176,14 +2176,14 @@
           <div class="stat-delta delta-up" id="stat-arrivals-delta">—</div>
         </div>
         <div class="stat-cell">
-          <div class="stat-label">Signal score</div>
-          <div class="stat-value" id="stat-private">—</div>
-          <div class="stat-delta delta-up" id="stat-private-delta">—</div>
+          <div class="stat-label">Heating today</div>
+          <div class="stat-value" id="stat-heating">—</div>
+          <div class="stat-delta delta-up" id="stat-heating-delta">—</div>
         </div>
         <div class="stat-cell">
-          <div class="stat-label">Heating</div>
-          <div class="stat-value" id="stat-surging">—</div>
-          <div class="stat-delta delta-down" id="stat-surging-delta">—</div>
+          <div class="stat-label">Cooling today</div>
+          <div class="stat-value" id="stat-cooling">—</div>
+          <div class="stat-delta delta-down" id="stat-cooling-delta">—</div>
         </div>
       </div>
     </section>
@@ -2531,6 +2531,34 @@
     return Number.isFinite(n) ? Math.round(n) : 0;
   }
 
+  function formatDisplayCopy(text) {
+    if (text == null || text === '') return text;
+    const s = String(text).trim();
+    if (s === 'Clean baseline building') return 'Baseline building';
+    return text;
+  }
+
+  function formatCommercialBackdropLabel(label) {
+    if (!label) return '';
+    const s = String(label).trim();
+    const map = {
+      'High-volume commercial airport': 'Commercial backdrop: high-volume',
+      'Commercial backdrop active': 'Commercial backdrop: active',
+      'Commercial backdrop light': 'Commercial backdrop: light',
+      'Commercial backdrop unknown': 'Commercial backdrop unknown',
+    };
+    return map[s] || s;
+  }
+
+  function stripTrailingStatusFromNote(note, statusLabel) {
+    if (!note || !statusLabel) return note || '';
+    const noteStr = String(note).trim();
+    const status = String(statusLabel).trim();
+    if (!status) return noteStr;
+    const escaped = status.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return noteStr.replace(new RegExp(`[\\s.,—–-]*${escaped}\\s*$`, 'i'), '').trim();
+  }
+
   function updateDestinationCounts(payload) {
     const n = getTotalDestinations(payload);
     if (n == null) return;
@@ -2548,45 +2576,53 @@
 
     updateDestinationCounts(payload);
 
+    const totals = payload.homepage && payload.homepage.totals;
+
     try {
       const arrivalsEl = document.getElementById('stat-arrivals');
-      const totals = payload.homepage && payload.homepage.totals;
-      const totalArrivals = totals
-        ? Number(totals.total_private_arrivals_24h)
-        : Number(payload.total_arrivals_across_all);
-      if (arrivalsEl && Number.isFinite(totalArrivals)) {
-        arrivalsEl.textContent = totalArrivals.toLocaleString();
+      let totalArrivals = null;
+      if (totals && Number.isFinite(Number(totals.total_private_arrivals_24h))) {
+        totalArrivals = Number(totals.total_private_arrivals_24h);
+      } else if (Number.isFinite(Number(payload.total_arrivals_across_all))) {
+        totalArrivals = Number(payload.total_arrivals_across_all);
+      }
+      if (arrivalsEl) {
+        arrivalsEl.textContent = totalArrivals != null
+          ? totalArrivals.toLocaleString()
+          : '—';
       }
     } catch (error) {
       console.warn('Error updating arrivals stat:', error);
     }
 
     try {
-      const privateEl = document.getElementById('stat-private');
-      const heating = payload.homepage && Array.isArray(payload.homepage.heating_up)
-        ? payload.homepage.heating_up
-        : destinations;
-      const scores = heating
-        .map(d => Number(d && d.signal_score))
-        .filter(n => Number.isFinite(n));
-      if (privateEl && scores.length > 0) {
-        const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-        privateEl.textContent = String(avg);
+      const heatingEl = document.getElementById('stat-heating');
+      let heatingVal = null;
+      if (totals && Number.isFinite(Number(totals.heating_count))) {
+        heatingVal = Number(totals.heating_count);
+      } else if (payload.homepage && Array.isArray(payload.homepage.heating_up)) {
+        heatingVal = payload.homepage.heating_up.length;
       }
-    } catch (error) {
-      console.warn('Error updating signal score stat:', error);
-    }
-
-    try {
-      const surgingEl = document.getElementById('stat-surging');
-      const heatingCount = payload.homepage && payload.homepage.totals
-        ? Number(payload.homepage.totals.heating_count)
-        : null;
-      if (surgingEl && heatingCount != null && Number.isFinite(heatingCount)) {
-        surgingEl.textContent = String(heatingCount);
+      if (heatingEl) {
+        heatingEl.textContent = heatingVal != null ? String(heatingVal) : '—';
       }
     } catch (error) {
       console.warn('Error updating heating stat:', error);
+    }
+
+    try {
+      const coolingEl = document.getElementById('stat-cooling');
+      let coolingVal = null;
+      if (totals && Number.isFinite(Number(totals.cooling_count))) {
+        coolingVal = Number(totals.cooling_count);
+      } else if (payload.homepage && Array.isArray(payload.homepage.cooling_down)) {
+        coolingVal = payload.homepage.cooling_down.length;
+      }
+      if (coolingEl) {
+        coolingEl.textContent = coolingVal != null ? String(coolingVal) : '—';
+      }
+    } catch (error) {
+      console.warn('Error updating cooling stat:', error);
     }
   }
 
@@ -2614,7 +2650,9 @@
         : '';
       if (codeEl) codeEl.textContent = [icao, coords].filter(Boolean).join(' · ');
       if (descEl && pick.editorial_note) {
-        descEl.innerHTML = `${pick.editorial_note} <em>${pick.status_label || 'Sleeper signal'}</em>`;
+        const statusLabel = pick.status_label || 'Sleeper signal';
+        const note = stripTrailingStatusFromNote(pick.editorial_note, statusLabel) || pick.editorial_note;
+        descEl.innerHTML = `${_escapeHtml(note)} <em>${_escapeHtml(statusLabel)}</em>`;
       }
     }
 
@@ -2658,12 +2696,12 @@
         const topOriginCodes = originCodes.length > 0 ? originCodes.join(', ') : '—';
         const insightOrigins = originCodes.length > 0 ? topOriginCodes : 'mixed origins';
 
-        let insightLine = dest.status_label || dest.algorithm_read || '';
+        let insightLine = formatDisplayCopy(dest.status_label || dest.algorithm_read || '');
         if (!insightLine) {
           insightLine = `Private signal from ${insightOrigins}`;
         }
         if (dest.commercial_backdrop_label) {
-          insightLine += ` · ${dest.commercial_backdrop_label}`;
+          insightLine += ` · ${formatCommercialBackdropLabel(dest.commercial_backdrop_label)}`;
         }
 
         const card = document.createElement('div');
@@ -2730,7 +2768,7 @@
 
         const trend = document.createElement('div');
         trend.className = 'dest-trend';
-        trend.textContent = dest.display_dod_change || dest.display_wow_change || '—';
+        trend.textContent = formatDisplayCopy(dest.display_dod_change || dest.display_wow_change || '—');
 
         arrivals.appendChild(arrivalsNum);
         arrivals.appendChild(arrivalsLabel);
@@ -2762,7 +2800,7 @@
         if (homepageCooling.length === 0) {
           const empty = document.createElement('div');
           empty.className = 'cooling-card';
-          empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No clear cooling signal today.<br>Clean private baseline building.</div>';
+          empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No clear cooling signal today.<br>Private baseline building.</div>';
           container.appendChild(empty);
           return;
         }
@@ -2772,7 +2810,7 @@
           const destName = String(dest.name || '');
           const destId = String(dest.id || '');
           const icaoCode = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
-          const whyLine = dest.status_label || dest.display_wow_change || dest.display_dod_change || 'Private signal softening';
+          const whyLine = formatDisplayCopy(dest.status_label || dest.display_wow_change || dest.display_dod_change || 'Private signal softening');
 
         const card = document.createElement('div');
         card.className = 'cooling-card';
@@ -2802,7 +2840,7 @@
 
         const pct = document.createElement('div');
         pct.className = 'cooling-pct';
-        pct.textContent = dest.display_wow_change || dest.display_dod_change || '—';
+        pct.textContent = formatDisplayCopy(dest.display_wow_change || dest.display_dod_change || '—');
 
         card.appendChild(leftCol);
         card.appendChild(pct);
@@ -2820,7 +2858,7 @@
       if (coolingPicks.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'cooling-card';
-        empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No clear cooling signal today.<br>Clean private baseline building.</div>';
+        empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No clear cooling signal today.<br>Private baseline building.</div>';
         container.appendChild(empty);
         return;
       }
@@ -3968,12 +4006,12 @@
     const arrivals = _integerArrivals24h(dest);
     const signalScore = _safeNum(dest.signal_score);
     const pvtStr = signalScore > 0 ? String(signalScore) : '—';
-    const pvtSub = dest.display_dod_change || dest.status_label || 'Private signal';
+    const pvtSub = formatDisplayCopy(dest.display_dod_change || dest.status_label || 'Private signal');
     const topAircraft = _topAircraftType(dest);
     const topAircraftStr = topAircraft || '—';
     const topAircraftSub = topAircraft ? 'Most common type' : 'No data';
     const commercialLabel = dest.commercial_backdrop_label
-      ? String(dest.commercial_backdrop_label).trim()
+      ? formatCommercialBackdropLabel(dest.commercial_backdrop_label)
       : '';
 
     return `
@@ -3986,7 +4024,7 @@
           <div class="d-stat">
             <div class="d-stat-label">Private 24h</div>
             <div class="d-stat-value">${arrivals}</div>
-            <div class="d-stat-sub">${arrivals === 1 ? 'qualified arrival' : 'qualified arrivals'}</div>
+            <div class="d-stat-sub">${arrivals === 1 ? 'private arrival' : 'private arrivals'}</div>
           </div>
           <div class="d-stat">
             <div class="d-stat-label">Signal score</div>
