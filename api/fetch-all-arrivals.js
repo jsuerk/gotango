@@ -277,26 +277,60 @@ function isV2HistoryRecord(rec) {
   return rec?.history_version === HISTORY_VERSION;
 }
 
-function findHistoryForDestination(historyList, destId) {
+function calendarDateUtc(iso) {
+  if (!iso) return null;
+  const s = String(iso);
+  return s.length >= 10 ? s.slice(0, 10) : null;
+}
+
+function shiftCalendarDateUtc(dateStr, deltaDays) {
+  const d = new Date(`${dateStr}T12:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + deltaDays);
+  return d.toISOString().slice(0, 10);
+}
+
+function calendarDaysBefore(dateStr, todayStr) {
+  const a = new Date(`${dateStr}T12:00:00.000Z`).getTime();
+  const b = new Date(`${todayStr}T12:00:00.000Z`).getTime();
+  return Math.round((b - a) / (24 * 60 * 60 * 1000));
+}
+
+function findHistoryForDestination(historyList, destId, now = new Date()) {
   const v2 = historyList.filter(isV2HistoryRecord);
   const byDest = (rec) => {
     const row = rec?.per_destination?.find((p) => p.id === destId);
     return row || null;
   };
 
-  const priorDay = v2[0] ? byDest(v2[0]) : null;
+  const today = calendarDateUtc(now.toISOString());
+  const yesterday = shiftCalendarDateUtc(today, -1);
+  const weekTarget = shiftCalendarDateUtc(today, -7);
+
+  let priorDay = null;
+  for (const rec of v2) {
+    const recDate = calendarDateUtc(rec?.saved_at);
+    if (recDate !== yesterday) continue;
+    priorDay = byDest(rec);
+    if (priorDay) break;
+  }
 
   let weekAgo = null;
-  if (v2.length > 0 && v2[0]?.saved_at) {
-    const target = Date.parse(v2[0].saved_at) - 7 * 24 * 60 * 60 * 1000;
-    for (let i = 1; i < v2.length; i++) {
-      const t = Date.parse(v2[i]?.saved_at || '');
-      if (!Number.isNaN(t) && Math.abs(t - target) <= 36 * 60 * 60 * 1000) {
-        weekAgo = byDest(v2[i]);
-        break;
+  for (const rec of v2) {
+    const recDate = calendarDateUtc(rec?.saved_at);
+    if (recDate !== weekTarget) continue;
+    weekAgo = byDest(rec);
+    if (weekAgo) break;
+  }
+  if (!weekAgo) {
+    for (const rec of v2) {
+      const recDate = calendarDateUtc(rec?.saved_at);
+      if (!recDate) continue;
+      const daysBack = calendarDaysBefore(recDate, today);
+      if (daysBack >= 6 && daysBack <= 8) {
+        weekAgo = byDest(rec);
+        if (weekAgo) break;
       }
     }
-    if (!weekAgo && v2.length >= 7) weekAgo = byDest(v2[6]);
   }
 
   return { priorDay, weekAgo, hasV2: v2.length > 0 };
@@ -308,8 +342,8 @@ function computeMovementMetrics(dest, histCtx) {
 
   let dod_change_pct = null;
   let wow_change_pct = null;
-  let display_dod_change = 'Clean baseline building';
-  let display_wow_change = 'Clean baseline building';
+  let display_dod_change = 'Baseline building';
+  let display_wow_change = 'Baseline building';
 
   if (priorDay) {
     const base = weightedPrivateSignal24h(priorDay);
@@ -321,11 +355,6 @@ function computeMovementMetrics(dest, histCtx) {
     const base = weightedPrivateSignal24h(weekAgo);
     wow_change_pct = pctChange(current, base);
     display_wow_change = formatDisplayChange(current, base, wow_change_pct);
-  }
-
-  if (!priorDay && !weekAgo && !hasV2) {
-    display_dod_change = 'Clean baseline building';
-    display_wow_change = 'Clean baseline building';
   }
 
   return {
@@ -596,18 +625,11 @@ function enrichDestinationsWithHistory(destinations, historyList) {
 
 function buildHomepage(destinations) {
   const okDests = destinations.filter((d) => d.ok);
-  const heatingCandidates = okDests
-    .filter((d) => ['heating', 'warming', 'sleeper', 'steady', 'data_building'].includes(d.status))
-    .sort((a, b) => _safeNum(b.signal_score) - _safeNum(a.signal_score));
 
-  let heating_up = heatingCandidates
+  const heating_up = okDests
     .filter((d) => ['heating', 'warming', 'sleeper'].includes(d.status))
+    .sort((a, b) => _safeNum(b.signal_score) - _safeNum(a.signal_score))
     .slice(0, 6);
-
-  if (heating_up.length < 6) {
-    const fill = heatingCandidates.filter((d) => !heating_up.find((h) => h.id === d.id));
-    heating_up = [...heating_up, ...fill].slice(0, 6);
-  }
 
   const cooling_down = okDests
     .filter((d) => d.status === 'cooling' || d.status === 'softening')

@@ -2678,13 +2678,24 @@
       const payload = data.data;
       const homepageHeating = payload.homepage && Array.isArray(payload.homepage.heating_up)
         ? payload.homepage.heating_up
-        : null;
-      const top6 = homepageHeating || payload.destinations
-        .filter(dest => _integerArrivals24h(dest) > 0)
-        .sort((a, b) => Number(b.signal_score || 0) - Number(a.signal_score || 0))
-        .slice(0, 6);
+        : undefined;
 
       container.innerHTML = '';
+
+      if (homepageHeating !== undefined && homepageHeating.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'dest-card';
+        empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No clear heating signal today.<br>Private baseline building.</div>';
+        container.appendChild(empty);
+        return;
+      }
+
+      const top6 = homepageHeating !== undefined
+        ? homepageHeating
+        : payload.destinations
+          .filter(dest => _integerArrivals24h(dest) > 0)
+          .sort((a, b) => Number(b.signal_score || 0) - Number(a.signal_score || 0))
+          .slice(0, 6);
 
       top6.forEach((dest, i) => {
         const arrivalsCount = _integerArrivals24h(dest);
