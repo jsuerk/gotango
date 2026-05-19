@@ -667,6 +667,16 @@ function buildHomepage(destinations) {
   );
   const total_weighted_private_signal_24h = total_qualified_private_arrivals_24h;
 
+  const heating_count = destinations.filter(
+    (d) => d.ok && (d.status === 'heating' || d.status === 'warming'),
+  ).length;
+  const cooling_count = destinations.filter(
+    (d) => d.ok && (d.status === 'cooling' || d.status === 'softening'),
+  ).length;
+  const moving_count = destinations.filter(
+    (d) => d.ok && ['heating', 'warming', 'sleeper'].includes(d.status),
+  ).length;
+
   return {
     heating_up,
     cooling_down,
@@ -677,8 +687,9 @@ function buildHomepage(destinations) {
       total_private_arrivals_24h,
       total_qualified_private_arrivals_24h,
       total_weighted_private_signal_24h,
-      heating_count: heating_up.length,
-      cooling_count: cooling_down.length,
+      heating_count,
+      cooling_count,
+      moving_count,
       data_building_count: destinations.filter((d) => d.status === 'data_building').length,
       last_updated_at: new Date().toISOString(),
     },
