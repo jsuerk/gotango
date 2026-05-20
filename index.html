@@ -2124,6 +2124,46 @@
   font-size: 12px;
 }
 
+/* Expandable modal list sections */
+.d-section--expandable[data-expanded="false"] [data-expand-hidden] {
+  display: none;
+}
+
+.d-section-expand-wrap {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.d-section-expand-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-block;
+  margin: 0;
+  padding: 6px 14px;
+  font-family: 'Geist Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  color: var(--amber, #E8A317);
+  background: rgba(232, 163, 23, 0.04);
+  border: 1px solid rgba(232, 163, 23, 0.32);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.d-section-expand-btn:hover {
+  background: rgba(232, 163, 23, 0.1);
+  border-color: rgba(232, 163, 23, 0.5);
+}
+
+.d-section-expand-btn:focus-visible {
+  outline: 2px solid var(--amber, #E8A317);
+  outline-offset: 2px;
+}
+
 /* === Peer destinations === */
 .d-peers {
   display: flex;
@@ -4385,6 +4425,45 @@
     });
   }
 
+  const MODAL_EXPAND_COLLAPSED = 3;
+  const MODAL_EXPAND_MAX = 8;
+
+  function _modalExpandCollapsedLabel(total, defaultLabel) {
+    const expandedCount = Math.min(MODAL_EXPAND_MAX, total);
+    const more = expandedCount - MODAL_EXPAND_COLLAPSED;
+    if (more === 5) return 'Show 5 more';
+    return defaultLabel;
+  }
+
+  function attachModalExpandHandlers() {
+    const modal = document.getElementById('destination-modal');
+    if (!modal) return;
+
+    modal.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-expand-toggle]');
+      if (!btn) return;
+
+      const section = btn.closest('[data-expand-section]');
+      if (!section) return;
+
+      const isExpanded = section.getAttribute('data-expanded') === 'true';
+      const nextExpanded = !isExpanded;
+
+      section.setAttribute('data-expanded', nextExpanded ? 'true' : 'false');
+      btn.setAttribute('aria-expanded', nextExpanded ? 'true' : 'false');
+      btn.textContent = nextExpanded
+        ? btn.getAttribute('data-label-expanded')
+        : btn.getAttribute('data-label-collapsed');
+
+      const meta = section.querySelector('[data-expand-meta]');
+      if (meta) {
+        meta.textContent = nextExpanded
+          ? meta.getAttribute('data-meta-expanded')
+          : meta.getAttribute('data-meta-collapsed');
+      }
+    });
+  }
+
   function attachDestinationCardClickHandlers() {
     // Heating Up cards — each .dest-card needs to know its destination id
     // Cooling Down cards — each .cooling-card needs to know its destination id
@@ -4701,6 +4780,22 @@
   `;
   }
 
+  function renderModalAircraftRow(a, hiddenAttr) {
+    const type = a.type ? String(a.type).trim() : 'Unknown';
+    const isGa = a.is_ga === true;
+    const classLabel = type === 'UNKNOWN' ? 'Type not reported' : (isGa ? 'Private aviation' : 'Commercial');
+    const classClass = type === 'UNKNOWN' ? '' : (isGa ? 'ga' : 'com');
+    return `
+      <div class="d-craft"${hiddenAttr}>
+        <div>
+          <div class="d-craft-name">${_escapeHtml(type)}</div>
+          <div class="d-craft-class ${classClass}">${_escapeHtml(classLabel)}</div>
+        </div>
+        <div class="d-craft-count">${_safeNum(a.count)}</div>
+      </div>
+    `;
+  }
+
   function renderModalAircraft(dest) {
     const aircraft = Array.isArray(dest.top_aircraft) ? dest.top_aircraft : [];
 
@@ -4716,31 +4811,72 @@
     `;
     }
 
-    const rows = aircraft.map(a => {
-      const type = a.type ? String(a.type).trim() : 'Unknown';
-      const isGa = a.is_ga === true;
-      const classLabel = type === 'UNKNOWN' ? 'Type not reported' : (isGa ? 'Private aviation' : 'Commercial');
-      const classClass = type === 'UNKNOWN' ? '' : (isGa ? 'ga' : 'com');
-      return `
-      <div class="d-craft">
-        <div>
-          <div class="d-craft-name">${_escapeHtml(type)}</div>
-          <div class="d-craft-class ${classClass}">${_escapeHtml(classLabel)}</div>
-        </div>
-        <div class="d-craft-count">${_safeNum(a.count)}</div>
-      </div>
-    `;
+    const showToggle = aircraft.length > MODAL_EXPAND_COLLAPSED;
+    const collapsedLabel = _modalExpandCollapsedLabel(aircraft.length, 'Show full mix');
+    const rows = aircraft.slice(0, MODAL_EXPAND_MAX).map((a, i) => {
+      const hiddenAttr = showToggle && i >= MODAL_EXPAND_COLLAPSED ? ' data-expand-hidden' : '';
+      return renderModalAircraftRow(a, hiddenAttr);
     }).join('');
 
+    const metaCollapsed = 'Top 3 · expandable';
+    const metaExpanded = 'Top 8';
+    const sectionMeta = showToggle ? metaCollapsed : `Top ${aircraft.length}`;
+
+    const toggleHtml = showToggle ? `
+      <div class="d-section-expand-wrap">
+        <button
+          type="button"
+          class="d-section-expand-btn"
+          data-expand-toggle
+          aria-expanded="false"
+          data-label-collapsed="${_escapeHtml(collapsedLabel)}"
+          data-label-expanded="Show less"
+        >${_escapeHtml(collapsedLabel)}</button>
+      </div>
+    ` : '';
+
     return `
-    <div class="d-section">
+    <div class="d-section d-section--expandable" data-expand-section="aircraft" data-expanded="false">
       <div class="d-section-head">
           <span class="d-section-label">Private aircraft mix</span>
-          <span class="d-section-meta">Aircraft mix · Last 24h</span>
+          <span
+            class="d-section-meta"
+            data-expand-meta
+            data-meta-collapsed="${_escapeHtml(metaCollapsed)}"
+            data-meta-expanded="${_escapeHtml(metaExpanded)}"
+          >${sectionMeta}</span>
       </div>
       <div class="d-aircraft">${rows}</div>
+      ${toggleHtml}
     </div>
   `;
+  }
+
+  function renderModalRecentFlightRow(f, destIcao, hiddenAttr) {
+    const time = _formatFlightTime(f.arrival_time);
+    const callsign = f.callsign ? String(f.callsign).trim() : '——';
+    const aircraftRaw = f.aircraft_type ? String(f.aircraft_type).trim() : '';
+    const aircraftStr = aircraftRaw ? ` · ${aircraftRaw}` : '';
+    const originIcao = f.origin_icao ? String(f.origin_icao).trim() : null;
+    const originName = f.origin_name ? String(f.origin_name).trim() : null;
+    const originDisplay = originIcao || originName || '——';
+    const route = `${originDisplay} → ${destIcao}`;
+    const tagLabel = f.is_general_aviation ? 'PVT' : 'COM';
+    const tagClass = f.is_general_aviation ? 'private' : 'commercial';
+
+    return `
+      <div class="d-feed-item"${hiddenAttr}>
+        <div class="d-feed-time">${_escapeHtml(time)}</div>
+        <div class="d-feed-main">
+          <div>
+            <span class="d-feed-callsign">${_escapeHtml(callsign)}</span>
+            <span class="d-feed-aircraft">${_escapeHtml(aircraftStr)}</span>
+          </div>
+          <div class="d-feed-route">${_escapeHtml(route)}</div>
+        </div>
+        <div class="d-feed-tag ${tagClass}">${tagLabel}</div>
+      </div>
+    `;
   }
 
   function renderModalRecentFlights(dest) {
@@ -4759,40 +4895,43 @@
     `;
     }
 
-    const rows = flights.map(f => {
-      const time = _formatFlightTime(f.arrival_time);
-      const callsign = f.callsign ? String(f.callsign).trim() : '——';
-      const aircraftRaw = f.aircraft_type ? String(f.aircraft_type).trim() : '';
-      const aircraftStr = aircraftRaw ? ` · ${aircraftRaw}` : '';
-      const originIcao = f.origin_icao ? String(f.origin_icao).trim() : null;
-      const originName = f.origin_name ? String(f.origin_name).trim() : null;
-      const originDisplay = originIcao || originName || '——';
-      const route = `${originDisplay} → ${destIcao}`;
-      const tagLabel = f.is_general_aviation ? 'PVT' : 'COM';
-      const tagClass = f.is_general_aviation ? 'private' : 'commercial';
-
-      return `
-      <div class="d-feed-item">
-        <div class="d-feed-time">${_escapeHtml(time)}</div>
-        <div class="d-feed-main">
-          <div>
-            <span class="d-feed-callsign">${_escapeHtml(callsign)}</span>
-            <span class="d-feed-aircraft">${_escapeHtml(aircraftStr)}</span>
-          </div>
-          <div class="d-feed-route">${_escapeHtml(route)}</div>
-        </div>
-        <div class="d-feed-tag ${tagClass}">${tagLabel}</div>
-      </div>
-    `;
+    const showToggle = flights.length > MODAL_EXPAND_COLLAPSED;
+    const collapsedLabel = _modalExpandCollapsedLabel(flights.length, 'Show latest arrivals');
+    const rows = flights.slice(0, MODAL_EXPAND_MAX).map((f, i) => {
+      const hiddenAttr = showToggle && i >= MODAL_EXPAND_COLLAPSED ? ' data-expand-hidden' : '';
+      return renderModalRecentFlightRow(f, destIcao, hiddenAttr);
     }).join('');
 
+    const metaCollapsed = 'Latest 3 · live';
+    const metaExpanded = 'Latest 8 · live';
+    const sectionMeta = showToggle ? metaCollapsed : `Latest ${flights.length} · live`;
+
+    const toggleHtml = showToggle ? `
+      <div class="d-section-expand-wrap">
+        <button
+          type="button"
+          class="d-section-expand-btn"
+          data-expand-toggle
+          aria-expanded="false"
+          data-label-collapsed="${_escapeHtml(collapsedLabel)}"
+          data-label-expanded="Show less"
+        >${_escapeHtml(collapsedLabel)}</button>
+      </div>
+    ` : '';
+
     return `
-    <div class="d-section">
+    <div class="d-section d-section--expandable" data-expand-section="recent-flights" data-expanded="false">
       <div class="d-section-head">
         <span class="d-section-label">Recent private arrivals</span>
-        <span class="d-section-meta">Last ${flights.length} · Live</span>
+        <span
+          class="d-section-meta"
+          data-expand-meta
+          data-meta-collapsed="${_escapeHtml(metaCollapsed)}"
+          data-meta-expanded="${_escapeHtml(metaExpanded)}"
+        >${sectionMeta}</span>
       </div>
       <div class="d-feed">${rows}</div>
+      ${toggleHtml}
     </div>
   `;
   }
@@ -4872,6 +5011,7 @@
     renderMoversIndex(arrivalsData);
     renderWorldMap(arrivalsData);
     attachModalCloseHandlers();
+    attachModalExpandHandlers();
     attachDestinationCardClickHandlers();
     maybeOpenModalFromUrl();
 
