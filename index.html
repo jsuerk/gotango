@@ -618,6 +618,23 @@
   }
   .brief-meta span:nth-child(even) { color: var(--border-light); }
 
+  .brief-honeypot {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .brief-status {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--amber);
+    line-height: 1.4;
+    min-height: 0;
+  }
+  .brief-status:empty { display: none; }
+
   /* ===== FOOTER ===== */
   .footnote {
     text-align: center;
@@ -2288,10 +2305,12 @@
       <div class="brief-label">The Tuesday Brief</div>
       <h3 class="brief-title">Launching <em>May 2026.</em></h3>
       <p class="brief-desc">A 90-second weekly read on where the world's most mobile travelers are actually going — and why. No ads, no press release recycling, no affiliate links. Be the first to know when we ship.</p>
-      <div class="brief-form">
-        <input type="email" class="brief-input" placeholder="your@email.com" id="brief-email" autocomplete="email">
-        <button class="brief-btn" id="brief-subscribe-btn" type="button">Join the waitlist</button>
-      </div>
+      <form class="brief-form" id="brief-form" novalidate>
+        <input type="email" class="brief-input" placeholder="your@email.com" id="brief-email" name="email" autocomplete="email" required>
+        <input type="text" name="website" id="brief-website" class="brief-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <button class="brief-btn" id="brief-subscribe-btn" type="submit">Join the waitlist</button>
+      </form>
+      <div id="brief-status" class="brief-status" aria-live="polite" role="status"></div>
       <div class="brief-meta" id="brief-meta">
         <span>Free forever</span>
         <span>·</span>
@@ -4045,52 +4064,91 @@
     closeDetail();
   }
 
-  async function handleBriefSubscribe() {
+  function trackNewsletterEvent(name) {
+    if (typeof window.va === 'function') {
+      try {
+        window.va('event', { name });
+      } catch (_) { /* analytics optional */ }
+    }
+  }
+
+  function setBriefStatus(message) {
+    const statusEl = document.getElementById('brief-status');
+    if (statusEl) statusEl.textContent = message || '';
+  }
+
+  async function handleBriefSubscribe(e) {
+    if (e && e.preventDefault) e.preventDefault();
+
     const emailEl = document.getElementById('brief-email');
     const btn = document.getElementById('brief-subscribe-btn');
+    const honeypotEl = document.getElementById('brief-website');
     const metaEl = document.getElementById('brief-meta');
 
     if (!emailEl || !btn) return;
 
     const email = (emailEl.value || '').trim();
+    const website = honeypotEl ? (honeypotEl.value || '').trim() : '';
 
-    if (!email || email.length < 5 || !email.includes('@') || !email.includes('.')) {
-      showToastMessage('Please enter a valid email');
+    if (!email || email.length < 5 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setBriefStatus('Enter a valid email.');
+      trackNewsletterEvent('newsletter_signup_error');
       return;
     }
-    if (email.length > 200) {
-      showToastMessage('Email too long');
+    if (email.length > 254) {
+      setBriefStatus('Enter a valid email.');
+      trackNewsletterEvent('newsletter_signup_error');
       return;
     }
 
     const originalText = btn.textContent;
     btn.textContent = 'Joining...';
     btn.disabled = true;
+    setBriefStatus('');
 
     try {
-      const res = await fetch('/api/subscribe', {
+      const res = await fetch('/api/newsletter-signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({
+          email,
+          source: 'homepage_brief',
+          website,
+        }),
       });
       const result = await res.json().catch(() => ({}));
 
       if (res.ok && result.ok) {
-        emailEl.value = '';
-        btn.textContent = '✓ You\'re on the list';
-        btn.disabled = true;
-        if (metaEl) {
-          metaEl.innerHTML = '<span style="color: var(--amber);">First brief lands May 2026.</span>';
+        const message = result.message || (result.duplicate
+          ? 'You\u2019re already on the list.'
+          : 'You\u2019re on the list.');
+        setBriefStatus(message);
+        if (result.duplicate) {
+          trackNewsletterEvent('newsletter_signup_duplicate');
+        } else {
+          emailEl.value = '';
+          trackNewsletterEvent('newsletter_signup_success');
+          if (metaEl) {
+            metaEl.innerHTML = '<span style="color: var(--amber);">First brief lands May 2026.</span>';
+          }
         }
-      } else {
-        const errMsg = (result && result.error) ? result.error : 'Could not subscribe. Try again?';
-        showToastMessage(errMsg);
         btn.textContent = originalText;
         btn.disabled = false;
+        return;
       }
+
+      if (res.status === 400) {
+        setBriefStatus('Enter a valid email.');
+      } else {
+        setBriefStatus('Something went wrong. Try again.');
+      }
+      trackNewsletterEvent('newsletter_signup_error');
+      btn.textContent = originalText;
+      btn.disabled = false;
     } catch (err) {
-      console.error('[subscribe] error:', err);
-      showToastMessage('Network error. Try again?');
+      console.error('[newsletter-signup] error:', err);
+      setBriefStatus('Something went wrong. Try again.');
+      trackNewsletterEvent('newsletter_signup_error');
       btn.textContent = originalText;
       btn.disabled = false;
     }
@@ -4817,18 +4875,9 @@
     attachDestinationCardClickHandlers();
     maybeOpenModalFromUrl();
 
-    const briefBtn = document.getElementById('brief-subscribe-btn');
-    if (briefBtn) {
-      briefBtn.addEventListener('click', handleBriefSubscribe);
-    }
-    const briefEmailInput = document.getElementById('brief-email');
-    if (briefEmailInput) {
-      briefEmailInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          handleBriefSubscribe();
-        }
-      });
+    const briefForm = document.getElementById('brief-form');
+    if (briefForm) {
+      briefForm.addEventListener('submit', handleBriefSubscribe);
     }
   });
 
