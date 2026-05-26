@@ -1566,9 +1566,9 @@
   }
 
   .dest-modal__close:focus-visible {
-    outline: 2px solid var(--amber-bright);
-    outline-offset: 2px;
+    outline: none;
     border-color: var(--amber-bright);
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.5), 0 0 20px rgba(244, 181, 42, 0.4);
   }
 
   .dest-modal__body {
@@ -1771,6 +1771,10 @@
     flex-wrap: wrap;
     gap: 6px;
     align-items: baseline;
+  }
+
+  .d-glance-meta-label::after {
+    content: ':';
   }
 
   .d-glance-meta-label {
@@ -5180,10 +5184,11 @@
     `;
     }
 
+    const displayed = valid.slice(0, 5);
     const total = valid.reduce((s, o) => s + _safeNum(o.count), 0);
     const max = Math.max(...valid.map(o => _safeNum(o.count)), 1);
 
-    const rows = valid.map(o => {
+    const rows = displayed.map(o => {
       const count = _safeNum(o.count);
       const pct = total > 0 ? Math.round((count / total) * 100) : 0;
       const widthPct = (count / max) * 100;
@@ -5209,7 +5214,7 @@
     <div class="d-section">
       <div class="d-section-head">
         <span class="d-section-label">Where they're coming from</span>
-        <span class="d-section-meta">Last 24h · ${valid.length} ${valid.length === 1 ? 'origin' : 'origins'}</span>
+        <span class="d-section-meta">Last 24h · ${displayed.length} ${displayed.length === 1 ? 'origin' : 'origins'}</span>
       </div>
       <div class="d-origins">${rows}</div>
     </div>
