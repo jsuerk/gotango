@@ -1881,6 +1881,78 @@
     letter-spacing: normal;
   }
 
+  /* GoTango Index · 7d chart */
+  .d-index-status {
+    font-family: 'Geist Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim, #A8A293);
+    text-align: center;
+    padding: 28px 16px;
+    border: 1px dashed var(--border-light, #313945);
+    border-radius: 8px;
+    background: var(--surface, #161B23);
+  }
+
+  .d-index-sparkline {
+    width: 100%;
+    height: 140px;
+    display: block;
+  }
+
+  .d-index-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  @media (max-width: 520px) {
+    .d-index-metrics {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .d-index-metric {
+      padding: 10px 8px;
+    }
+
+    .d-index-metric-value {
+      font-size: 18px;
+    }
+  }
+
+  .d-index-metric {
+    background: var(--surface, #161B23);
+    border: 1px solid var(--border-light, #313945);
+    border-radius: 6px;
+    padding: 12px 14px;
+    min-width: 0;
+  }
+
+  .d-index-metric-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint, #6B6557);
+    margin-bottom: 6px;
+  }
+
+  .d-index-metric-value {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    color: var(--amber, #E8A317);
+    line-height: 1.1;
+  }
+
+  .d-index-interpret {
+    margin-top: 12px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--text-dim, #A8A293);
+  }
+
   /* Pulse summary (history-backed) */
   .d-pulse-metrics {
     display: grid;
@@ -4578,29 +4650,229 @@
       if (requestId !== _modalHistoryRequestId || _modalCurrentDestId !== destinationId) return;
       if (!response.ok) {
         console.warn('[modal] History fetch failed:', response.status);
+        applyModalHistoryError();
         return;
       }
       const payload = await response.json();
       if (requestId !== _modalHistoryRequestId || _modalCurrentDestId !== destinationId) return;
-      if (!payload || !payload.ok || !Array.isArray(payload.points)) return;
+      if (!payload || !payload.ok || !Array.isArray(payload.points)) {
+        applyModalHistoryError();
+        return;
+      }
       applyModalHistorySections(dest, payload.points);
     } catch (err) {
       console.warn('[modal] History fetch error:', err);
+      if (requestId !== _modalHistoryRequestId || _modalCurrentDestId !== destinationId) return;
+      applyModalHistoryError();
+    }
+  }
+
+  function applyModalHistoryError() {
+    const indexEl = document.querySelector('[data-modal-section="index-7d"]');
+    if (indexEl) {
+      indexEl.innerHTML = renderModalIndexUnavailable();
     }
   }
 
   function applyModalHistorySections(dest, points) {
+    const indexEl = document.querySelector('[data-modal-section="index-7d"]');
     const trajectoryEl = document.querySelector('[data-modal-section="trajectory"]');
     const pulseEl = document.querySelector('[data-modal-section="pulse"]');
-    if (!trajectoryEl && !pulseEl) return;
+    if (!indexEl && !trajectoryEl && !pulseEl) return;
 
     const n = points.length;
+    if (indexEl) {
+      indexEl.innerHTML = renderModalIndexSection(points, n);
+    }
     if (trajectoryEl) {
       trajectoryEl.innerHTML = renderModalTrajectorySection(points, n);
     }
     if (pulseEl) {
       pulseEl.innerHTML = renderModalPulseSection(dest, points, n);
     }
+  }
+
+  function _utcTodayIso() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function _indexScorePoints(points) {
+    if (!Array.isArray(points)) return [];
+    return points.filter((p) => p && p.date != null && Number.isFinite(Number(p.signal_score)));
+  }
+
+  function _indexInterpretiveLine(windowPts) {
+    if (!windowPts || windowPts.length < 2) return 'Index trend building.';
+    const scores = windowPts.map((p) => Math.round(_safeNum(p.signal_score)));
+    const latest = scores[scores.length - 1];
+    const previous = scores[scores.length - 2];
+    const diff = latest - previous;
+    if (diff >= 3) return 'Index is strengthening over the recent window.';
+    if (diff <= -3) {
+      if (latest >= 70) return 'Index cooled from its recent high but remains elevated.';
+      return 'Index cooled over the recent window.';
+    }
+    return 'Index is holding steady over the recent window.';
+  }
+
+  function buildIndexScoreChart(scores, dates, { gradId = 'areaGradIndex' } = {}) {
+    if (!scores || scores.length < 2) return '';
+    const w = 440;
+    const h = 140;
+    const padLeft = 42;
+    const padRight = 14;
+    const padTop = 22;
+    const padBottom = 28;
+    const chartW = w - padLeft - padRight;
+    const chartH = h - padTop - padBottom;
+    const scoreMin = 0;
+    const scoreMax = 100;
+    const scoreToY = (v) => {
+      const clamped = Math.max(scoreMin, Math.min(scoreMax, v));
+      return padTop + chartH * (1 - (clamped - scoreMin) / (scoreMax - scoreMin));
+    };
+    const xStep = chartW / (scores.length - 1);
+    const pts = scores.map((v, i) => {
+      const x = padLeft + i * xStep;
+      const y = scoreToY(v);
+      return { x, y, v, date: dates && dates[i] ? dates[i] : '' };
+    });
+    const linePath = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+    const areaPath =
+      linePath +
+      ` L${pts[pts.length - 1].x.toFixed(1)},${(padTop + chartH).toFixed(1)} L${pts[0].x.toFixed(1)},${(padTop + chartH).toFixed(1)} Z`;
+    const lastPt = pts[pts.length - 1];
+    const lastScore = Math.round(lastPt.v);
+    const lastDateIso = dates && dates[dates.length - 1] ? dates[dates.length - 1] : '';
+    const latestPrefix = lastDateIso === _utcTodayIso() ? 'Today' : 'Latest';
+    const labelY = Math.max(padTop + 8, lastPt.y - 12);
+    const firstDate = dates && dates[0] ? _formatChartAxisDate(dates[0]) : '';
+    const midIdx = Math.floor((dates ? dates.length : scores.length - 1) / 2);
+    const midDate = dates && dates[midIdx] ? _formatChartAxisDate(dates[midIdx]) : '';
+    const lastDate = dates && dates[dates.length - 1] ? _formatChartAxisDate(dates[dates.length - 1]) : '';
+    const yBands = [25, 50, 70, 85];
+    const yLabels = [
+      { score: 100, label: '100' },
+      { score: 50, label: '50' },
+      { score: 0, label: '0' },
+    ];
+    const bandLines = yBands.map((band) => {
+      const y = scoreToY(band).toFixed(1);
+      return `<line x1="${padLeft}" y1="${y}" x2="${(padLeft + chartW).toFixed(1)}" y2="${y}" stroke="#252C37" stroke-dasharray="2 4" opacity="0.55"/>`;
+    }).join('');
+    const yAxisLabels = yLabels.map(({ score, label }) => {
+      const y = scoreToY(score).toFixed(1);
+      return `<text style="font-family: 'Geist Mono', monospace; font-size: 9px; fill: #A8A293;" x="${padLeft - 4}" y="${y}" text-anchor="end" dominant-baseline="middle">${label}</text>`;
+    }).join('');
+    const pointMarkers = pts.map((p, i) => {
+      const isLast = i === pts.length - 1;
+      const r = isLast ? 4.5 : 2.5;
+      const fill = isLast ? '#E8A317' : '#F5F1E8';
+      const stroke = isLast ? '#F5F1E8' : '#E8A317';
+      const strokeWidth = isLast ? 1.5 : 1;
+      const title = p.date
+        ? `<title>${_escapeHtml(_formatChartAxisDate(p.date))} · ${Math.round(p.v)}</title>`
+        : `<title>${Math.round(p.v)}</title>`;
+      const glow = isLast
+        ? `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="9" fill="#E8A317" opacity="0.18"/>`
+        : '';
+      return `${glow}<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}">${title}</circle>`;
+    }).join('');
+    const mono = "font-family: 'Geist Mono', monospace";
+    return `
+      <svg class="d-index-sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="GoTango Index seven-day signal score chart">
+        <defs>
+          <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#E8A317" stop-opacity="0.28"/>
+            <stop offset="100%" stop-color="#E8A317" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        ${bandLines}
+        <line x1="${padLeft}" y1="${scoreToY(100).toFixed(1)}" x2="${(padLeft + chartW).toFixed(1)}" y2="${scoreToY(100).toFixed(1)}" stroke="#313945"/>
+        <line x1="${padLeft}" y1="${scoreToY(0).toFixed(1)}" x2="${(padLeft + chartW).toFixed(1)}" y2="${scoreToY(0).toFixed(1)}" stroke="#313945"/>
+        ${yAxisLabels}
+        <path d="${areaPath}" fill="url(#${gradId})"/>
+        <path d="${linePath}" fill="none" stroke="#E8A317" stroke-width="1.8" stroke-linejoin="round"/>
+        ${pointMarkers}
+        <text style="${mono}; font-size: 9px; fill: #E8A317; font-weight: 500;" x="${Math.min(lastPt.x, w - padRight - 4).toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="end">${latestPrefix}: ${lastScore}</text>
+        <text style="${mono}; font-size: 9px; fill: #6B6557;" x="${pts[0].x.toFixed(1)}" y="${(h - 8).toFixed(1)}" text-anchor="start">${firstDate}</text>
+        <text style="${mono}; font-size: 9px; fill: #6B6557;" x="${pts[midIdx].x.toFixed(1)}" y="${(h - 8).toFixed(1)}" text-anchor="middle">${midDate}</text>
+        <text style="${mono}; font-size: 9px; fill: #6B6557;" x="${lastPt.x.toFixed(1)}" y="${(h - 8).toFixed(1)}" text-anchor="end">${lastDate}</text>
+      </svg>
+    `;
+  }
+
+  function renderModalIndexSection(points, count) {
+    const scorePts = _indexScorePoints(points);
+    const n = scorePts.length;
+
+    if (n < 2) {
+      return `
+        <div class="d-section-head">
+          <span class="d-section-label">GoTango Index · 7d</span>
+          <span class="d-section-meta">Daily Signal Score</span>
+        </div>
+        <div class="d-trajectory-placeholder">
+          <div class="d-placeholder-msg">
+            <div class="d-placeholder-icon">GT</div>
+            <div class="d-placeholder-title">Index trend building</div>
+            <div class="d-placeholder-text">More daily score history needed.${n > 0 ? ` ${n} ${n === 1 ? 'day' : 'days'} collected.` : ''}</div>
+          </div>
+        </div>
+        <p class="d-index-interpret">Index trend building.</p>
+      `;
+    }
+
+    const windowPts = n >= 7 ? scorePts.slice(-7) : scorePts;
+    const windowN = windowPts.length;
+    const scores = windowPts.map((p) => _safeNum(p.signal_score));
+    const dates = windowPts.map((p) => p.date || '');
+    const gradId = 'areaGradIndex' + String(Date.now() % 100000);
+    const todayScore = Math.round(scores[scores.length - 1]);
+    const highScore = Math.round(Math.max(...scores));
+    const avgScore = Math.round(scores.reduce((s, v) => s + v, 0) / scores.length);
+    const latestDateIso = dates[dates.length - 1] || '';
+    const todayMetricLabel = latestDateIso === _utcTodayIso() ? 'Today' : 'Latest';
+    const metaLabel = windowN >= 7
+      ? 'Daily Signal Score · Last 7 days'
+      : `Daily Signal Score · ${windowN} ${windowN === 1 ? 'day' : 'days'}`;
+    const highLabel = windowN >= 7 ? '7-day high' : 'High';
+    const avgLabel = windowN >= 7 ? '7-day avg' : 'Avg';
+
+    return `
+      <div class="d-section-head">
+        <span class="d-section-label">GoTango Index · 7d</span>
+        <span class="d-section-meta">${metaLabel}</span>
+      </div>
+      <div class="d-history-chart-wrap">
+        ${buildIndexScoreChart(scores, dates, { gradId })}
+      </div>
+      <div class="d-index-metrics">
+        <div class="d-index-metric">
+          <div class="d-index-metric-label">${todayMetricLabel}</div>
+          <div class="d-index-metric-value">${todayScore}</div>
+        </div>
+        <div class="d-index-metric">
+          <div class="d-index-metric-label">${highLabel}</div>
+          <div class="d-index-metric-value">${highScore}</div>
+        </div>
+        <div class="d-index-metric">
+          <div class="d-index-metric-label">${avgLabel}</div>
+          <div class="d-index-metric-value">${avgScore}</div>
+        </div>
+      </div>
+      <p class="d-index-interpret">${_escapeHtml(_indexInterpretiveLine(windowPts))}</p>
+    `;
+  }
+
+  function renderModalIndexUnavailable() {
+    return `
+      <div class="d-section-head">
+        <span class="d-section-label">GoTango Index · 7d</span>
+        <span class="d-section-meta">Daily Signal Score</span>
+      </div>
+      <div class="d-index-status">Index trend unavailable.</div>
+    `;
   }
 
   function buildHistorySparkline(values, dates, { preview = false, gradId = 'areaGradHist' } = {}) {
@@ -5076,6 +5348,18 @@
     `;
   }
 
+  function renderIndexPlaceholder() {
+    return `
+      <div class="d-section" data-modal-section="index-7d">
+        <div class="d-section-head">
+          <span class="d-section-label">GoTango Index · 7d</span>
+          <span class="d-section-meta">Daily Signal Score</span>
+        </div>
+        <div class="d-index-status">Index trend loading…</div>
+      </div>
+    `;
+  }
+
   function renderTrajectoryPlaceholder() {
     return `
       <div class="d-section" data-modal-section="trajectory">
@@ -5429,6 +5713,7 @@
     return [
       renderModalHero(dest, tier),
       renderModalStats(dest),
+      renderIndexPlaceholder(),
       renderEditorial(dest),
       renderModalOrigins(dest),
       renderModalAircraft(dest),
