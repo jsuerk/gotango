@@ -2280,12 +2280,12 @@
           <div class="stat-delta delta-up" id="stat-arrivals-delta">—</div>
         </div>
         <div class="stat-cell">
-          <div class="stat-label">Heating today</div>
+          <div class="stat-label">Heating signals</div>
           <div class="stat-value" id="stat-heating">—</div>
           <div class="stat-delta delta-up" id="stat-heating-delta">—</div>
         </div>
         <div class="stat-cell">
-          <div class="stat-label">Cooling today</div>
+          <div class="stat-label">Cooling signals</div>
           <div class="stat-value" id="stat-cooling">—</div>
           <div class="stat-delta delta-down" id="stat-cooling-delta">—</div>
         </div>
@@ -2747,8 +2747,47 @@
   function formatDisplayCopy(text) {
     if (text == null || text === '') return text;
     const s = String(text).trim();
-    if (s === 'Clean baseline building') return 'Baseline building';
-    return text;
+  if (s === 'Clean baseline building' || s === 'Baseline building') return 'Trend building';
+  return text;
+  }
+
+  function _parsePercentChange(label) {
+  if (!label) return null;
+  const s = String(label).trim();
+  const match = s.match(/([-+]?[\d.]+)\s*%/);
+  if (!match) return null;
+  const n = Number(match[1]);
+  return Number.isFinite(n) ? n : null;
+  }
+
+  function normalizeMovementLabel(raw, windowHint) {
+  if (raw == null || raw === '') return null;
+  let s = String(raw).trim();
+
+  if (/^clean baseline building$/i.test(s) || /^baseline building$/i.test(s)) {
+    return 'Trend building';
+  }
+  if (/^new private movement$/i.test(s)) {
+    return 'New private movement';
+  }
+  if (/^[-+]?\d+(\.\d+)?\s+vs prior$/i.test(s)) {
+    return 'Trend building';
+  }
+
+  const pct = _parsePercentChange(s);
+  if (pct == null) {
+    return s;
+  }
+  const rounded = Math.round(pct);
+  const absVal = Math.abs(rounded);
+  const sign = rounded > 0 ? '+' : (rounded < 0 ? '−' : '');
+  const base = rounded === 0 ? '0%' : `${sign}${absVal}%`;
+
+  let suffix = '';
+  if (windowHint === 'wow') suffix = ' WoW';
+  else if (windowHint === 'dod') suffix = ' 24h';
+
+  return `${base}${suffix}`;
   }
 
   function formatCommercialBackdropLabel(label) {
@@ -2914,11 +2953,12 @@
         const arrivalsCount = _integerArrivals24h(dest);
         const signalScore = Number(dest.signal_score);
         const signalLabel = Number.isFinite(signalScore) ? String(signalScore) : '—';
-        const originCodes = Array.isArray(dest.top_origins)
-          ? dest.top_origins.slice(0, 3).map(o => o && o.code).filter(Boolean)
-          : [];
-        const topOriginCodes = originCodes.length > 0 ? originCodes.join(', ') : '—';
-        const insightOrigins = originCodes.length > 0 ? topOriginCodes : 'mixed origins';
+        const rawOrigins = Array.isArray(dest.top_origins) ? dest.top_origins : [];
+        const cleanOrigins = rawOrigins.filter(o => o && o.code && !_isValidOrigin({ code: String(o.code).startsWith('L ') ? o.code : o.code.replace(/^UNKNOWN$/i, '') }) ? false : true);
+        const originCodes = cleanOrigins.slice(0, 3).map(o => o && o.code).filter(Boolean);
+        const hasCleanOrigins = originCodes.length > 0;
+        const topOriginCodes = hasCleanOrigins ? originCodes.join(', ') : 'Origin mix building';
+        const insightOrigins = hasCleanOrigins ? topOriginCodes : 'Origin mix building';
 
         let insightLine = formatDisplayCopy(dest.status_label || dest.algorithm_read || '');
         if (!insightLine) {
@@ -2992,7 +3032,15 @@
 
         const trend = document.createElement('div');
         trend.className = 'dest-trend';
-        trend.textContent = formatDisplayCopy(dest.display_dod_change || dest.display_wow_change || '—');
+        const wowVal = _parsePercentChange(dest.display_wow_change);
+        const dodVal = _parsePercentChange(dest.display_dod_change);
+        let movementText = null;
+        if (wowVal != null && wowVal > 0) {
+          movementText = normalizeMovementLabel(dest.display_wow_change, 'wow');
+        } else if (dodVal != null && dodVal > 0) {
+          movementText = normalizeMovementLabel(dest.display_dod_change, 'dod');
+        }
+        trend.textContent = movementText || 'Trend building';
 
         arrivals.appendChild(arrivalsNum);
         arrivals.appendChild(arrivalsLabel);
@@ -3044,7 +3092,7 @@
           const destName = String(dest.name || '');
           const destId = String(dest.id || '');
           const icaoCode = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
-          const whyLine = formatDisplayCopy(dest.status_label || dest.display_wow_change || dest.display_dod_change || 'Private signal softening');
+          const whyLine = formatDisplayCopy(dest.status_label || '') || 'Private signal softening';
 
         const card = document.createElement('div');
         card.className = 'cooling-card';
@@ -3074,7 +3122,15 @@
 
         const pct = document.createElement('div');
         pct.className = 'cooling-pct';
-        pct.textContent = formatDisplayCopy(dest.display_wow_change || dest.display_dod_change || '—');
+        const wowVal = _parsePercentChange(dest.display_wow_change);
+        const dodVal = _parsePercentChange(dest.display_dod_change);
+        let movementText = null;
+        if (wowVal != null && wowVal < 0) {
+          movementText = normalizeMovementLabel(dest.display_wow_change, 'wow');
+        } else if (dodVal != null && dodVal < 0) {
+          movementText = normalizeMovementLabel(dest.display_dod_change, 'dod');
+        }
+        pct.textContent = movementText || 'Trend building';
 
         card.appendChild(leftCol);
         card.appendChild(pct);
@@ -3132,7 +3188,15 @@
 
         const pct = document.createElement('div');
         pct.className = 'cooling-pct';
-        pct.textContent = dest.display_wow_change || dest.display_dod_change || '—';
+        const wowVal = _parsePercentChange(dest.display_wow_change);
+        const dodVal = _parsePercentChange(dest.display_dod_change);
+        let movementText = null;
+        if (wowVal != null && wowVal < 0) {
+          movementText = normalizeMovementLabel(dest.display_wow_change, 'wow');
+        } else if (dodVal != null && dodVal < 0) {
+          movementText = normalizeMovementLabel(dest.display_dod_change, 'dod');
+        }
+        pct.textContent = movementText || 'Trend building';
 
         card.appendChild(leftCol);
         card.appendChild(pct);
@@ -3217,7 +3281,7 @@
   function getMoverMovementLabel(dest) {
     const score = Number(dest.signal_score);
     if (!Number.isFinite(score) || score <= 0) {
-      return 'Baseline building';
+    return 'Trend building';
     }
     const wowPct = dest.wow_change_pct;
     if (wowPct != null && Number.isFinite(Number(wowPct))) {
@@ -3228,13 +3292,13 @@
     const display = formatDisplayCopy(dest.display_wow_change);
     if (
       display &&
-      display !== 'Baseline building' &&
+    display !== 'Trend building' &&
       display !== 'New private movement' &&
       !/^clean baseline/i.test(String(display))
     ) {
       return /woW/i.test(String(display)) ? display : `${display} WoW`;
     }
-    return 'Baseline building';
+  return 'Trend building';
   }
 
   function sortMoversDestinations(a, b) {
@@ -4600,7 +4664,29 @@
     const arrivals = _integerArrivals24h(dest);
     const signalScore = _safeNum(dest.signal_score);
     const pvtStr = signalScore > 0 ? String(signalScore) : '—';
-    const pvtSub = formatDisplayCopy(dest.display_dod_change || dest.status_label || 'Private signal');
+  const wowVal = _parsePercentChange(dest.display_wow_change);
+  const dodVal = _parsePercentChange(dest.display_dod_change);
+  let movementWindow = null;
+  if (wowVal != null) {
+    movementWindow = 'wow';
+  } else if (dodVal != null) {
+    movementWindow = 'dod';
+  }
+  let movementLabel = null;
+  if (movementWindow === 'wow' && wowVal != null) {
+    movementLabel = normalizeMovementLabel(dest.display_wow_change, 'wow');
+  } else if (movementWindow === 'dod' && dodVal != null) {
+    movementLabel = normalizeMovementLabel(dest.display_dod_change, 'dod');
+  }
+  if (!movementLabel) {
+    movementLabel = formatDisplayCopy(dest.status_label || '') || 'Trend building';
+  }
+  let movementHeading = 'Movement';
+  if (movementWindow === 'wow') {
+    movementHeading = 'Weekly movement';
+  } else if (movementWindow === 'dod') {
+    movementHeading = '24h movement';
+  }
     const topAircraft = _topAircraftType(dest);
     const topAircraftStr = topAircraft || '—';
     const topAircraftSub = topAircraft ? 'Most common type' : 'No data';
@@ -4621,9 +4707,9 @@
             <div class="d-stat-sub">${arrivals === 1 ? 'private arrival' : 'private arrivals'}</div>
           </div>
           <div class="d-stat">
-            <div class="d-stat-label">Signal score</div>
+            <div class="d-stat-label">SIGNAL SCORE</div>
             <div class="d-stat-value accent">${pvtStr}</div>
-            <div class="d-stat-sub">${_escapeHtml(pvtSub)}</div>
+            <div class="d-stat-sub">Index score</div>
           </div>
           <div class="d-stat">
             <div class="d-stat-label">Top type</div>
@@ -4631,6 +4717,9 @@
             <div class="d-stat-sub">${_escapeHtml(topAircraftSub)}</div>
           </div>
         </div>
+        <p class="d-stat-sub" style="margin-top: 10px; color: var(--text-faint, #6B6557);">
+          ${_escapeHtml(movementHeading)}: ${_escapeHtml(movementLabel)}
+        </p>
         ${commercialLabel ? `<p class="d-stat-sub" style="margin-top: 10px; color: var(--text-faint, #6B6557);">${_escapeHtml(commercialLabel)}</p>` : ''}
       </div>
     `;
