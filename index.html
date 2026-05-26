@@ -413,9 +413,17 @@
     font-size: 11px;
     margin-top: 6px;
     justify-content: flex-end;
+    line-height: 1.2;
   }
   .dest-trend.up { color: var(--signal-up); }
   .dest-trend.down { color: var(--signal-down); }
+  .dest-trend.building {
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-style: normal;
+  }
 
   /* ===== COOLING SECTION ===== */
   .cooling-list {
@@ -429,10 +437,10 @@
   }
   .cooling-card {
     background: var(--surface);
-    padding: 14px 16px;
+    padding: 16px;
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: 12px;
+    gap: 14px;
     align-items: center;
     cursor: pointer;
     transition: background 0.15s;
@@ -440,19 +448,17 @@
   .cooling-card:active { background: var(--surface-2); }
   .cooling-name {
     font-family: 'Fraunces', serif;
-    font-size: 16px;
+    font-size: 19px;
     font-weight: 500;
+    letter-spacing: -0.015em;
   }
   .cooling-why {
-    font-size: 12px;
-    color: var(--text-faint);
+    font-size: 12.5px;
+    color: var(--text-dim);
     margin-top: 3px;
+    margin-bottom: 0;
+    line-height: 1.35;
     font-style: italic;
-  }
-  .cooling-pct {
-    font-family: 'Geist Mono', monospace;
-    font-size: 14px;
-    color: var(--signal-down);
   }
 
   /* ===== SLEEPER PICK ===== */
@@ -1560,9 +1566,9 @@
   }
 
   .dest-modal__close:focus-visible {
-    outline: 2px solid var(--amber-bright);
-    outline-offset: 2px;
+    outline: none;
     border-color: var(--amber-bright);
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.5), 0 0 20px rgba(244, 181, 42, 0.4);
   }
 
   .dest-modal__body {
@@ -1749,6 +1755,38 @@
     color: var(--text-dim, #A8A293);
   }
 
+  .d-glance-meta {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .d-glance-meta-line {
+    margin: 0;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    line-height: 1.45;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: baseline;
+  }
+
+  .d-glance-meta-label::after {
+    content: ':';
+  }
+
+  .d-glance-meta-label {
+    color: var(--text, #F5F1E8);
+    letter-spacing: 0.04em;
+  }
+
+  .d-glance-meta-value {
+    color: var(--text, #F5F1E8);
+    font-weight: 500;
+  }
+
   /* Trajectory placeholder (skeleton chart) */
   .d-trajectory-placeholder {
     height: 140px;
@@ -1804,6 +1842,94 @@
     line-height: 1.5;
     max-width: 280px;
     margin: 0 auto;
+  }
+
+  /* History sparkline (modal) */
+  .d-history-chart-wrap {
+    margin-top: 4px;
+  }
+
+  .d-history-chart-wrap--preview {
+    opacity: 0.92;
+  }
+
+  .d-history-sparkline {
+    width: 100%;
+    height: 168px;
+    display: block;
+  }
+
+  .d-history-sparkline--preview {
+    height: 112px;
+  }
+
+  .d-trend-building {
+    margin-top: 12px;
+    text-align: center;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber, #E8A317);
+  }
+
+  .d-trend-building-sub {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-dim, #A8A293);
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  /* Pulse summary (history-backed) */
+  .d-pulse-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  @media (max-width: 520px) {
+    .d-pulse-metrics {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .d-pulse-metric {
+    background: var(--surface, #161B23);
+    border: 1px solid var(--border-light, #313945);
+    border-radius: 6px;
+    padding: 12px 14px;
+  }
+
+  .d-pulse-metric-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint, #6B6557);
+    margin-bottom: 6px;
+  }
+
+  .d-pulse-metric-value {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    color: var(--text, #F5F1E8);
+    line-height: 1.1;
+  }
+
+  .d-pulse-metric-value.up {
+    color: var(--green, #6BCB8B);
+  }
+
+  .d-pulse-metric-value.down {
+    color: var(--red, #E07A6A);
+  }
+
+  .d-pulse-metric-sub {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim, #A8A293);
+    margin-top: 4px;
   }
 
   /* Pulse placeholder */
@@ -2280,12 +2406,12 @@
           <div class="stat-delta delta-up" id="stat-arrivals-delta">—</div>
         </div>
         <div class="stat-cell">
-          <div class="stat-label">Heating today</div>
+          <div class="stat-label">Heating signals</div>
           <div class="stat-value" id="stat-heating">—</div>
           <div class="stat-delta delta-up" id="stat-heating-delta">—</div>
         </div>
         <div class="stat-cell">
-          <div class="stat-label">Cooling today</div>
+          <div class="stat-label">Cooling signals</div>
           <div class="stat-value" id="stat-cooling">—</div>
           <div class="stat-delta delta-down" id="stat-cooling-delta">—</div>
         </div>
@@ -2676,11 +2802,6 @@
   }
 
   function renderQuietMarketCard(dest, container) {
-    const arrivalsCount = _quietMarketPrivateArrivals24h(dest);
-    const destName = String(dest.name || '');
-    const destId = String(dest.id || '');
-    const icaoCode = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
-
     let subtitle = 'Quiet market · private baseline building';
     if (dest.commercial_backdrop_label) {
       subtitle += ` · ${formatCommercialBackdropLabel(dest.commercial_backdrop_label)}`;
@@ -2688,67 +2809,191 @@
 
     const card = document.createElement('div');
     card.className = 'cooling-card';
-    card.dataset.dest = destId;
-    card.setAttribute('data-destination-id', destId);
+    card.dataset.dest = String(dest.id || '');
+    card.setAttribute('data-destination-id', String(dest.id || ''));
 
-    const leftCol = document.createElement('div');
+    card.appendChild(_buildCoolingCardMain(dest, subtitle));
 
-    const nameRow = document.createElement('div');
-    nameRow.className = 'cooling-name';
-    nameRow.appendChild(document.createTextNode(`${destName} · `));
+    const arrivals = document.createElement('div');
+    arrivals.className = 'dest-arrivals';
 
-    const codeSpan = document.createElement('span');
-    codeSpan.className = 'cooling-code';
-    codeSpan.style.fontFamily = "'Geist Mono', monospace";
-    codeSpan.style.fontSize = '10px';
-    codeSpan.style.color = 'var(--text-faint)';
-    codeSpan.textContent = icaoCode;
-    nameRow.appendChild(codeSpan);
+    const arrivalsNum = document.createElement('div');
+    arrivalsNum.className = 'dest-arrivals-num';
+    arrivalsNum.textContent = String(_quietMarketPrivateArrivals24h(dest));
 
-    const why = document.createElement('div');
-    why.className = 'cooling-why';
-    why.textContent = subtitle;
-
-    leftCol.appendChild(nameRow);
-    leftCol.appendChild(why);
-
-    const rightCol = document.createElement('div');
-    rightCol.style.textAlign = 'right';
-
-    const num = document.createElement('div');
-    num.className = 'cooling-pct';
-    num.style.color = 'var(--text)';
-    num.textContent = String(arrivalsCount);
-
-    const label = document.createElement('div');
-    label.style.fontFamily = "'Geist Mono', monospace";
-    label.style.fontSize = '9px';
-    label.style.letterSpacing = '0.12em';
-    label.style.color = 'var(--text-faint)';
-    label.style.marginTop = '2px';
-    label.textContent = 'PRIVATE 24H';
+    const arrivalsLabel = document.createElement('div');
+    arrivalsLabel.className = 'dest-arrivals-label';
+    arrivalsLabel.textContent = 'Private 24h';
 
     const trend = document.createElement('div');
-    trend.style.fontSize = '11px';
-    trend.style.color = 'var(--text-faint)';
-    trend.style.fontStyle = 'italic';
-    trend.style.marginTop = '4px';
-    trend.textContent = 'Not a cooling signal yet';
+    trend.className = 'dest-trend building';
+    trend.textContent = 'Quiet market';
 
-    rightCol.appendChild(num);
-    rightCol.appendChild(label);
-    rightCol.appendChild(trend);
-
-    card.appendChild(leftCol);
-    card.appendChild(rightCol);
+    arrivals.appendChild(arrivalsNum);
+    arrivals.appendChild(arrivalsLabel);
+    arrivals.appendChild(trend);
+    card.appendChild(arrivals);
     container.appendChild(card);
   }
 
   function formatDisplayCopy(text) {
     if (text == null || text === '') return text;
     const s = String(text).trim();
-    if (s === 'Clean baseline building') return 'Baseline building';
-    return text;
+  if (s === 'Clean baseline building' || s === 'Baseline building') return 'Trend building';
+  return text;
+  }
+
+  function _parsePercentChange(label) {
+  if (!label) return null;
+  const s = String(label).trim();
+  const match = s.match(/([-+]?[\d.]+)\s*%/);
+  if (!match) return null;
+  const n = Number(match[1]);
+  return Number.isFinite(n) ? n : null;
+  }
+
+  function _formatChartAxisDate(isoDate) {
+    if (!isoDate) return '';
+    const d = new Date(`${isoDate}T12:00:00.000Z`);
+    if (Number.isNaN(d.getTime())) return String(isoDate).slice(5);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[d.getUTCMonth()]} ${d.getUTCDate()}`;
+  }
+
+  function _resolveCardMovement(dest, direction) {
+    const wowVal = _parsePercentChange(dest.display_wow_change);
+    const dodVal = _parsePercentChange(dest.display_dod_change);
+    let movementText = null;
+    let signedVal = null;
+
+    if (direction === 'positive') {
+      if (wowVal != null && wowVal > 0) {
+        movementText = normalizeMovementLabel(dest.display_wow_change, 'wow');
+        signedVal = wowVal;
+      } else if (dodVal != null && dodVal > 0) {
+        movementText = normalizeMovementLabel(dest.display_dod_change, 'dod');
+        signedVal = dodVal;
+      }
+    } else if (direction === 'negative') {
+      if (wowVal != null && wowVal < 0) {
+        movementText = normalizeMovementLabel(dest.display_wow_change, 'wow');
+        signedVal = wowVal;
+      } else if (dodVal != null && dodVal < 0) {
+        movementText = normalizeMovementLabel(dest.display_dod_change, 'dod');
+        signedVal = dodVal;
+      }
+    } else {
+      if (wowVal != null) {
+        movementText = normalizeMovementLabel(dest.display_wow_change, 'wow');
+        signedVal = wowVal;
+      } else if (dodVal != null) {
+        movementText = normalizeMovementLabel(dest.display_dod_change, 'dod');
+        signedVal = dodVal;
+      }
+    }
+
+    return { movementText, signedVal };
+  }
+
+  function _applyDestTrendClasses(trendEl, movementText, signedVal) {
+    trendEl.className = 'dest-trend';
+    if (!movementText || movementText === 'Trend building') {
+      trendEl.classList.add('building');
+      return;
+    }
+    if (signedVal != null && signedVal > 0) trendEl.classList.add('up');
+    else if (signedVal != null && signedVal < 0) trendEl.classList.add('down');
+  }
+
+  function _buildDestArrivalsColumn(dest, direction) {
+    const arrivals = document.createElement('div');
+    arrivals.className = 'dest-arrivals';
+
+    const arrivalsNum = document.createElement('div');
+    arrivalsNum.className = 'dest-arrivals-num';
+    arrivalsNum.textContent = String(_integerArrivals24h(dest));
+
+    const arrivalsLabel = document.createElement('div');
+    arrivalsLabel.className = 'dest-arrivals-label';
+    arrivalsLabel.textContent = 'Private 24h';
+
+    const trend = document.createElement('div');
+    const { movementText, signedVal } = _resolveCardMovement(dest, direction);
+    trend.textContent = movementText || 'Trend building';
+    _applyDestTrendClasses(trend, movementText, signedVal);
+
+    arrivals.appendChild(arrivalsNum);
+    arrivals.appendChild(arrivalsLabel);
+    arrivals.appendChild(trend);
+    return arrivals;
+  }
+
+  function _buildCoolingCardMain(dest, whyLine) {
+    const main = document.createElement('div');
+    main.className = 'dest-main';
+
+    const row1 = document.createElement('div');
+    row1.className = 'dest-row1';
+
+    const name = document.createElement('span');
+    name.className = 'dest-name cooling-name';
+    name.textContent = String(dest.name || '');
+
+    const code = document.createElement('span');
+    code.className = 'dest-code';
+    code.textContent = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
+
+    row1.appendChild(name);
+    row1.appendChild(code);
+
+    const vibe = document.createElement('div');
+    vibe.className = 'dest-vibe cooling-why';
+    vibe.textContent = whyLine;
+
+    main.appendChild(row1);
+    main.appendChild(vibe);
+    return main;
+  }
+
+  function renderCoolingDestinationCard(dest, container, whyLine) {
+    const card = document.createElement('div');
+    card.className = 'cooling-card';
+    card.dataset.dest = String(dest.id || '');
+    card.setAttribute('data-destination-id', String(dest.id || ''));
+
+    card.appendChild(_buildCoolingCardMain(dest, whyLine));
+    card.appendChild(_buildDestArrivalsColumn(dest, 'negative'));
+    container.appendChild(card);
+  }
+
+  function normalizeMovementLabel(raw, windowHint) {
+  if (raw == null || raw === '') return null;
+  let s = String(raw).trim();
+
+  if (/^clean baseline building$/i.test(s) || /^baseline building$/i.test(s)) {
+    return 'Trend building';
+  }
+  if (/^new private movement$/i.test(s)) {
+    return 'New private movement';
+  }
+  if (/^[-+]?\d+(\.\d+)?\s+vs prior$/i.test(s)) {
+    return 'Trend building';
+  }
+
+  const pct = _parsePercentChange(s);
+  if (pct == null) {
+    return s;
+  }
+  const rounded = Math.round(pct);
+  const absVal = Math.abs(rounded);
+  const sign = rounded > 0 ? '+' : (rounded < 0 ? '−' : '');
+  const base = rounded === 0 ? '0%' : `${sign}${absVal}%`;
+
+  let suffix = '';
+  if (windowHint === 'wow') suffix = ' WoW';
+  else if (windowHint === 'dod') suffix = ' 24h';
+
+  return `${base}${suffix}`;
   }
 
   function formatCommercialBackdropLabel(label) {
@@ -2914,11 +3159,12 @@
         const arrivalsCount = _integerArrivals24h(dest);
         const signalScore = Number(dest.signal_score);
         const signalLabel = Number.isFinite(signalScore) ? String(signalScore) : '—';
-        const originCodes = Array.isArray(dest.top_origins)
-          ? dest.top_origins.slice(0, 3).map(o => o && o.code).filter(Boolean)
-          : [];
-        const topOriginCodes = originCodes.length > 0 ? originCodes.join(', ') : '—';
-        const insightOrigins = originCodes.length > 0 ? topOriginCodes : 'mixed origins';
+        const rawOrigins = Array.isArray(dest.top_origins) ? dest.top_origins : [];
+        const cleanOrigins = rawOrigins.filter(o => o && o.code && !_isValidOrigin({ code: String(o.code).startsWith('L ') ? o.code : o.code.replace(/^UNKNOWN$/i, '') }) ? false : true);
+        const originCodes = cleanOrigins.slice(0, 3).map(o => o && o.code).filter(Boolean);
+        const hasCleanOrigins = originCodes.length > 0;
+        const topOriginCodes = hasCleanOrigins ? originCodes.join(', ') : 'Origin mix building';
+        const insightOrigins = hasCleanOrigins ? topOriginCodes : 'Origin mix building';
 
         let insightLine = formatDisplayCopy(dest.status_label || dest.algorithm_read || '');
         if (!insightLine) {
@@ -2991,8 +3237,9 @@
         arrivalsLabel.textContent = 'Private 24h';
 
         const trend = document.createElement('div');
-        trend.className = 'dest-trend';
-        trend.textContent = formatDisplayCopy(dest.display_dod_change || dest.display_wow_change || '—');
+        const { movementText, signedVal } = _resolveCardMovement(dest, 'positive');
+        trend.textContent = movementText || 'Trend building';
+        _applyDestTrendClasses(trend, movementText, signedVal);
 
         arrivals.appendChild(arrivalsNum);
         arrivals.appendChild(arrivalsLabel);
@@ -3040,45 +3287,8 @@
         setCoolingDownSectionMeta('Last 7 days');
 
         homepageCooling.forEach(dest => {
-          const arrivalsCount = _integerArrivals24h(dest);
-          const destName = String(dest.name || '');
-          const destId = String(dest.id || '');
-          const icaoCode = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
-          const whyLine = formatDisplayCopy(dest.status_label || dest.display_wow_change || dest.display_dod_change || 'Private signal softening');
-
-        const card = document.createElement('div');
-        card.className = 'cooling-card';
-        card.dataset.dest = destId;
-        card.setAttribute('data-destination-id', destId);
-
-        const leftCol = document.createElement('div');
-
-        const nameRow = document.createElement('div');
-        nameRow.className = 'cooling-name';
-        nameRow.appendChild(document.createTextNode(`${destName} · `));
-
-        const codeSpan = document.createElement('span');
-        codeSpan.className = 'cooling-code';
-        codeSpan.style.fontFamily = "'Geist Mono', monospace";
-        codeSpan.style.fontSize = '10px';
-        codeSpan.style.color = 'var(--text-faint)';
-        codeSpan.textContent = icaoCode;
-        nameRow.appendChild(codeSpan);
-
-        const why = document.createElement('div');
-        why.className = 'cooling-why';
-        why.textContent = whyLine;
-
-        leftCol.appendChild(nameRow);
-        leftCol.appendChild(why);
-
-        const pct = document.createElement('div');
-        pct.className = 'cooling-pct';
-        pct.textContent = formatDisplayCopy(dest.display_wow_change || dest.display_dod_change || '—');
-
-        card.appendChild(leftCol);
-        card.appendChild(pct);
-        container.appendChild(card);
+          const whyLine = formatDisplayCopy(dest.status_label || '') || 'Private signal softening';
+          renderCoolingDestinationCard(dest, container, whyLine);
         });
         return;
       }
@@ -3100,43 +3310,8 @@
       }
 
       coolingPicks.forEach(dest => {
-        const destName = String(dest.name || '');
-        const destId = String(dest.id || '');
-        const icaoCode = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
         const whyLine = dest.status_label || 'Private signal softening';
-
-        const card = document.createElement('div');
-        card.className = 'cooling-card';
-        card.dataset.dest = destId;
-        card.setAttribute('data-destination-id', destId);
-
-        const leftCol = document.createElement('div');
-        const nameRow = document.createElement('div');
-        nameRow.className = 'cooling-name';
-        nameRow.appendChild(document.createTextNode(`${destName} · `));
-
-        const codeSpan = document.createElement('span');
-        codeSpan.className = 'cooling-code';
-        codeSpan.style.fontFamily = "'Geist Mono', monospace";
-        codeSpan.style.fontSize = '10px';
-        codeSpan.style.color = 'var(--text-faint)';
-        codeSpan.textContent = icaoCode;
-        nameRow.appendChild(codeSpan);
-
-        const why = document.createElement('div');
-        why.className = 'cooling-why';
-        why.textContent = whyLine;
-
-        leftCol.appendChild(nameRow);
-        leftCol.appendChild(why);
-
-        const pct = document.createElement('div');
-        pct.className = 'cooling-pct';
-        pct.textContent = dest.display_wow_change || dest.display_dod_change || '—';
-
-        card.appendChild(leftCol);
-        card.appendChild(pct);
-        container.appendChild(card);
+        renderCoolingDestinationCard(dest, container, whyLine);
       });
     } catch (error) {
       container.innerHTML = '';
@@ -3217,7 +3392,7 @@
   function getMoverMovementLabel(dest) {
     const score = Number(dest.signal_score);
     if (!Number.isFinite(score) || score <= 0) {
-      return 'Baseline building';
+    return 'Trend building';
     }
     const wowPct = dest.wow_change_pct;
     if (wowPct != null && Number.isFinite(Number(wowPct))) {
@@ -3228,13 +3403,13 @@
     const display = formatDisplayCopy(dest.display_wow_change);
     if (
       display &&
-      display !== 'Baseline building' &&
+    display !== 'Trend building' &&
       display !== 'New private movement' &&
       !/^clean baseline/i.test(String(display))
     ) {
       return /woW/i.test(String(display)) ? display : `${display} WoW`;
     }
-    return 'Baseline building';
+  return 'Trend building';
   }
 
   function sortMoversDestinations(a, b) {
@@ -4332,6 +4507,7 @@
 
   let _modalCurrentDestId = null;
   let _modalArrivalsData = null;
+  let _modalHistoryRequestId = 0;
 
   function openDestinationModal(destinationId) {
     if (!destinationId) return;
@@ -4389,6 +4565,226 @@
     if (closeBtn) {
       setTimeout(() => closeBtn.focus(), 50);
     }
+
+    loadDestinationHistoryIntoModal(destinationId, dest);
+  }
+
+  async function loadDestinationHistoryIntoModal(destinationId, dest) {
+    const requestId = ++_modalHistoryRequestId;
+    try {
+      const response = await fetch(
+        `/api/get-destination-history?id=${encodeURIComponent(destinationId)}`,
+      );
+      if (requestId !== _modalHistoryRequestId || _modalCurrentDestId !== destinationId) return;
+      if (!response.ok) {
+        console.warn('[modal] History fetch failed:', response.status);
+        return;
+      }
+      const payload = await response.json();
+      if (requestId !== _modalHistoryRequestId || _modalCurrentDestId !== destinationId) return;
+      if (!payload || !payload.ok || !Array.isArray(payload.points)) return;
+      applyModalHistorySections(dest, payload.points);
+    } catch (err) {
+      console.warn('[modal] History fetch error:', err);
+    }
+  }
+
+  function applyModalHistorySections(dest, points) {
+    const trajectoryEl = document.querySelector('[data-modal-section="trajectory"]');
+    const pulseEl = document.querySelector('[data-modal-section="pulse"]');
+    if (!trajectoryEl && !pulseEl) return;
+
+    const n = points.length;
+    if (trajectoryEl) {
+      trajectoryEl.innerHTML = renderModalTrajectorySection(points, n);
+    }
+    if (pulseEl) {
+      pulseEl.innerHTML = renderModalPulseSection(dest, points, n);
+    }
+  }
+
+  function buildHistorySparkline(values, dates, { preview = false, gradId = 'areaGradHist' } = {}) {
+    if (!values || values.length < 2) return '';
+    const w = 440;
+    const h = preview ? 112 : 168;
+    const padLeft = 34;
+    const padRight = 14;
+    const padTop = 26;
+    const padBottom = 30;
+    const chartW = w - padLeft - padRight;
+    const chartH = h - padTop - padBottom;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const mid = Math.round((min + max) / 2);
+    const range = max - min || 1;
+    const xStep = chartW / (values.length - 1);
+    const pts = values.map((v, i) => {
+      const x = padLeft + i * xStep;
+      const y = padTop + chartH * (1 - (v - min) / range);
+      return { x, y, v, date: dates && dates[i] ? dates[i] : '' };
+    });
+    const linePath = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+    const areaPath =
+      linePath +
+      ` L${pts[pts.length - 1].x.toFixed(1)},${(padTop + chartH).toFixed(1)} L${pts[0].x.toFixed(1)},${(padTop + chartH).toFixed(1)} Z`;
+    const lastPt = pts[pts.length - 1];
+    const firstDate = dates && dates[0] ? _formatChartAxisDate(dates[0]) : '';
+    const midIdx = Math.floor((dates ? dates.length : values.length - 1) / 2);
+    const midDate = dates && dates[midIdx] ? _formatChartAxisDate(dates[midIdx]) : '';
+    const lastDate = dates && dates[dates.length - 1] ? _formatChartAxisDate(dates[dates.length - 1]) : '';
+    const latestVal = Math.round(lastPt.v);
+    const latestLabel = latestVal === 1 ? '1 arrival' : `${latestVal} arrivals`;
+    const labelY = Math.max(padTop + 8, lastPt.y - 12);
+    const chartClass = preview ? 'd-history-sparkline d-history-sparkline--preview' : 'd-history-sparkline';
+    const yMinY = padTop + chartH;
+    const yMidY = padTop + chartH / 2;
+    const yMaxY = padTop;
+    const pointMarkers = pts.map((p, i) => {
+      const isLast = i === pts.length - 1;
+      const r = isLast ? 4.5 : 2.5;
+      const fill = isLast ? '#E8A317' : '#F5F1E8';
+      const stroke = isLast ? '#F5F1E8' : '#E8A317';
+      const strokeWidth = isLast ? 1.5 : 1;
+      const title = p.date
+        ? `<title>${_escapeHtml(_formatChartAxisDate(p.date))}: ${Math.round(p.v)} private arrivals</title>`
+        : `<title>${Math.round(p.v)} private arrivals</title>`;
+      const glow = isLast
+        ? `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="9" fill="#E8A317" opacity="0.18"/>`
+        : '';
+      return `${glow}<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}">${title}</circle>`;
+    }).join('');
+    const mono = "font-family: 'Geist Mono', monospace";
+    return `
+      <svg class="${chartClass}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Daily private arrivals chart">
+        <defs>
+          <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#E8A317" stop-opacity="0.34"/>
+            <stop offset="100%" stop-color="#E8A317" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <line x1="${padLeft}" y1="${yMaxY.toFixed(1)}" x2="${(padLeft + chartW).toFixed(1)}" y2="${yMaxY.toFixed(1)}" stroke="#252C37" stroke-dasharray="2 3"/>
+        <line x1="${padLeft}" y1="${yMidY.toFixed(1)}" x2="${(padLeft + chartW).toFixed(1)}" y2="${yMidY.toFixed(1)}" stroke="#252C37" stroke-dasharray="2 3"/>
+        <line x1="${padLeft}" y1="${yMinY.toFixed(1)}" x2="${(padLeft + chartW).toFixed(1)}" y2="${yMinY.toFixed(1)}" stroke="#313945"/>
+        <text style="${mono}; font-size: 9px; fill: #A8A293;" x="${padLeft - 4}" y="${yMaxY.toFixed(1)}" text-anchor="end" dominant-baseline="middle">${max}</text>
+        <text style="${mono}; font-size: 9px; fill: #A8A293;" x="${padLeft - 4}" y="${yMidY.toFixed(1)}" text-anchor="end" dominant-baseline="middle">${mid}</text>
+        <text style="${mono}; font-size: 9px; fill: #A8A293;" x="${padLeft - 4}" y="${yMinY.toFixed(1)}" text-anchor="end" dominant-baseline="middle">${min}</text>
+        <path d="${areaPath}" fill="url(#${gradId})"/>
+        <path d="${linePath}" fill="none" stroke="#E8A317" stroke-width="1.8" stroke-linejoin="round"/>
+        ${pointMarkers}
+        <text style="${mono}; font-size: 9px; fill: #E8A317; font-weight: 500;" x="${Math.min(lastPt.x, w - padRight - 4).toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="end">Latest: ${latestLabel}</text>
+        <text style="${mono}; font-size: 9px; fill: #6B6557;" x="${pts[0].x.toFixed(1)}" y="${(h - 8).toFixed(1)}" text-anchor="start">${firstDate}</text>
+        <text style="${mono}; font-size: 9px; fill: #6B6557;" x="${pts[midIdx].x.toFixed(1)}" y="${(h - 8).toFixed(1)}" text-anchor="middle">${midDate}</text>
+        <text style="${mono}; font-size: 9px; fill: #6B6557;" x="${lastPt.x.toFixed(1)}" y="${(h - 8).toFixed(1)}" text-anchor="end">${lastDate}</text>
+      </svg>
+    `;
+  }
+
+  function renderModalTrajectorySection(points, count) {
+    const series = points.map((p) => _safeNum(p.private_arrivals_24h));
+    const dates = points.map((p) => p.date || '');
+    const gradId = 'areaGradHist' + String(Date.now() % 100000);
+
+    if (count >= 7) {
+      return `
+        <div class="d-section-head">
+          <span class="d-section-label">30-day trajectory</span>
+          <span class="d-section-meta">Daily private arrivals · Last ${count} days</span>
+        </div>
+        <div class="d-history-chart-wrap">
+          ${buildHistorySparkline(series, dates, { preview: false, gradId })}
+        </div>
+      `;
+    }
+
+    if (count >= 3) {
+      return `
+        <div class="d-section-head">
+          <span class="d-section-label">30-day trajectory</span>
+          <span class="d-section-meta">Daily private arrivals · Preview</span>
+        </div>
+        <div class="d-history-chart-wrap d-history-chart-wrap--preview">
+          ${buildHistorySparkline(series, dates, { preview: true, gradId })}
+        </div>
+        <div class="d-trend-building">
+          Trend building
+          <div class="d-trend-building-sub">${count} ${count === 1 ? 'day' : 'days'} collected · full chart unlocks at 7 days</div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="d-section-head">
+        <span class="d-section-label">30-day trajectory</span>
+        <span class="d-section-meta">Daily arrivals</span>
+      </div>
+      <div class="d-trajectory-placeholder">
+        <div class="d-placeholder-msg">
+          <div class="d-placeholder-icon">GT</div>
+          <div class="d-placeholder-title">Trend building</div>
+          <div class="d-placeholder-text">${count > 0 ? `${count} ${count === 1 ? 'day' : 'days'} collected so far.` : 'Currently collecting.'} Trajectory chart unlocks once we've collected at least 7 days of history.</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderModalPulseSection(dest, points, count) {
+    if (count < 7) {
+      return `
+        <div class="d-section-head">
+          <span class="d-section-label">The pulse</span>
+          <span class="d-section-meta">Daily summary</span>
+        </div>
+        <div class="d-pulse-placeholder">
+          <div class="d-pulse-skeleton">
+            <div class="d-placeholder-msg">
+              <div class="d-placeholder-title">Pulse building</div>
+              <div class="d-placeholder-text">More daily history needed.${count > 0 ? ` ${count} ${count === 1 ? 'day' : 'days'} collected.` : ''}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    const windowPts = points.slice(-7);
+    const arrivals = windowPts.map((p) => _safeNum(p.private_arrivals_24h));
+    const avg7 = arrivals.reduce((s, v) => s + v, 0) / arrivals.length;
+    const peak = Math.max(...arrivals);
+    const current = _quietMarketPrivateArrivals24h(dest);
+    let vsPct = null;
+    let vsClass = '';
+    let vsLabel = '—';
+    if (avg7 > 0) {
+      vsPct = Math.round(((current - avg7) / avg7) * 100);
+      vsClass = vsPct > 0 ? 'up' : (vsPct < 0 ? 'down' : '');
+      const sign = vsPct > 0 ? '+' : '';
+      vsLabel = `${sign}${vsPct}%`;
+    } else if (current > 0) {
+      vsLabel = '—';
+    }
+
+    return `
+      <div class="d-section-head">
+        <span class="d-section-label">The pulse</span>
+        <span class="d-section-meta">7-day daily summary</span>
+      </div>
+      <div class="d-pulse-metrics">
+        <div class="d-pulse-metric">
+          <div class="d-pulse-metric-label">7-day avg arrivals</div>
+          <div class="d-pulse-metric-value">${Math.round(avg7)}</div>
+          <div class="d-pulse-metric-sub">Private per day</div>
+        </div>
+        <div class="d-pulse-metric">
+          <div class="d-pulse-metric-label">Peak day</div>
+          <div class="d-pulse-metric-value">${peak}</div>
+          <div class="d-pulse-metric-sub">In last ${windowPts.length} days</div>
+        </div>
+        <div class="d-pulse-metric">
+          <div class="d-pulse-metric-label">Today vs 7-day avg</div>
+          <div class="d-pulse-metric-value ${vsClass}">${vsLabel}</div>
+          <div class="d-pulse-metric-sub">${current} private today</div>
+        </div>
+      </div>
+    `;
   }
 
   function closeDestinationModal() {
@@ -4600,12 +4996,56 @@
     const arrivals = _integerArrivals24h(dest);
     const signalScore = _safeNum(dest.signal_score);
     const pvtStr = signalScore > 0 ? String(signalScore) : '—';
-    const pvtSub = formatDisplayCopy(dest.display_dod_change || dest.status_label || 'Private signal');
+  const wowVal = _parsePercentChange(dest.display_wow_change);
+  const dodVal = _parsePercentChange(dest.display_dod_change);
+  let movementWindow = null;
+  if (wowVal != null) {
+    movementWindow = 'wow';
+  } else if (dodVal != null) {
+    movementWindow = 'dod';
+  }
+  let movementLabel = null;
+  if (movementWindow === 'wow' && wowVal != null) {
+    movementLabel = normalizeMovementLabel(dest.display_wow_change, 'wow');
+  } else if (movementWindow === 'dod' && dodVal != null) {
+    movementLabel = normalizeMovementLabel(dest.display_dod_change, 'dod');
+  }
+  if (!movementLabel) {
+    movementLabel = formatDisplayCopy(dest.status_label || '') || 'Trend building';
+  }
+  let movementHeading = 'Movement';
+  if (movementWindow === 'wow') {
+    movementHeading = 'Weekly movement';
+  } else if (movementWindow === 'dod') {
+    movementHeading = '24h movement';
+  }
     const topAircraft = _topAircraftType(dest);
     const topAircraftStr = topAircraft || '—';
     const topAircraftSub = topAircraft ? 'Most common type' : 'No data';
     const commercialLabel = dest.commercial_backdrop_label
       ? formatCommercialBackdropLabel(dest.commercial_backdrop_label)
+      : '';
+    let commercialHeading = '';
+    let commercialValue = '';
+    if (commercialLabel) {
+      const splitIdx = commercialLabel.indexOf(':');
+      if (splitIdx !== -1) {
+        commercialHeading = commercialLabel.slice(0, splitIdx).trim();
+        commercialValue = commercialLabel.slice(splitIdx + 1).trim();
+      } else {
+        commercialHeading = 'Commercial backdrop';
+        commercialValue = commercialLabel;
+      }
+    }
+
+    const movementMetaHtml = movementHeading && movementLabel
+      ? `<p class="d-glance-meta-line"><span class="d-glance-meta-label">${_escapeHtml(movementHeading)}</span><span class="d-glance-meta-value">${_escapeHtml(movementLabel)}</span></p>`
+      : '';
+    const commercialMetaHtml = commercialHeading
+      ? `<p class="d-glance-meta-line"><span class="d-glance-meta-label">${_escapeHtml(commercialHeading)}</span><span class="d-glance-meta-value">${_escapeHtml(commercialValue)}</span></p>`
+      : '';
+    const glanceMetaBlock = (movementMetaHtml || commercialMetaHtml)
+      ? `<div class="d-glance-meta">${movementMetaHtml}${commercialMetaHtml}</div>`
       : '';
 
     return `
@@ -4621,9 +5061,9 @@
             <div class="d-stat-sub">${arrivals === 1 ? 'private arrival' : 'private arrivals'}</div>
           </div>
           <div class="d-stat">
-            <div class="d-stat-label">Signal score</div>
+            <div class="d-stat-label">SIGNAL SCORE</div>
             <div class="d-stat-value accent">${pvtStr}</div>
-            <div class="d-stat-sub">${_escapeHtml(pvtSub)}</div>
+            <div class="d-stat-sub">0–100 GoTango Index</div>
           </div>
           <div class="d-stat">
             <div class="d-stat-label">Top type</div>
@@ -4631,14 +5071,14 @@
             <div class="d-stat-sub">${_escapeHtml(topAircraftSub)}</div>
           </div>
         </div>
-        ${commercialLabel ? `<p class="d-stat-sub" style="margin-top: 10px; color: var(--text-faint, #6B6557);">${_escapeHtml(commercialLabel)}</p>` : ''}
+        ${glanceMetaBlock}
       </div>
     `;
   }
 
   function renderTrajectoryPlaceholder() {
     return `
-      <div class="d-section">
+      <div class="d-section" data-modal-section="trajectory">
         <div class="d-section-head">
           <span class="d-section-label">30-day trajectory</span>
           <span class="d-section-meta">Daily arrivals</span>
@@ -4656,16 +5096,16 @@
 
   function renderPulsePlaceholder() {
     return `
-      <div class="d-section">
+      <div class="d-section" data-modal-section="pulse">
         <div class="d-section-head">
           <span class="d-section-label">The pulse</span>
-          <span class="d-section-meta">Hour and day patterns</span>
+          <span class="d-section-meta">Daily summary</span>
         </div>
         <div class="d-pulse-placeholder">
           <div class="d-pulse-skeleton">
             <div class="d-placeholder-msg">
-              <div class="d-placeholder-title">Building data</div>
-              <div class="d-placeholder-text">Hourly and day-of-week patterns appear after 7 days of history.</div>
+              <div class="d-placeholder-title">Pulse building</div>
+              <div class="d-placeholder-text">More daily history needed.</div>
             </div>
           </div>
         </div>
@@ -4744,10 +5184,11 @@
     `;
     }
 
+    const displayed = valid.slice(0, 5);
     const total = valid.reduce((s, o) => s + _safeNum(o.count), 0);
     const max = Math.max(...valid.map(o => _safeNum(o.count)), 1);
 
-    const rows = valid.map(o => {
+    const rows = displayed.map(o => {
       const count = _safeNum(o.count);
       const pct = total > 0 ? Math.round((count / total) * 100) : 0;
       const widthPct = (count / max) * 100;
@@ -4773,7 +5214,7 @@
     <div class="d-section">
       <div class="d-section-head">
         <span class="d-section-label">Where they're coming from</span>
-        <span class="d-section-meta">Last 24h · ${valid.length} ${valid.length === 1 ? 'origin' : 'origins'}</span>
+        <span class="d-section-meta">Last 24h · ${displayed.length} ${displayed.length === 1 ? 'origin' : 'origins'}</span>
       </div>
       <div class="d-origins">${rows}</div>
     </div>
