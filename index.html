@@ -2800,6 +2800,20 @@
     }
   }
 
+  async function loadMoversIndex() {
+    try {
+      const response = await fetch('/api/get-movers-index');
+      if (!response.ok) {
+        console.warn('Failed to fetch /api/get-movers-index:', response.status);
+        return null;
+      }
+      return await response.json();
+    } catch (error) {
+      console.warn('Error fetching movers index:', error);
+      return null;
+    }
+  }
+
   function updateClock() {
     try {
       const now = new Date();
@@ -3403,11 +3417,11 @@
   };
 
   const MOVERS_TIER_FALLBACK_REASON = {
-    surging: 'Very strong private-travel momentum, with elevated activity and strong origin mix.',
-    heating_up: 'Private signal is building, with meaningful arrival activity and stronger market attention.',
-    active: 'Healthy private-aviation activity, with steady current demand.',
-    emerging: 'Early private movement is appearing, but the signal is still forming.',
-    quiet: 'Private activity remains light, making this a quieter market for now.',
+    surging: 'Weekly GoTango Index remains elevated after a strong private-travel surge.',
+    heating_up: 'Weekly private-travel signal is building across the recent window.',
+    active: 'Private-travel signal remains active over the week.',
+    emerging: 'Early weekly signal is forming, but not yet fully established.',
+    quiet: 'Weekly private-travel signal remains light.',
   };
 
   function getArrivalsPayload(data) {
@@ -3461,70 +3475,84 @@
     return reason;
   }
 
-  function getMoverMovementLabel(dest) {
-    const score = Number(dest.signal_score);
-    if (!Number.isFinite(score) || score <= 0) {
-    return 'Trend building';
+  function getMoversWeeklyScore(dest) {
+    const days = Number(dest.index_days_count);
+    const avg = Number(dest.index_7d_avg);
+    if (Number.isFinite(days) && days >= 2 && Number.isFinite(avg)) {
+      return avg;
     }
-    const wowPct = dest.wow_change_pct;
-    if (wowPct != null && Number.isFinite(Number(wowPct))) {
-      const n = Number(wowPct);
-      const sign = n > 0 ? '+' : '';
-      return `${sign}${Math.round(n)}% WoW`;
+    return Number(dest.signal_score || 0);
+  }
+
+  function enrichDestinationsForMovers(destinations, moversIndexData) {
+    const summaries = moversIndexData && moversIndexData.ok && moversIndexData.summaries
+      ? moversIndexData.summaries
+      : null;
+    if (!summaries) return destinations;
+
+    return destinations.map((dest) => {
+      const summary = summaries[dest.id];
+      if (!summary) return dest;
+      return {
+        ...dest,
+        index_7d_avg: summary.index_7d_avg,
+        index_7d_high: summary.index_7d_high,
+        index_7d_low: summary.index_7d_low,
+        latest_signal_score: summary.latest_signal_score ?? dest.signal_score,
+        index_days_count: summary.index_days_count ?? 0,
+        latest_date: summary.latest_date,
+      };
+    });
+  }
+
+  function getMoverMetricDisplay(dest) {
+    const days = Number(dest.index_days_count);
+    const weeklyAvg = Number(dest.index_7d_avg);
+    const hasWeekly = Number.isFinite(days) && days >= 2 && Number.isFinite(weeklyAvg);
+
+    if (hasWeekly) {
+      const todayScore = Number(dest.latest_signal_score ?? dest.signal_score);
+      const todayLabel = Number.isFinite(todayScore) && todayScore > 0
+        ? `Today ${Math.round(todayScore)}`
+        : 'Today —';
+      return {
+        score: String(Math.round(weeklyAvg)),
+        label: days >= 7 ? '7D INDEX' : `${days}D INDEX`,
+        subline: todayLabel,
+        sublineClass: '',
+      };
     }
-    const display = formatDisplayCopy(dest.display_wow_change);
-    if (
-      display &&
-    display !== 'Trend building' &&
-      display !== 'New private movement' &&
-      !/^clean baseline/i.test(String(display))
-    ) {
-      return /woW/i.test(String(display)) ? display : `${display} WoW`;
-    }
-  return 'Trend building';
+
+    const signalScore = Number(dest.signal_score);
+    const scoreLabel = Number.isFinite(signalScore) && signalScore > 0
+      ? String(Math.round(signalScore))
+      : '—';
+    return {
+      score: scoreLabel,
+      label: 'TODAY',
+      subline: 'Trend building',
+      sublineClass: '',
+    };
   }
 
   function sortMoversDestinations(a, b) {
-    const scoreDiff = Number(b.signal_score || 0) - Number(a.signal_score || 0);
+    const scoreDiff = getMoversWeeklyScore(b) - getMoversWeeklyScore(a);
     if (scoreDiff !== 0) return scoreDiff;
 
-    const wowA = a.wow_change_pct;
-    const wowB = b.wow_change_pct;
-    const hasWowA = wowA != null && Number.isFinite(Number(wowA));
-    const hasWowB = wowB != null && Number.isFinite(Number(wowB));
-    if (hasWowA && hasWowB) {
-      const wowDiff = Number(wowB) - Number(wowA);
-      if (wowDiff !== 0) return wowDiff;
-    } else if (hasWowA && !hasWowB) {
-      return -1;
-    } else if (!hasWowA && hasWowB) {
-      return 1;
-    }
+    const latestA = Number(a.latest_signal_score ?? a.signal_score ?? 0);
+    const latestB = Number(b.latest_signal_score ?? b.signal_score ?? 0);
+    const latestDiff = latestB - latestA;
+    if (latestDiff !== 0) return latestDiff;
 
     const arrDiff = _moverPrivateArrivals24h(b) - _moverPrivateArrivals24h(a);
     if (arrDiff !== 0) return arrDiff;
 
     return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
   }
-
-  function _moverMovementClass(dest) {
-    const wowPct = dest.wow_change_pct;
-    if (wowPct == null || !Number.isFinite(Number(wowPct))) return '';
-    const n = Number(wowPct);
-    if (n > 0) return 'up';
-    if (n < 0) return 'down';
-    return '';
-  }
-
   function renderMoverRow(dest, rank, tier) {
     const destId = String(dest.id || '');
     const icao = _destIcao(dest);
-    const signalScore = Number(dest.signal_score);
-    const scoreLabel = Number.isFinite(signalScore) && signalScore > 0
-      ? String(Math.round(signalScore))
-      : '—';
-    const movementLabel = getMoverMovementLabel(dest);
-    const movementClass = _moverMovementClass(dest);
+    const metricDisplay = getMoverMetricDisplay(dest);
 
     const row = document.createElement('div');
     row.className = 'mover-row';
@@ -3561,15 +3589,15 @@
 
     const scoreEl = document.createElement('div');
     scoreEl.className = 'mover-score';
-    scoreEl.textContent = scoreLabel;
+    scoreEl.textContent = metricDisplay.score;
 
     const signalEl = document.createElement('div');
     signalEl.className = 'mover-signal-label';
-    signalEl.textContent = 'SIGNAL';
+    signalEl.textContent = metricDisplay.label;
 
     const moveEl = document.createElement('div');
-    moveEl.className = 'mover-move' + (movementClass ? ` ${movementClass}` : '');
-    moveEl.textContent = movementLabel;
+    moveEl.className = 'mover-move' + (metricDisplay.sublineClass ? ` ${metricDisplay.sublineClass}` : '');
+    moveEl.textContent = metricDisplay.subline;
 
     metric.appendChild(scoreEl);
     metric.appendChild(signalEl);
@@ -3589,7 +3617,7 @@
     if (fallbackEl) fallbackEl.hidden = false;
   }
 
-  function renderMoversIndex(arrivalsData) {
+  function renderMoversIndex(arrivalsData, moversIndexData) {
     const indexEl = document.getElementById('movers-index');
     const fallbackEl = document.getElementById('movers-static-fallback');
     if (!indexEl) return;
@@ -3607,12 +3635,16 @@
       return;
     }
 
-    const destinations = payload.destinations.filter(d => d && d.ok === true);
+    const weeklyAvailable = !!(moversIndexData && moversIndexData.ok && moversIndexData.summaries);
+    const destinations = enrichDestinationsForMovers(
+      payload.destinations.filter(d => d && d.ok === true),
+      moversIndexData,
+    );
     const grouped = {};
     MOVERS_TIER_ORDER.forEach(tier => { grouped[tier] = []; });
 
     destinations.forEach(dest => {
-      const tier = getSignalTier(dest.signal_score);
+      const tier = getSignalTier(getMoversWeeklyScore(dest));
       grouped[tier].push(dest);
     });
 
@@ -3630,6 +3662,9 @@
       sectionCount += 1;
       const meta = MOVERS_TIER_META[tier];
       const countLabel = list.length === 1 ? '1 destination' : `${list.length} destinations`;
+      const sectionMetaText = weeklyAvailable
+        ? `${meta.range} · weekly index · ${countLabel}`
+        : `${meta.range} · ${countLabel}`;
 
       const head = document.createElement('div');
       head.className = 'section-head';
@@ -3640,7 +3675,7 @@
 
       const sectionMeta = document.createElement('span');
       sectionMeta.className = 'section-meta';
-      sectionMeta.textContent = `${meta.range} · ${countLabel}`;
+      sectionMeta.textContent = sectionMetaText;
 
       head.appendChild(title);
       head.appendChild(sectionMeta);
@@ -5728,13 +5763,16 @@
     updateClock();
     setInterval(updateClock, 60000);
     updateDate();
-    const arrivalsData = await loadArrivalsData();
+    const [arrivalsData, moversIndexData] = await Promise.all([
+      loadArrivalsData(),
+      loadMoversIndex(),
+    ]);
     _modalArrivalsData = arrivalsData;
     updateStats(arrivalsData);
     updateTodaysPick(arrivalsData);
     renderHeatingUp(arrivalsData);
     renderCoolingDown(arrivalsData);
-    renderMoversIndex(arrivalsData);
+    renderMoversIndex(arrivalsData, moversIndexData);
     renderWorldMap(arrivalsData);
     attachModalCloseHandlers();
     attachModalExpandHandlers();
