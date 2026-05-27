@@ -109,6 +109,8 @@ function buildWeeklySummaries(historyList) {
       index7dAvg = latestSignalScore;
     }
 
+    const firstSignalScore = windowPoints[0].signal_score;
+
     summaries[id] = {
       id,
       index_7d_avg: index7dAvg,
@@ -117,6 +119,9 @@ function buildWeeklySummaries(historyList) {
       latest_signal_score: latestSignalScore,
       index_days_count: indexDaysCount,
       latest_date: latest.date,
+      score_points_7d: windowPoints.map(({ date, signal_score }) => ({ date, signal_score })),
+      first_signal_score: firstSignalScore,
+      score_delta_7d: latestSignalScore - firstSignalScore,
     };
   }
 
