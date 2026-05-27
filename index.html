@@ -554,6 +554,26 @@
     font-weight: 500;
     margin-right: 3px;
   }
+  .dest-scoreline {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-top: 2px;
+  }
+  .dest-scoreline__number {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--amber);
+  }
+  .dest-scoreline__label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.03em;
+  }
   .dest-arrivals {
     text-align: right;
     min-width: 70px;
@@ -568,9 +588,9 @@
   }
   .dest-arrivals-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: 8px;
     color: var(--text-faint);
-    letter-spacing: 0.08em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     margin-top: 3px;
   }
@@ -3218,7 +3238,7 @@
 
     const arrivalsLabel = document.createElement('div');
     arrivalsLabel.className = 'dest-arrivals-label';
-    arrivalsLabel.textContent = 'Private 24h';
+    arrivalsLabel.textContent = 'Private Arrivals 24h';
 
     const trend = document.createElement('div');
     trend.className = 'dest-trend building';
@@ -3310,7 +3330,7 @@
 
     const arrivalsLabel = document.createElement('div');
     arrivalsLabel.className = 'dest-arrivals-label';
-    arrivalsLabel.textContent = 'Private 24h';
+    arrivalsLabel.textContent = 'Private Arrivals 24h';
 
     const trend = document.createElement('div');
     const { movementText, signedVal } = _resolveCardMovement(dest, direction);
@@ -3696,26 +3716,23 @@
         vibe.className = 'dest-vibe';
         vibe.textContent = insightLine;
 
-        const meta = document.createElement('div');
-        meta.className = 'dest-meta';
+        const scoreline = document.createElement('div');
+        scoreline.className = 'dest-scoreline';
 
-        const privateSpan = document.createElement('span');
-        const privateBold = document.createElement('b');
-        privateBold.textContent = signalLabel;
-        privateSpan.appendChild(privateBold);
-        privateSpan.appendChild(document.createTextNode(' score'));
+        const scoreNum = document.createElement('span');
+        scoreNum.className = 'dest-scoreline__number';
+        scoreNum.textContent = signalLabel;
 
-        const originsSpan = document.createElement('span');
-        const originsBold = document.createElement('b');
-        originsBold.textContent = topOriginCodes;
-        originsSpan.appendChild(originsBold);
+        const scoreLbl = document.createElement('span');
+        scoreLbl.className = 'dest-scoreline__label';
+        scoreLbl.textContent = 'GoTango Score';
 
-        meta.appendChild(privateSpan);
-        meta.appendChild(originsSpan);
+        scoreline.appendChild(scoreNum);
+        scoreline.appendChild(scoreLbl);
 
         main.appendChild(row1);
         main.appendChild(vibe);
-        main.appendChild(meta);
+        main.appendChild(scoreline);
 
         const arrivals = document.createElement('div');
         arrivals.className = 'dest-arrivals';
@@ -3726,7 +3743,7 @@
 
         const arrivalsLabel = document.createElement('div');
         arrivalsLabel.className = 'dest-arrivals-label';
-        arrivalsLabel.textContent = 'Private 24h';
+        arrivalsLabel.textContent = 'Private Arrivals 24h';
 
         const trend = document.createElement('div');
         const { movementText, signedVal } = _resolveCardMovement(dest, 'positive');
