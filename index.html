@@ -212,6 +212,17 @@
     max-width: 340px;
     margin-top: 10px;
   }
+  .hero-hook {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 26px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--amber);
+    margin-top: 14px;
+    max-width: 340px;
+  }
 
   .hero-stats {
     margin-top: 26px;
@@ -2030,8 +2041,20 @@
   .d-index-metric-value {
     font-family: 'Fraunces', serif;
     font-size: 22px;
-    color: var(--amber, #E8A317);
     line-height: 1.1;
+  }
+
+  /* GoTango Index · 7d metric values only (distinct read: headline / peak / baseline) */
+  .d-index-metrics .d-index-metric-value--latest {
+    color: var(--amber, #E8A317);
+  }
+
+  .d-index-metrics .d-index-metric-value--high {
+    color: var(--signal-up, #7FB069);
+  }
+
+  .d-index-metrics .d-index-metric-value--avg {
+    color: color-mix(in srgb, var(--teal, #5EAAA8) 58%, var(--text-dim, #A8A293) 42%);
   }
 
   .d-index-interpret {
@@ -2558,7 +2581,8 @@
     <section class="hero">
       <div class="hero-kicker" id="hero-kicker">The Index · TUESDAY, 28 APRIL</div>
       <h1 class="hero-headline">Where the world's <em>going.</em></h1>
-      <p class="hero-sub">Travel intelligence for top destinations. Surges, cool-downs, and the reasons behind both — built daily from public ADS-B data.<br><span style="color: var(--amber);">Real data without the fluff.</span></p>
+      <p class="hero-sub">A daily read on the destinations gaining heat, losing momentum, or quietly coming into view — powered by our GoTango Index.</p>
+      <p class="hero-hook">Where will you GoTango?</p>
 
       <div class="hero-stats">
         <div class="stat-cell">
@@ -5074,12 +5098,12 @@
     const latest = scores[scores.length - 1];
     const previous = scores[scores.length - 2];
     const diff = latest - previous;
-    if (diff >= 3) return 'Index is strengthening over the recent window.';
+    if (diff >= 3) return 'Index is strengthening over the recent timeframe.';
     if (diff <= -3) {
       if (latest >= 70) return 'Index cooled from its recent high but remains elevated.';
-      return 'Index cooled over the recent window.';
+      return 'Index cooled over the recent timeframe.';
     }
-    return 'Index is holding steady over the recent window.';
+    return 'Index is holding steady over the recent timeframe.';
   }
 
   function buildIndexScoreChart(scores, dates, { gradId = 'areaGradIndex' } = {}) {
@@ -5217,15 +5241,15 @@
       <div class="d-index-metrics">
         <div class="d-index-metric">
           <div class="d-index-metric-label">${todayMetricLabel}</div>
-          <div class="d-index-metric-value">${todayScore}</div>
+          <div class="d-index-metric-value d-index-metric-value--latest">${todayScore}</div>
         </div>
         <div class="d-index-metric">
           <div class="d-index-metric-label">${highLabel}</div>
-          <div class="d-index-metric-value">${highScore}</div>
+          <div class="d-index-metric-value d-index-metric-value--high">${highScore}</div>
         </div>
         <div class="d-index-metric">
           <div class="d-index-metric-label">${avgLabel}</div>
-          <div class="d-index-metric-value">${avgScore}</div>
+          <div class="d-index-metric-value d-index-metric-value--avg">${avgScore}</div>
         </div>
       </div>
       <p class="d-index-interpret">${_escapeHtml(_indexInterpretiveLine(windowPts))}</p>
