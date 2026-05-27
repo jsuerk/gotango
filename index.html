@@ -2620,16 +2620,14 @@
 
     <!-- HOT LIST -->
     <div class="section-head">
-      <h2 class="section-title"><em>Heating up</em></h2>
-      <span class="section-meta">Top 6</span>
+      <h2 class="section-title"><em>Heating Up Today</em></h2>
     </div>
 
     <div class="dest-list" id="heating-up-list"></div>
 
     <!-- COOLING -->
     <div class="section-head">
-      <h2 class="section-title"><em>Cooling down</em></h2>
-      <span class="section-meta" id="cooling-down-meta">Last 7 days</span>
+      <h2 class="section-title"><em>Cooling Down Today</em></h2>
     </div>
 
     <div class="cooling-list" id="cooling-down-list"></div>
@@ -3380,7 +3378,7 @@
 
         const rank = document.createElement('div');
         rank.className = 'dest-rank';
-        rank.textContent = romans[i] || '';
+        rank.textContent = String(i + 1).padStart(2, '0');
 
         const main = document.createElement('div');
         main.className = 'dest-main';
