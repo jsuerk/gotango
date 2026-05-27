@@ -1949,6 +1949,74 @@
     color: var(--text, #F5F1E8);
   }
 
+  .dest-modal__title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 0 0 8px 0;
+  }
+
+  .dest-modal__title-row .d-name {
+    margin: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .dest-modal__share {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    margin-top: 2px;
+    padding: 0;
+    border: 1px solid rgba(244, 181, 42, 0.45);
+    border-radius: 50%;
+    background: rgba(232, 163, 23, 0.14);
+    color: var(--amber-bright, #F4B52A);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 12px rgba(244, 181, 42, 0.1);
+    transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  }
+
+  .dest-modal__share:hover {
+    background: rgba(232, 163, 23, 0.24);
+    border-color: var(--amber-bright, #F4B52A);
+    box-shadow: 0 0 16px rgba(244, 181, 42, 0.22);
+    transform: scale(1.04);
+  }
+
+  .dest-modal__share:focus-visible {
+    outline: none;
+    border-color: var(--amber-bright, #F4B52A);
+    box-shadow: 0 0 0 2px rgba(15, 15, 20, 1), 0 0 0 4px rgba(244, 181, 42, 0.45), 0 0 16px rgba(244, 181, 42, 0.25);
+  }
+
+  .dest-modal__share-icon {
+    width: 18px;
+    height: 18px;
+    display: block;
+  }
+
+  .dest-modal__share-status {
+    display: block;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--amber, #E8A317);
+    min-height: 14px;
+    margin: -4px 0 8px 0;
+    opacity: 0;
+    transition: opacity 180ms ease;
+  }
+
+  .dest-modal__share-status.is-visible {
+    opacity: 1;
+  }
+
   .d-meta {
     font-family: 'Geist Mono', monospace;
     font-size: 10px;
@@ -2389,6 +2457,14 @@
 
     .d-name {
       font-size: 32px;
+    }
+
+    .dest-modal__title-row {
+      gap: 10px;
+    }
+
+    .dest-modal__share {
+      margin-top: 0;
     }
 
     .d-section {
@@ -5866,13 +5942,80 @@
     });
   }
 
+  function buildDestinationShareUrl(destinationId) {
+    return `${window.location.origin}${window.location.pathname}?destination=${encodeURIComponent(destinationId)}`;
+  }
+
+  function showDestModalShareStatus(message) {
+    const statusEl = document.querySelector('.dest-modal__share-status');
+    if (!statusEl) {
+      showToastMessage(message);
+      return;
+    }
+    statusEl.textContent = message;
+    statusEl.hidden = false;
+    statusEl.classList.add('is-visible');
+    if (statusEl._shareStatusTimer) clearTimeout(statusEl._shareStatusTimer);
+    statusEl._shareStatusTimer = setTimeout(() => {
+      statusEl.classList.remove('is-visible');
+      statusEl.hidden = true;
+      statusEl.textContent = '';
+    }, 2200);
+  }
+
+  async function shareDestinationBrief(dest) {
+    if (!dest || !dest.id) return;
+    const shareUrl = buildDestinationShareUrl(dest.id);
+    const title = `${dest.name} on Go Tango`;
+    const text = `See ${dest.name}'s private-travel signal, GoTango Score, arrivals, and weekly momentum.`;
+
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title, text, url: shareUrl });
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(shareUrl);
+        showDestModalShareStatus('Link copied');
+        return;
+      }
+    } catch (err) {
+      console.warn('[share] clipboard failed:', err);
+    }
+
+    showDestModalShareStatus('Could not copy link');
+  }
+
+  function attachModalShareHandler() {
+    const modal = document.getElementById('destination-modal');
+    if (!modal) return;
+    modal.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-dest-share]');
+      if (!btn) return;
+      e.preventDefault();
+      const destId = btn.getAttribute('data-dest-share');
+      if (!destId || destId !== _modalCurrentDestId) return;
+      const data = _modalArrivalsData;
+      const destinations = data && Array.isArray(data.destinations)
+        ? data.destinations
+        : (data && data.data && Array.isArray(data.data.destinations) ? data.data.destinations : null);
+      if (!destinations) return;
+      const dest = destinations.find(d => d.id === destId);
+      if (dest) shareDestinationBrief(dest);
+    });
+  }
+
   function maybeOpenModalFromUrl() {
     try {
       const url = new URL(window.location.href);
       const destParam = url.searchParams.get('destination');
-      if (destParam) {
-        // Wait briefly to ensure data is loaded
-        setTimeout(() => openDestinationModal(destParam), 100);
+      if (destParam && _modalArrivalsData) {
+        openDestinationModal(destParam);
       }
     } catch (e) {
       /* no-op */
@@ -5958,10 +6101,20 @@
     if (coords) metaParts.push(_escapeHtml(coords));
     if (region) metaParts.push(region);
 
+    const destId = _escapeHtml(dest.id || '');
     return `
       <div class="d-hero">
         <span class="d-vibe ${tier}">${_escapeHtml(tierLabel)}</span>
-        <h2 id="dest-modal-title" class="d-name">${_escapeHtml(dest.name || '')}</h2>
+        <div class="dest-modal__title-row">
+          <h2 id="dest-modal-title" class="d-name">${_escapeHtml(dest.name || '')}</h2>
+          <button type="button" class="dest-modal__share" data-dest-share="${destId}" aria-label="Share destination brief">
+            <svg class="dest-modal__share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 2L11 13"/>
+              <path d="M22 2l-7 20-4-9-9-4 20-7z"/>
+            </svg>
+          </button>
+        </div>
+        <p class="dest-modal__share-status" aria-live="polite" hidden></p>
         <div class="d-meta">${metaParts.join('<span class="d-meta-sep">·</span>')}</div>
       </div>
     `;
@@ -6444,6 +6597,7 @@
     renderWorldMap(arrivalsData);
     attachModalCloseHandlers();
     attachModalExpandHandlers();
+    attachModalShareHandler();
     attachDestinationCardClickHandlers();
     maybeOpenModalFromUrl();
 
