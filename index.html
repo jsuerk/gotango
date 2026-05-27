@@ -408,6 +408,19 @@
   .delta-up { color: var(--signal-up); }
   .delta-down { color: var(--signal-down); }
 
+  .hero-stats .hero-stat-value--private { color: var(--text); }
+  .hero-stats .hero-stat-value--heating { color: var(--amber); }
+  .hero-stats .hero-stat-value--cooling { color: var(--teal); }
+  .hero-stats .hero-stat-delta {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    margin-top: 5px;
+    letter-spacing: 0.02em;
+  }
+  .hero-stats .hero-stat-delta--up { color: var(--signal-up); }
+  .hero-stats .hero-stat-delta--down { color: var(--signal-down); }
+  .hero-stats .hero-stat-delta--muted { color: var(--text-faint); }
+
   /* ===== SECTION HEAD ===== */
   .section-head {
     padding: 30px 20px 16px;
@@ -2772,18 +2785,18 @@
       <div class="hero-stats">
         <div class="stat-cell">
           <div class="stat-label">Private arrivals · 24h</div>
-          <div class="stat-value" id="stat-arrivals">—</div>
-          <div class="stat-delta delta-up" id="stat-arrivals-delta">—</div>
+          <div class="stat-value hero-stat-value--private" id="stat-arrivals">—</div>
+          <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-arrivals-delta">—</div>
         </div>
         <div class="stat-cell">
           <div class="stat-label">Heating signals</div>
-          <div class="stat-value" id="stat-heating">—</div>
-          <div class="stat-delta delta-up" id="stat-heating-delta">—</div>
+          <div class="stat-value hero-stat-value--heating" id="stat-heating">—</div>
+          <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-heating-delta">—</div>
         </div>
         <div class="stat-cell">
           <div class="stat-label">Cooling signals</div>
-          <div class="stat-value" id="stat-cooling">—</div>
-          <div class="stat-delta delta-down" id="stat-cooling-delta">—</div>
+          <div class="stat-value hero-stat-value--cooling" id="stat-cooling">—</div>
+          <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-cooling-delta">—</div>
         </div>
       </div>
     </section>
@@ -3409,6 +3422,67 @@
     if (overlayCount) overlayCount.textContent = label;
   }
 
+  function _heroWeightedPrivateSignal24h(dest) {
+    const n = Number(dest.weighted_private_signal_24h ?? dest.qualified_private_arrivals_24h);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function _aggregateWowPctFromDestinations(destinations, valueFn) {
+    if (!Array.isArray(destinations)) return null;
+    let currentSum = 0;
+    let baseSum = 0;
+    let contributed = 0;
+    for (const d of destinations) {
+      if (!d || d.ok !== true) continue;
+      const pct = Number(d.wow_change_pct);
+      if (!Number.isFinite(pct)) continue;
+      const current = valueFn(d);
+      if (!Number.isFinite(current)) continue;
+      const denom = 1 + pct / 100;
+      if (denom === 0) continue;
+      const base = current / denom;
+      if (!Number.isFinite(base)) continue;
+      currentSum += current;
+      baseSum += base;
+      contributed += 1;
+    }
+    if (contributed === 0 || baseSum <= 0) return null;
+    return Math.round(((currentSum - baseSum) / baseSum) * 100);
+  }
+
+  function _averageWowPctFromDestinations(destinations) {
+    if (!Array.isArray(destinations) || destinations.length === 0) return null;
+    const pcts = destinations
+      .filter((d) => d && d.ok === true)
+      .map((d) => Number(d.wow_change_pct))
+      .filter((n) => Number.isFinite(n));
+    if (!pcts.length) return null;
+    return Math.round(pcts.reduce((sum, n) => sum + n, 0) / pcts.length);
+  }
+
+  function formatHeroStatDelta(value, suffix) {
+    if (value == null || !Number.isFinite(value)) return null;
+    const rounded = Math.round(value);
+    const sign = rounded > 0 ? '+' : (rounded < 0 ? '−' : '');
+    const absVal = Math.abs(rounded);
+    const base = rounded === 0 ? '0%' : `${sign}${absVal}%`;
+    return suffix ? `${base}${suffix}` : base;
+  }
+
+  function getHeroStatDeltaClass(value) {
+    if (value == null || !Number.isFinite(value)) return 'hero-stat-delta--muted';
+    if (value > 0) return 'hero-stat-delta--up';
+    if (value < 0) return 'hero-stat-delta--down';
+    return 'hero-stat-delta--muted';
+  }
+
+  function setHeroStatDelta(el, value, suffix, fallback) {
+    if (!el) return;
+    const label = formatHeroStatDelta(value, suffix);
+    el.textContent = label || fallback || '—';
+    el.className = `stat-delta hero-stat-delta ${getHeroStatDeltaClass(value)}`;
+  }
+
   function updateStats(data) {
     const payload = data && data.data;
     const destinations = payload && Array.isArray(payload.destinations) ? payload.destinations : null;
@@ -3463,6 +3537,42 @@
       }
     } catch (error) {
       console.warn('Error updating cooling stat:', error);
+    }
+
+    const heroDeltaFallback = 'Trend building';
+    const okDestinations = destinations.filter((d) => d && d.ok === true);
+
+    try {
+      const arrivalsDeltaEl = document.getElementById('stat-arrivals-delta');
+      const privateWowPct = _aggregateWowPctFromDestinations(
+        okDestinations,
+        _heroWeightedPrivateSignal24h,
+      );
+      setHeroStatDelta(arrivalsDeltaEl, privateWowPct, ' WoW', heroDeltaFallback);
+    } catch (error) {
+      console.warn('Error updating arrivals stat delta:', error);
+    }
+
+    try {
+      const heatingDeltaEl = document.getElementById('stat-heating-delta');
+      const heatingDests = payload.homepage && Array.isArray(payload.homepage.heating_up)
+        ? payload.homepage.heating_up
+        : okDestinations.filter((d) => ['heating', 'warming', 'sleeper'].includes(d.status));
+      const heatingWowPct = _averageWowPctFromDestinations(heatingDests);
+      setHeroStatDelta(heatingDeltaEl, heatingWowPct, ' WoW', heroDeltaFallback);
+    } catch (error) {
+      console.warn('Error updating heating stat delta:', error);
+    }
+
+    try {
+      const coolingDeltaEl = document.getElementById('stat-cooling-delta');
+      const coolingDests = payload.homepage && Array.isArray(payload.homepage.cooling_down)
+        ? payload.homepage.cooling_down
+        : okDestinations.filter((d) => d.status === 'cooling' || d.status === 'softening');
+      const coolingWowPct = _averageWowPctFromDestinations(coolingDests);
+      setHeroStatDelta(coolingDeltaEl, coolingWowPct, ' WoW', heroDeltaFallback);
+    } catch (error) {
+      console.warn('Error updating cooling stat delta:', error);
     }
   }
 
