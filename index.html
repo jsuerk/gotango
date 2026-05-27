@@ -722,35 +722,104 @@
     padding: 30px 20px 0;
   }
   .movers-group {
-    padding: 0 20px;
-    margin-bottom: 8px;
+    margin: 0 20px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
   }
   .mover-row {
     display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 14px;
-    align-items: center;
-    padding: 14px 0;
-    border-bottom: 1px solid var(--border);
+    grid-template-columns: auto 1fr;
+    gap: 12px 14px;
+    align-items: start;
+    padding: 16px;
+    background: var(--surface);
     cursor: pointer;
+    transition: background 0.15s;
   }
-  .mover-row:last-child { border-bottom: none; }
+  .mover-row:active { background: var(--surface-2); }
   .mover-rank {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 20px;
+    color: var(--amber);
+    opacity: 0.65;
+    line-height: 1;
+    width: 22px;
+    text-align: center;
+    padding-top: 2px;
+  }
+  .mover-body { min-width: 0; }
+  .mover-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: start;
+    margin-bottom: 8px;
+  }
+  .mover-info { min-width: 0; }
+  .mover-name-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    margin-bottom: 4px;
+  }
+  .mover-name {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+  }
+  .mover-icao {
     font-family: 'Geist Mono', monospace;
     font-size: 10px;
     color: var(--text-faint);
-    min-width: 18px;
+    letter-spacing: 0.05em;
   }
-  .mover-info { min-width: 0; }
-  .mover-name {
-    font-family: 'Fraunces', serif;
-    font-size: 17px;
-    font-weight: 500;
-    margin-bottom: 3px;
+  .mover-badge {
+    display: inline-block;
+    font-family: 'Geist Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 3px;
+    line-height: 1.3;
+  }
+  .mover-badge--top {
+    color: var(--amber);
+    background: rgba(232,163,23,0.1);
+    border: 1px solid rgba(232,163,23,0.22);
+  }
+  .mover-badge--rising {
+    color: var(--signal-up);
+    background: rgba(127,176,105,0.1);
+    border: 1px solid rgba(127,176,105,0.22);
+  }
+  .mover-badge--cooling {
+    color: var(--signal-down);
+    background: rgba(224,120,86,0.1);
+    border: 1px solid rgba(224,120,86,0.22);
+  }
+  .mover-badge--steady {
+    color: #5B9EA8;
+    background: rgba(91,158,168,0.1);
+    border: 1px solid rgba(91,158,168,0.22);
+  }
+  .mover-badge--quiet {
+    color: var(--text-faint);
+    background: rgba(107,101,87,0.06);
+    border: 1px solid var(--border);
   }
   .mover-reason {
     font-size: 12px;
-    color: var(--text-faint);
+    color: var(--text-dim);
     font-style: italic;
     line-height: 1.35;
     overflow: hidden;
@@ -759,45 +828,64 @@
     line-clamp: 2;
     -webkit-box-orient: vertical;
   }
-  .mover-pct {
-    font-family: 'Geist Mono', monospace;
-    font-size: 13px;
+  .mover-today {
     text-align: right;
+    flex-shrink: 0;
+    min-width: 48px;
   }
-  .mover-pct.up { color: var(--signal-up); }
-  .mover-pct.down { color: var(--signal-down); }
-  .mover-metric {
-    text-align: right;
-    min-width: 52px;
-  }
-  .mover-score {
+  .mover-today-score {
     font-family: 'Geist Mono', monospace;
-    font-size: 13px;
+    font-size: 28px;
+    font-weight: 500;
     color: var(--text);
-    line-height: 1.2;
+    line-height: 1;
   }
-  .mover-signal-label {
+  .mover-today-label {
     font-family: 'Geist Mono', monospace;
     font-size: 9px;
     letter-spacing: 0.12em;
     color: var(--text-faint);
-    margin-top: 2px;
+    margin-top: 3px;
     text-transform: uppercase;
   }
-  .mover-move {
+  .mover-trend-tag {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
-    color: var(--text-faint);
+    font-size: 9px;
     margin-top: 4px;
     line-height: 1.2;
   }
-  .mover-move.up { color: var(--signal-up); }
-  .mover-move.down { color: var(--signal-down); }
-  .mover-icao {
+  .mover-trend-tag.up { color: var(--signal-up); }
+  .mover-trend-tag.down { color: var(--signal-down); }
+  .mover-chart-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-top: 2px;
+  }
+  .mover-sparkline {
+    width: 72px;
+    height: 28px;
+    flex-shrink: 0;
+    display: block;
+  }
+  .mover-sparkline-fallback {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    min-width: 72px;
+  }
+  .mover-secondary-metrics {
     font-family: 'Geist Mono', monospace;
     font-size: 10px;
     color: var(--text-faint);
-    margin-left: 6px;
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+  }
+  .mover-secondary-metrics b {
+    color: var(--text-dim);
+    font-weight: 500;
   }
   .movers-loading {
     padding: 24px 20px;
@@ -1881,6 +1969,78 @@
     letter-spacing: normal;
   }
 
+  /* GoTango Index · 7d chart */
+  .d-index-status {
+    font-family: 'Geist Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim, #A8A293);
+    text-align: center;
+    padding: 28px 16px;
+    border: 1px dashed var(--border-light, #313945);
+    border-radius: 8px;
+    background: var(--surface, #161B23);
+  }
+
+  .d-index-sparkline {
+    width: 100%;
+    height: 140px;
+    display: block;
+  }
+
+  .d-index-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  @media (max-width: 520px) {
+    .d-index-metrics {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .d-index-metric {
+      padding: 10px 8px;
+    }
+
+    .d-index-metric-value {
+      font-size: 18px;
+    }
+  }
+
+  .d-index-metric {
+    background: var(--surface, #161B23);
+    border: 1px solid var(--border-light, #313945);
+    border-radius: 6px;
+    padding: 12px 14px;
+    min-width: 0;
+  }
+
+  .d-index-metric-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint, #6B6557);
+    margin-bottom: 6px;
+  }
+
+  .d-index-metric-value {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    color: var(--amber, #E8A317);
+    line-height: 1.1;
+  }
+
+  .d-index-interpret {
+    margin-top: 12px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--text-dim, #A8A293);
+  }
+
   /* Pulse summary (history-backed) */
   .d-pulse-metrics {
     display: grid;
@@ -2499,7 +2659,7 @@
     <section class="hero movers-intro">
       <div class="hero-kicker">THE INDEX · SIGNAL SCORE</div>
       <h1 class="hero-headline">What's <em>moving</em> this week.</h1>
-      <p class="hero-sub">Every destination we track, grouped by private-travel momentum. Tap any market to open the full destination brief.</p>
+      <p class="hero-sub">Every destination we track, ranked by weekly GoTango Index and colored by recent signal direction. Tap any market to open the full destination brief.</p>
     </section>
 
     <div id="movers-index">
@@ -2724,6 +2884,20 @@
       return await response.json();
     } catch (error) {
       console.warn('Error fetching arrivals data:', error);
+      return null;
+    }
+  }
+
+  async function loadMoversIndex() {
+    try {
+      const response = await fetch('/api/get-movers-index');
+      if (!response.ok) {
+        console.warn('Failed to fetch /api/get-movers-index:', response.status);
+        return null;
+      }
+      return await response.json();
+    } catch (error) {
+      console.warn('Error fetching movers index:', error);
       return null;
     }
   }
@@ -3319,40 +3493,11 @@
     }
   }
 
-  // ============ MOVERS INDEX (PHASE 6B) ============
-  const MOVERS_TIER_ORDER = ['surging', 'heating_up', 'active', 'emerging', 'quiet'];
-
-  const MOVERS_TIER_META = {
-    surging: { label: 'Surging', range: '85–100' },
-    heating_up: { label: 'Heating Up', range: '70–84' },
-    active: { label: 'Active', range: '50–69' },
-    emerging: { label: 'Emerging', range: '25–49' },
-    quiet: { label: 'Quiet', range: '0–24' },
-  };
-
-  const MOVERS_TIER_FALLBACK_REASON = {
-    surging: 'Very strong private-travel momentum, with elevated activity and strong origin mix.',
-    heating_up: 'Private signal is building, with meaningful arrival activity and stronger market attention.',
-    active: 'Healthy private-aviation activity, with steady current demand.',
-    emerging: 'Early private movement is appearing, but the signal is still forming.',
-    quiet: 'Private activity remains light, making this a quieter market for now.',
-  };
-
   function getArrivalsPayload(data) {
     if (!data) return null;
     if (data.data && Array.isArray(data.data.destinations)) return data.data;
     if (Array.isArray(data.destinations)) return data;
     return null;
-  }
-
-  function getSignalTier(score) {
-    const n = Number(score);
-    const s = Number.isFinite(n) ? n : 0;
-    if (s >= 85) return 'surging';
-    if (s >= 70) return 'heating_up';
-    if (s >= 50) return 'active';
-    if (s >= 25) return 'emerging';
-    return 'quiet';
   }
 
   function _moverPrivateArrivals24h(dest) {
@@ -3374,14 +3519,225 @@
     return s;
   }
 
-  function getMoverReason(dest, tier) {
+  // ============ MOVERS INDEX (PHASE 6C-LITE) ============
+  const MOVERS_SECTION_ORDER = ['top_weekly', 'rising', 'cooling', 'active', 'quiet'];
+  const MOVERS_TOP_COUNT = 12;
+
+  const MOVERS_SECTION_META = {
+    top_weekly: {
+      label: 'Top Weekly Signals',
+      subtitle: 'Ranked by 7-day GoTango Index',
+      fallbackReason: 'Weekly GoTango Index remains among the strongest private-travel signals.',
+    },
+    rising: {
+      label: 'Rising This Week',
+      subtitle: 'Strengthening private-travel signals',
+      fallbackReason: 'Private-travel signal is strengthening across the recent window.',
+    },
+    cooling: {
+      label: 'Cooling Watch',
+      subtitle: 'Elevated markets losing momentum',
+      fallbackReason: 'Weekly signal remains notable, but the latest score has cooled from its recent high.',
+    },
+    active: {
+      label: 'Active Markets',
+      subtitle: 'Steady weekly private-travel activity',
+      fallbackReason: 'Private-travel signal remains active over the week.',
+    },
+    quiet: {
+      label: 'Quiet Markets',
+      subtitle: 'Light weekly private-travel signal',
+      fallbackReason: 'Weekly private-travel signal remains light.',
+    },
+  };
+
+  const MOVERS_BADGE_META = {
+    top: { label: 'Top Signal', className: 'mover-badge--top', sparkColor: '#E8A317' },
+    rising: { label: 'Rising', className: 'mover-badge--rising', sparkColor: '#7FB069' },
+    cooling: { label: 'Cooling', className: 'mover-badge--cooling', sparkColor: '#E07856' },
+    steady: { label: 'Steady', className: 'mover-badge--steady', sparkColor: '#5B9EA8' },
+    quiet: { label: 'Quiet', className: 'mover-badge--quiet', sparkColor: '#6B6557' },
+  };
+
+  function getMoversScorePoints(dest) {
+    return Array.isArray(dest.score_points_7d) ? dest.score_points_7d : [];
+  }
+
+  function getMoversFirstScore(dest) {
+    const pts = getMoversScorePoints(dest);
+    if (pts.length >= 1) {
+      const n = Number(pts[0].signal_score);
+      if (Number.isFinite(n)) return n;
+    }
+    const fallback = Number(dest.first_signal_score);
+    if (Number.isFinite(fallback)) return fallback;
+    return Number(dest.latest_signal_score ?? dest.signal_score ?? 0);
+  }
+
+  function getMoversWeeklyScore(dest) {
+    const days = Number(dest.index_days_count);
+    const avg = Number(dest.index_7d_avg);
+    if (Number.isFinite(days) && days >= 2 && Number.isFinite(avg)) {
+      return avg;
+    }
+    return Number(dest.signal_score || 0);
+  }
+
+  function isMoverClearlyCooling(dest) {
+    const latest = Number(dest.latest_signal_score ?? dest.signal_score ?? 0);
+    const avg = Number(dest.index_7d_avg);
+    const high = Number(dest.index_7d_high);
+    const first = getMoversFirstScore(dest);
+
+    if (Number.isFinite(high) && high >= 70 && latest <= high - 12) return true;
+    if (first - latest >= 10) return true;
+    if (Number.isFinite(avg) && latest <= avg - 8) return true;
+    return false;
+  }
+
+  function isMoverMeaningfullyRising(dest) {
+    const latest = Number(dest.latest_signal_score ?? dest.signal_score ?? 0);
+    const avg = Number(dest.index_7d_avg);
+    const first = getMoversFirstScore(dest);
+    const pts = getMoversScorePoints(dest);
+
+    if (Number.isFinite(avg) && latest >= avg + 8) return true;
+    if (latest - first >= 10) return true;
+    if (pts.length >= 3) {
+      const prev = Number(pts[pts.length - 2].signal_score);
+      const prev2 = Number(pts[pts.length - 3].signal_score);
+      if (latest > prev && prev > prev2) return true;
+    }
+    return false;
+  }
+
+  function getMoverBadgeKey(dest, section) {
+    if (section === 'top_weekly') {
+      if (isMoverClearlyCooling(dest)) return 'cooling';
+      if (isMoverMeaningfullyRising(dest)) return 'rising';
+      return 'top';
+    }
+    if (isMoverMeaningfullyRising(dest)) return 'rising';
+    if (isMoverClearlyCooling(dest)) return 'cooling';
+    const weeklyIndex = getMoversWeeklyScore(dest);
+    const latest = Number(dest.latest_signal_score ?? dest.signal_score ?? 0);
+    if (weeklyIndex >= 40 || latest >= 50) return 'steady';
+    return 'quiet';
+  }
+
+  function getMoverStory(dest, section) {
+    return {
+      section,
+      badge: getMoverBadgeKey(dest, section),
+    };
+  }
+
+  function assignMoverSections(destinations) {
+    const sorted = [...destinations].sort(sortMoversDestinations);
+    const assigned = new Set();
+    const sections = {
+      top_weekly: [],
+      rising: [],
+      cooling: [],
+      active: [],
+      quiet: [],
+    };
+
+    for (const dest of sorted) {
+      if (sections.top_weekly.length >= MOVERS_TOP_COUNT) break;
+      sections.top_weekly.push(dest);
+      assigned.add(dest.id);
+    }
+
+    for (const dest of sorted) {
+      if (assigned.has(dest.id)) continue;
+      if (isMoverMeaningfullyRising(dest)) {
+        sections.rising.push(dest);
+        assigned.add(dest.id);
+      }
+    }
+
+    for (const dest of sorted) {
+      if (assigned.has(dest.id)) continue;
+      if (isMoverClearlyCooling(dest)) {
+        sections.cooling.push(dest);
+        assigned.add(dest.id);
+      }
+    }
+
+    for (const dest of sorted) {
+      if (assigned.has(dest.id)) continue;
+      const weeklyIndex = getMoversWeeklyScore(dest);
+      const latest = Number(dest.latest_signal_score ?? dest.signal_score ?? 0);
+      if (weeklyIndex >= 40 || latest >= 50) {
+        sections.active.push(dest);
+        assigned.add(dest.id);
+      }
+    }
+
+    for (const dest of sorted) {
+      if (assigned.has(dest.id)) continue;
+      sections.quiet.push(dest);
+      assigned.add(dest.id);
+    }
+
+    MOVERS_SECTION_ORDER.forEach((key) => {
+      sections[key].sort(sortMoversDestinations);
+    });
+
+    return sections;
+  }
+
+  function assignMoverSectionsFallback(destinations) {
+    const sorted = [...destinations].sort((a, b) => {
+      const scoreDiff = Number(b.signal_score || 0) - Number(a.signal_score || 0);
+      if (scoreDiff !== 0) return scoreDiff;
+      return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+    });
+    const sections = { top_weekly: [], rising: [], cooling: [], active: [], quiet: [] };
+
+    sorted.forEach((dest) => {
+      const score = Number(dest.signal_score || 0);
+      if (score >= 50) sections.active.push(dest);
+      else sections.quiet.push(dest);
+    });
+
+    return sections;
+  }
+
+  function enrichDestinationsForMovers(destinations, moversIndexData) {
+    const summaries = moversIndexData && moversIndexData.ok && moversIndexData.summaries
+      ? moversIndexData.summaries
+      : null;
+    if (!summaries) return destinations;
+
+    return destinations.map((dest) => {
+      const summary = summaries[dest.id];
+      if (!summary) return dest;
+      return {
+        ...dest,
+        index_7d_avg: summary.index_7d_avg,
+        index_7d_high: summary.index_7d_high,
+        index_7d_low: summary.index_7d_low,
+        latest_signal_score: summary.latest_signal_score ?? dest.signal_score,
+        index_days_count: summary.index_days_count ?? 0,
+        latest_date: summary.latest_date,
+        score_points_7d: summary.score_points_7d || [],
+        first_signal_score: summary.first_signal_score,
+        score_delta_7d: summary.score_delta_7d,
+      };
+    });
+  }
+
+  function getMoverReason(dest, section) {
     const maxLen = 140;
     const editorial = dest.editorial && String(dest.editorial).trim();
     if (editorial) {
       const short = _shortenMoverReason(editorial, maxLen);
       if (short) return short;
     }
-    let reason = MOVERS_TIER_FALLBACK_REASON[tier] || MOVERS_TIER_FALLBACK_REASON.quiet;
+    const meta = MOVERS_SECTION_META[section] || MOVERS_SECTION_META.quiet;
+    let reason = meta.fallbackReason;
     if (dest.commercial_backdrop_label) {
       const backdrop = formatCommercialBackdropLabel(dest.commercial_backdrop_label);
       if (backdrop) reason += ` · ${backdrop}`;
@@ -3389,45 +3745,84 @@
     return reason;
   }
 
-  function getMoverMovementLabel(dest) {
-    const score = Number(dest.signal_score);
-    if (!Number.isFinite(score) || score <= 0) {
-    return 'Trend building';
+  function buildMoverSparklineSvg(points, accentColor) {
+    if (!points || points.length < 2) return null;
+
+    const w = 72;
+    const h = 28;
+    const pad = 2;
+    const scores = points.map((p) => Number(p.signal_score));
+    const min = Math.min(...scores);
+    const max = Math.max(...scores);
+    const range = max - min || 1;
+    const n = points.length;
+    const color = accentColor || '#E8A317';
+
+    const coords = scores.map((v, i) => {
+      const x = pad + (i / (n - 1)) * (w - pad * 2);
+      const y = pad + (1 - (v - min) / range) * (h - pad * 2);
+      return { x, y, v, date: points[i].date };
+    });
+
+    const linePath = coords
+      .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+      .join(' ');
+
+    const lastCoord = coords[coords.length - 1];
+    const dots = coords.map((p, i) => {
+      const isLast = i === coords.length - 1;
+      const title = p.date
+        ? `<title>${_formatChartAxisDate(p.date)} · ${Math.round(p.v)}</title>`
+        : `<title>${Math.round(p.v)}</title>`;
+      if (isLast) {
+        return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="${color}" stroke="#1A1F26" stroke-width="1">${title}</circle>`;
+      }
+      return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="1.2" fill="${color}" opacity="0.55">${title}</circle>`;
+    }).join('');
+
+    return `<svg class="mover-sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-hidden="true">
+      <path d="${linePath}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dots}
+    </svg>`;
+  }
+
+  function getMoverTrendTag(dest, badgeKey) {
+    const latest = Number(dest.latest_signal_score ?? dest.signal_score ?? 0);
+    const avg = Number(dest.index_7d_avg);
+    const delta = Number(dest.score_delta_7d);
+
+    if (Number.isFinite(avg) && Number.isFinite(latest)) {
+      const vsAvg = latest - avg;
+      if (Math.abs(vsAvg) >= 5) {
+        const sign = vsAvg > 0 ? '+' : '';
+        return {
+          text: `${sign}${Math.round(vsAvg)} vs avg`,
+          className: vsAvg > 0 ? 'up' : 'down',
+        };
+      }
     }
-    const wowPct = dest.wow_change_pct;
-    if (wowPct != null && Number.isFinite(Number(wowPct))) {
-      const n = Number(wowPct);
-      const sign = n > 0 ? '+' : '';
-      return `${sign}${Math.round(n)}% WoW`;
+    if (Number.isFinite(delta) && Math.abs(delta) >= 5 && badgeKey === 'rising') {
+      return { text: `+${Math.round(delta)} 7d`, className: 'up' };
     }
-    const display = formatDisplayCopy(dest.display_wow_change);
-    if (
-      display &&
-    display !== 'Trend building' &&
-      display !== 'New private movement' &&
-      !/^clean baseline/i.test(String(display))
-    ) {
-      return /woW/i.test(String(display)) ? display : `${display} WoW`;
+    if (Number.isFinite(delta) && delta <= -5 && badgeKey === 'cooling') {
+      return { text: `${Math.round(delta)} 7d`, className: 'down' };
     }
-  return 'Trend building';
+    return null;
   }
 
   function sortMoversDestinations(a, b) {
-    const scoreDiff = Number(b.signal_score || 0) - Number(a.signal_score || 0);
+    const scoreDiff = getMoversWeeklyScore(b) - getMoversWeeklyScore(a);
     if (scoreDiff !== 0) return scoreDiff;
 
-    const wowA = a.wow_change_pct;
-    const wowB = b.wow_change_pct;
-    const hasWowA = wowA != null && Number.isFinite(Number(wowA));
-    const hasWowB = wowB != null && Number.isFinite(Number(wowB));
-    if (hasWowA && hasWowB) {
-      const wowDiff = Number(wowB) - Number(wowA);
-      if (wowDiff !== 0) return wowDiff;
-    } else if (hasWowA && !hasWowB) {
-      return -1;
-    } else if (!hasWowA && hasWowB) {
-      return 1;
-    }
+    const latestA = Number(a.latest_signal_score ?? a.signal_score ?? 0);
+    const latestB = Number(b.latest_signal_score ?? b.signal_score ?? 0);
+    const latestDiff = latestB - latestA;
+    if (latestDiff !== 0) return latestDiff;
+
+    const highA = Number(a.index_7d_high ?? 0);
+    const highB = Number(b.index_7d_high ?? 0);
+    const highDiff = highB - highA;
+    if (highDiff !== 0) return highDiff;
 
     const arrDiff = _moverPrivateArrivals24h(b) - _moverPrivateArrivals24h(a);
     if (arrDiff !== 0) return arrDiff;
@@ -3435,24 +3830,18 @@
     return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
   }
 
-  function _moverMovementClass(dest) {
-    const wowPct = dest.wow_change_pct;
-    if (wowPct == null || !Number.isFinite(Number(wowPct))) return '';
-    const n = Number(wowPct);
-    if (n > 0) return 'up';
-    if (n < 0) return 'down';
-    return '';
-  }
-
-  function renderMoverRow(dest, rank, tier) {
+  function renderMoverRow(dest, rank, section) {
     const destId = String(dest.id || '');
     const icao = _destIcao(dest);
-    const signalScore = Number(dest.signal_score);
-    const scoreLabel = Number.isFinite(signalScore) && signalScore > 0
-      ? String(Math.round(signalScore))
+    const story = getMoverStory(dest, section);
+    const badgeMeta = MOVERS_BADGE_META[story.badge] || MOVERS_BADGE_META.quiet;
+    const points = getMoversScorePoints(dest);
+    const days = Number(dest.index_days_count);
+    const hasWeekly = Number.isFinite(days) && days >= 2;
+    const todayScore = Number(dest.latest_signal_score ?? dest.signal_score ?? 0);
+    const todayDisplay = Number.isFinite(todayScore) && todayScore > 0
+      ? String(Math.round(todayScore))
       : '—';
-    const movementLabel = getMoverMovementLabel(dest);
-    const movementClass = _moverMovementClass(dest);
 
     const row = document.createElement('div');
     row.className = 'mover-row';
@@ -3464,48 +3853,98 @@
     rankEl.className = 'mover-rank';
     rankEl.textContent = String(rank).padStart(2, '0');
 
+    const body = document.createElement('div');
+    body.className = 'mover-body';
+
+    const head = document.createElement('div');
+    head.className = 'mover-head';
+
     const info = document.createElement('div');
     info.className = 'mover-info';
 
+    const nameRow = document.createElement('div');
+    nameRow.className = 'mover-name-row';
+
     const nameEl = document.createElement('div');
     nameEl.className = 'mover-name';
-    nameEl.appendChild(document.createTextNode(String(dest.name || '')));
+    nameEl.textContent = String(dest.name || '');
+
+    nameRow.appendChild(nameEl);
     if (icao) {
       const codeEl = document.createElement('span');
       codeEl.className = 'mover-icao';
       codeEl.textContent = icao;
-      nameEl.appendChild(codeEl);
+      nameRow.appendChild(codeEl);
     }
+
+    const badgeEl = document.createElement('span');
+    badgeEl.className = `mover-badge ${badgeMeta.className}`;
+    badgeEl.textContent = badgeMeta.label;
+    nameRow.appendChild(badgeEl);
 
     const reasonEl = document.createElement('div');
     reasonEl.className = 'mover-reason';
-    reasonEl.textContent = getMoverReason(dest, tier);
+    reasonEl.textContent = getMoverReason(dest, section);
 
-    info.appendChild(nameEl);
+    info.appendChild(nameRow);
     info.appendChild(reasonEl);
 
-    const metric = document.createElement('div');
-    metric.className = 'mover-metric';
+    const today = document.createElement('div');
+    today.className = 'mover-today';
 
     const scoreEl = document.createElement('div');
-    scoreEl.className = 'mover-score';
-    scoreEl.textContent = scoreLabel;
+    scoreEl.className = 'mover-today-score';
+    scoreEl.textContent = todayDisplay;
 
-    const signalEl = document.createElement('div');
-    signalEl.className = 'mover-signal-label';
-    signalEl.textContent = 'SIGNAL';
+    const labelEl = document.createElement('div');
+    labelEl.className = 'mover-today-label';
+    labelEl.textContent = 'Today';
 
-    const moveEl = document.createElement('div');
-    moveEl.className = 'mover-move' + (movementClass ? ` ${movementClass}` : '');
-    moveEl.textContent = movementLabel;
+    today.appendChild(scoreEl);
+    today.appendChild(labelEl);
 
-    metric.appendChild(scoreEl);
-    metric.appendChild(signalEl);
-    metric.appendChild(moveEl);
+    const trendTag = getMoverTrendTag(dest, story.badge);
+    if (trendTag) {
+      const tagEl = document.createElement('div');
+      tagEl.className = `mover-trend-tag ${trendTag.className}`;
+      tagEl.textContent = trendTag.text;
+      today.appendChild(tagEl);
+    }
+
+    head.appendChild(info);
+    head.appendChild(today);
+
+    const chartRow = document.createElement('div');
+    chartRow.className = 'mover-chart-row';
+
+    const sparkHtml = buildMoverSparklineSvg(points, badgeMeta.sparkColor);
+    if (sparkHtml) {
+      const sparkWrap = document.createElement('div');
+      sparkWrap.innerHTML = sparkHtml;
+      chartRow.appendChild(sparkWrap.firstChild);
+    } else {
+      const fallbackEl = document.createElement('span');
+      fallbackEl.className = 'mover-sparkline-fallback';
+      fallbackEl.textContent = 'Trend building';
+      chartRow.appendChild(fallbackEl);
+    }
+
+    const metricsEl = document.createElement('div');
+    metricsEl.className = 'mover-secondary-metrics';
+    if (hasWeekly) {
+      const avg = Math.round(Number(dest.index_7d_avg));
+      const peak = Math.round(Number(dest.index_7d_high));
+      metricsEl.innerHTML = `7D avg <b>${avg}</b> · Peak <b>${peak}</b>`;
+    } else {
+      metricsEl.textContent = 'Weekly trend building';
+    }
+    chartRow.appendChild(metricsEl);
+
+    body.appendChild(head);
+    body.appendChild(chartRow);
 
     row.appendChild(rankEl);
-    row.appendChild(info);
-    row.appendChild(metric);
+    row.appendChild(body);
 
     return row;
   }
@@ -3517,7 +3956,7 @@
     if (fallbackEl) fallbackEl.hidden = false;
   }
 
-  function renderMoversIndex(arrivalsData) {
+  function renderMoversIndex(arrivalsData, moversIndexData) {
     const indexEl = document.getElementById('movers-index');
     const fallbackEl = document.getElementById('movers-static-fallback');
     if (!indexEl) return;
@@ -3535,28 +3974,25 @@
       return;
     }
 
-    const destinations = payload.destinations.filter(d => d && d.ok === true);
-    const grouped = {};
-    MOVERS_TIER_ORDER.forEach(tier => { grouped[tier] = []; });
+    const weeklyAvailable = !!(moversIndexData && moversIndexData.ok && moversIndexData.summaries);
+    const destinations = enrichDestinationsForMovers(
+      payload.destinations.filter(d => d && d.ok === true),
+      moversIndexData,
+    );
 
-    destinations.forEach(dest => {
-      const tier = getSignalTier(dest.signal_score);
-      grouped[tier].push(dest);
-    });
-
-    MOVERS_TIER_ORDER.forEach(tier => {
-      grouped[tier].sort(sortMoversDestinations);
-    });
+    const grouped = weeklyAvailable
+      ? assignMoverSections(destinations)
+      : assignMoverSectionsFallback(destinations);
 
     indexEl.innerHTML = '';
     let sectionCount = 0;
 
-    MOVERS_TIER_ORDER.forEach(tier => {
-      const list = grouped[tier];
+    MOVERS_SECTION_ORDER.forEach((sectionKey) => {
+      const list = grouped[sectionKey];
       if (!list.length) return;
 
       sectionCount += 1;
-      const meta = MOVERS_TIER_META[tier];
+      const meta = MOVERS_SECTION_META[sectionKey];
       const countLabel = list.length === 1 ? '1 destination' : `${list.length} destinations`;
 
       const head = document.createElement('div');
@@ -3568,7 +4004,9 @@
 
       const sectionMeta = document.createElement('span');
       sectionMeta.className = 'section-meta';
-      sectionMeta.textContent = `${meta.range} · ${countLabel}`;
+      sectionMeta.textContent = weeklyAvailable
+        ? `${meta.subtitle} · ${countLabel}`
+        : `${countLabel}`;
 
       head.appendChild(title);
       head.appendChild(sectionMeta);
@@ -3578,7 +4016,7 @@
       group.className = 'movers-group';
 
       list.forEach((dest, i) => {
-        group.appendChild(renderMoverRow(dest, i + 1, tier));
+        group.appendChild(renderMoverRow(dest, i + 1, sectionKey));
       });
 
       indexEl.appendChild(group);
@@ -4578,29 +5016,229 @@
       if (requestId !== _modalHistoryRequestId || _modalCurrentDestId !== destinationId) return;
       if (!response.ok) {
         console.warn('[modal] History fetch failed:', response.status);
+        applyModalHistoryError();
         return;
       }
       const payload = await response.json();
       if (requestId !== _modalHistoryRequestId || _modalCurrentDestId !== destinationId) return;
-      if (!payload || !payload.ok || !Array.isArray(payload.points)) return;
+      if (!payload || !payload.ok || !Array.isArray(payload.points)) {
+        applyModalHistoryError();
+        return;
+      }
       applyModalHistorySections(dest, payload.points);
     } catch (err) {
       console.warn('[modal] History fetch error:', err);
+      if (requestId !== _modalHistoryRequestId || _modalCurrentDestId !== destinationId) return;
+      applyModalHistoryError();
+    }
+  }
+
+  function applyModalHistoryError() {
+    const indexEl = document.querySelector('[data-modal-section="index-7d"]');
+    if (indexEl) {
+      indexEl.innerHTML = renderModalIndexUnavailable();
     }
   }
 
   function applyModalHistorySections(dest, points) {
+    const indexEl = document.querySelector('[data-modal-section="index-7d"]');
     const trajectoryEl = document.querySelector('[data-modal-section="trajectory"]');
     const pulseEl = document.querySelector('[data-modal-section="pulse"]');
-    if (!trajectoryEl && !pulseEl) return;
+    if (!indexEl && !trajectoryEl && !pulseEl) return;
 
     const n = points.length;
+    if (indexEl) {
+      indexEl.innerHTML = renderModalIndexSection(points, n);
+    }
     if (trajectoryEl) {
       trajectoryEl.innerHTML = renderModalTrajectorySection(points, n);
     }
     if (pulseEl) {
       pulseEl.innerHTML = renderModalPulseSection(dest, points, n);
     }
+  }
+
+  function _utcTodayIso() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function _indexScorePoints(points) {
+    if (!Array.isArray(points)) return [];
+    return points.filter((p) => p && p.date != null && Number.isFinite(Number(p.signal_score)));
+  }
+
+  function _indexInterpretiveLine(windowPts) {
+    if (!windowPts || windowPts.length < 2) return 'Index trend building.';
+    const scores = windowPts.map((p) => Math.round(_safeNum(p.signal_score)));
+    const latest = scores[scores.length - 1];
+    const previous = scores[scores.length - 2];
+    const diff = latest - previous;
+    if (diff >= 3) return 'Index is strengthening over the recent window.';
+    if (diff <= -3) {
+      if (latest >= 70) return 'Index cooled from its recent high but remains elevated.';
+      return 'Index cooled over the recent window.';
+    }
+    return 'Index is holding steady over the recent window.';
+  }
+
+  function buildIndexScoreChart(scores, dates, { gradId = 'areaGradIndex' } = {}) {
+    if (!scores || scores.length < 2) return '';
+    const w = 440;
+    const h = 140;
+    const padLeft = 42;
+    const padRight = 14;
+    const padTop = 22;
+    const padBottom = 28;
+    const chartW = w - padLeft - padRight;
+    const chartH = h - padTop - padBottom;
+    const scoreMin = 0;
+    const scoreMax = 100;
+    const scoreToY = (v) => {
+      const clamped = Math.max(scoreMin, Math.min(scoreMax, v));
+      return padTop + chartH * (1 - (clamped - scoreMin) / (scoreMax - scoreMin));
+    };
+    const xStep = chartW / (scores.length - 1);
+    const pts = scores.map((v, i) => {
+      const x = padLeft + i * xStep;
+      const y = scoreToY(v);
+      return { x, y, v, date: dates && dates[i] ? dates[i] : '' };
+    });
+    const linePath = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+    const areaPath =
+      linePath +
+      ` L${pts[pts.length - 1].x.toFixed(1)},${(padTop + chartH).toFixed(1)} L${pts[0].x.toFixed(1)},${(padTop + chartH).toFixed(1)} Z`;
+    const lastPt = pts[pts.length - 1];
+    const lastScore = Math.round(lastPt.v);
+    const lastDateIso = dates && dates[dates.length - 1] ? dates[dates.length - 1] : '';
+    const latestPrefix = lastDateIso === _utcTodayIso() ? 'Today' : 'Latest';
+    const labelY = Math.max(padTop + 8, lastPt.y - 12);
+    const firstDate = dates && dates[0] ? _formatChartAxisDate(dates[0]) : '';
+    const midIdx = Math.floor((dates ? dates.length : scores.length - 1) / 2);
+    const midDate = dates && dates[midIdx] ? _formatChartAxisDate(dates[midIdx]) : '';
+    const lastDate = dates && dates[dates.length - 1] ? _formatChartAxisDate(dates[dates.length - 1]) : '';
+    const yBands = [25, 50, 70, 85];
+    const yLabels = [
+      { score: 100, label: '100' },
+      { score: 50, label: '50' },
+      { score: 0, label: '0' },
+    ];
+    const bandLines = yBands.map((band) => {
+      const y = scoreToY(band).toFixed(1);
+      return `<line x1="${padLeft}" y1="${y}" x2="${(padLeft + chartW).toFixed(1)}" y2="${y}" stroke="#252C37" stroke-dasharray="2 4" opacity="0.55"/>`;
+    }).join('');
+    const yAxisLabels = yLabels.map(({ score, label }) => {
+      const y = scoreToY(score).toFixed(1);
+      return `<text style="font-family: 'Geist Mono', monospace; font-size: 9px; fill: #A8A293;" x="${padLeft - 4}" y="${y}" text-anchor="end" dominant-baseline="middle">${label}</text>`;
+    }).join('');
+    const pointMarkers = pts.map((p, i) => {
+      const isLast = i === pts.length - 1;
+      const r = isLast ? 4.5 : 2.5;
+      const fill = isLast ? '#E8A317' : '#F5F1E8';
+      const stroke = isLast ? '#F5F1E8' : '#E8A317';
+      const strokeWidth = isLast ? 1.5 : 1;
+      const title = p.date
+        ? `<title>${_escapeHtml(_formatChartAxisDate(p.date))} · ${Math.round(p.v)}</title>`
+        : `<title>${Math.round(p.v)}</title>`;
+      const glow = isLast
+        ? `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="9" fill="#E8A317" opacity="0.18"/>`
+        : '';
+      return `${glow}<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}">${title}</circle>`;
+    }).join('');
+    const mono = "font-family: 'Geist Mono', monospace";
+    return `
+      <svg class="d-index-sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="GoTango Index seven-day signal score chart">
+        <defs>
+          <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#E8A317" stop-opacity="0.28"/>
+            <stop offset="100%" stop-color="#E8A317" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        ${bandLines}
+        <line x1="${padLeft}" y1="${scoreToY(100).toFixed(1)}" x2="${(padLeft + chartW).toFixed(1)}" y2="${scoreToY(100).toFixed(1)}" stroke="#313945"/>
+        <line x1="${padLeft}" y1="${scoreToY(0).toFixed(1)}" x2="${(padLeft + chartW).toFixed(1)}" y2="${scoreToY(0).toFixed(1)}" stroke="#313945"/>
+        ${yAxisLabels}
+        <path d="${areaPath}" fill="url(#${gradId})"/>
+        <path d="${linePath}" fill="none" stroke="#E8A317" stroke-width="1.8" stroke-linejoin="round"/>
+        ${pointMarkers}
+        <text style="${mono}; font-size: 9px; fill: #E8A317; font-weight: 500;" x="${Math.min(lastPt.x, w - padRight - 4).toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="end">${latestPrefix}: ${lastScore}</text>
+        <text style="${mono}; font-size: 9px; fill: #6B6557;" x="${pts[0].x.toFixed(1)}" y="${(h - 8).toFixed(1)}" text-anchor="start">${firstDate}</text>
+        <text style="${mono}; font-size: 9px; fill: #6B6557;" x="${pts[midIdx].x.toFixed(1)}" y="${(h - 8).toFixed(1)}" text-anchor="middle">${midDate}</text>
+        <text style="${mono}; font-size: 9px; fill: #6B6557;" x="${lastPt.x.toFixed(1)}" y="${(h - 8).toFixed(1)}" text-anchor="end">${lastDate}</text>
+      </svg>
+    `;
+  }
+
+  function renderModalIndexSection(points, count) {
+    const scorePts = _indexScorePoints(points);
+    const n = scorePts.length;
+
+    if (n < 2) {
+      return `
+        <div class="d-section-head">
+          <span class="d-section-label">GoTango Index · 7d</span>
+          <span class="d-section-meta">Daily Signal Score</span>
+        </div>
+        <div class="d-trajectory-placeholder">
+          <div class="d-placeholder-msg">
+            <div class="d-placeholder-icon">GT</div>
+            <div class="d-placeholder-title">Index trend building</div>
+            <div class="d-placeholder-text">More daily score history needed.${n > 0 ? ` ${n} ${n === 1 ? 'day' : 'days'} collected.` : ''}</div>
+          </div>
+        </div>
+        <p class="d-index-interpret">Index trend building.</p>
+      `;
+    }
+
+    const windowPts = n >= 7 ? scorePts.slice(-7) : scorePts;
+    const windowN = windowPts.length;
+    const scores = windowPts.map((p) => _safeNum(p.signal_score));
+    const dates = windowPts.map((p) => p.date || '');
+    const gradId = 'areaGradIndex' + String(Date.now() % 100000);
+    const todayScore = Math.round(scores[scores.length - 1]);
+    const highScore = Math.round(Math.max(...scores));
+    const avgScore = Math.round(scores.reduce((s, v) => s + v, 0) / scores.length);
+    const latestDateIso = dates[dates.length - 1] || '';
+    const todayMetricLabel = latestDateIso === _utcTodayIso() ? 'Today' : 'Latest';
+    const metaLabel = windowN >= 7
+      ? 'Daily Signal Score · Last 7 days'
+      : `Daily Signal Score · ${windowN} ${windowN === 1 ? 'day' : 'days'}`;
+    const highLabel = windowN >= 7 ? '7-day high' : 'High';
+    const avgLabel = windowN >= 7 ? '7-day avg' : 'Avg';
+
+    return `
+      <div class="d-section-head">
+        <span class="d-section-label">GoTango Index · 7d</span>
+        <span class="d-section-meta">${metaLabel}</span>
+      </div>
+      <div class="d-history-chart-wrap">
+        ${buildIndexScoreChart(scores, dates, { gradId })}
+      </div>
+      <div class="d-index-metrics">
+        <div class="d-index-metric">
+          <div class="d-index-metric-label">${todayMetricLabel}</div>
+          <div class="d-index-metric-value">${todayScore}</div>
+        </div>
+        <div class="d-index-metric">
+          <div class="d-index-metric-label">${highLabel}</div>
+          <div class="d-index-metric-value">${highScore}</div>
+        </div>
+        <div class="d-index-metric">
+          <div class="d-index-metric-label">${avgLabel}</div>
+          <div class="d-index-metric-value">${avgScore}</div>
+        </div>
+      </div>
+      <p class="d-index-interpret">${_escapeHtml(_indexInterpretiveLine(windowPts))}</p>
+    `;
+  }
+
+  function renderModalIndexUnavailable() {
+    return `
+      <div class="d-section-head">
+        <span class="d-section-label">GoTango Index · 7d</span>
+        <span class="d-section-meta">Daily Signal Score</span>
+      </div>
+      <div class="d-index-status">Index trend unavailable.</div>
+    `;
   }
 
   function buildHistorySparkline(values, dates, { preview = false, gradId = 'areaGradHist' } = {}) {
@@ -5076,6 +5714,18 @@
     `;
   }
 
+  function renderIndexPlaceholder() {
+    return `
+      <div class="d-section" data-modal-section="index-7d">
+        <div class="d-section-head">
+          <span class="d-section-label">GoTango Index · 7d</span>
+          <span class="d-section-meta">Daily Signal Score</span>
+        </div>
+        <div class="d-index-status">Index trend loading…</div>
+      </div>
+    `;
+  }
+
   function renderTrajectoryPlaceholder() {
     return `
       <div class="d-section" data-modal-section="trajectory">
@@ -5429,6 +6079,7 @@
     return [
       renderModalHero(dest, tier),
       renderModalStats(dest),
+      renderIndexPlaceholder(),
       renderEditorial(dest),
       renderModalOrigins(dest),
       renderModalAircraft(dest),
@@ -5443,13 +6094,16 @@
     updateClock();
     setInterval(updateClock, 60000);
     updateDate();
-    const arrivalsData = await loadArrivalsData();
+    const [arrivalsData, moversIndexData] = await Promise.all([
+      loadArrivalsData(),
+      loadMoversIndex(),
+    ]);
     _modalArrivalsData = arrivalsData;
     updateStats(arrivalsData);
     updateTodaysPick(arrivalsData);
     renderHeatingUp(arrivalsData);
     renderCoolingDown(arrivalsData);
-    renderMoversIndex(arrivalsData);
+    renderMoversIndex(arrivalsData, moversIndexData);
     renderWorldMap(arrivalsData);
     attachModalCloseHandlers();
     attachModalExpandHandlers();
