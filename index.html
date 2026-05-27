@@ -224,6 +224,149 @@
     max-width: 340px;
   }
 
+  /* ===== NOW: GOTANGO INDEX EXPLAINER ===== */
+  .index-explainer {
+    margin-top: 18px;
+    max-width: 100%;
+    background: linear-gradient(155deg, var(--surface) 0%, var(--bg-2) 100%);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 12px 12px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(232, 163, 23, 0.06);
+  }
+  .index-explainer::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(245, 241, 232, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245, 241, 232, 0.025) 1px, transparent 1px);
+    background-size: 24px 24px;
+    mask-image: radial-gradient(ellipse 90% 80% at 50% 0%, black, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 0%, black, transparent 75%);
+    pointer-events: none;
+  }
+  .index-explainer > * { position: relative; z-index: 1; }
+  .index-explainer__eyebrow {
+    font-family: 'Geist Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.18em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .index-explainer__title {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 17px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .index-explainer__body {
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .index-explainer__signals {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    margin-bottom: 2px;
+  }
+  .index-explainer__signal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+  .index-explainer__signal-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: rgba(232, 163, 23, 0.07);
+    border: 1px solid rgba(232, 163, 23, 0.22);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--amber);
+  }
+  .index-explainer__signal-icon svg {
+    width: 13px;
+    height: 13px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .index-explainer__signal-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 1.2;
+    max-width: 100%;
+    word-break: break-word;
+  }
+  .index-explainer__connector {
+    display: block;
+    width: 100%;
+    height: 22px;
+    margin: 0 auto 2px;
+    color: var(--amber);
+    opacity: 0.45;
+  }
+  .index-explainer__score {
+    margin: 0 auto 10px;
+    text-align: center;
+    padding: 8px 18px 7px;
+    background: rgba(232, 163, 23, 0.06);
+    border: 1px solid rgba(232, 163, 23, 0.28);
+    border-radius: 8px;
+    max-width: 128px;
+    box-shadow: 0 0 24px rgba(232, 163, 23, 0.08);
+  }
+  .index-explainer__score-label {
+    display: block;
+    font-family: 'Geist Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .index-explainer__score-value {
+    display: block;
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 28px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--amber);
+  }
+  .index-explainer__footer {
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--text-faint);
+    text-align: center;
+    max-width: 300px;
+    margin: 0 auto;
+  }
+  @media (max-width: 360px) {
+    .index-explainer__signal-label { font-size: 6px; letter-spacing: 0.02em; }
+    .index-explainer__signal-icon { width: 24px; height: 24px; }
+    .index-explainer__signal-icon svg { width: 12px; height: 12px; }
+  }
+
   .hero-stats {
     margin-top: 26px;
     display: grid;
@@ -264,6 +407,19 @@
   }
   .delta-up { color: var(--signal-up); }
   .delta-down { color: var(--signal-down); }
+
+  .hero-stats .hero-stat-value--private { color: var(--text); }
+  .hero-stats .hero-stat-value--heating { color: var(--amber); }
+  .hero-stats .hero-stat-value--cooling { color: var(--teal); }
+  .hero-stats .hero-stat-delta {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    margin-top: 5px;
+    letter-spacing: 0.02em;
+  }
+  .hero-stats .hero-stat-delta--up { color: var(--signal-up); }
+  .hero-stats .hero-stat-delta--down { color: var(--signal-down); }
+  .hero-stats .hero-stat-delta--muted { color: var(--text-faint); }
 
   /* ===== SECTION HEAD ===== */
   .section-head {
@@ -2576,21 +2732,71 @@
       <p class="hero-hook">Where will you GoTango?</p>
       <p class="hero-sub">A daily read on the destinations gaining heat, losing momentum, or quietly coming into view — powered by our GoTango Index.</p>
 
+      <div class="index-explainer" aria-label="GoTango Index explained">
+        <p class="index-explainer__eyebrow">THE GOTANGO INDEX</p>
+        <h2 class="index-explainer__title">More than arrivals alone.</h2>
+        <p class="index-explainer__body">Our 0–100 GoTango Index blends private-travel activity, trend strength, origin diversity, aircraft mix, and broader market context to measure real destination momentum.</p>
+        <div class="index-explainer__signals">
+          <div class="index-explainer__signal">
+            <span class="index-explainer__signal-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+            <span class="index-explainer__signal-label">Activity</span>
+          </div>
+          <div class="index-explainer__signal">
+            <span class="index-explainer__signal-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            </span>
+            <span class="index-explainer__signal-label">Trend</span>
+          </div>
+          <div class="index-explainer__signal">
+            <span class="index-explainer__signal-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </span>
+            <span class="index-explainer__signal-label">Origins</span>
+          </div>
+          <div class="index-explainer__signal">
+            <span class="index-explainer__signal-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 2 2 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+            </span>
+            <span class="index-explainer__signal-label">Aircraft mix</span>
+          </div>
+          <div class="index-explainer__signal">
+            <span class="index-explainer__signal-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+            </span>
+            <span class="index-explainer__signal-label">Context</span>
+          </div>
+        </div>
+        <svg class="index-explainer__connector" viewBox="0 0 400 24" preserveAspectRatio="none" aria-hidden="true">
+          <line x1="40" y1="2" x2="200" y2="22" stroke="currentColor" stroke-width="1"/>
+          <line x1="120" y1="2" x2="200" y2="22" stroke="currentColor" stroke-width="1"/>
+          <line x1="200" y1="2" x2="200" y2="22" stroke="currentColor" stroke-width="1"/>
+          <line x1="280" y1="2" x2="200" y2="22" stroke="currentColor" stroke-width="1"/>
+          <line x1="360" y1="2" x2="200" y2="22" stroke="currentColor" stroke-width="1"/>
+        </svg>
+        <div class="index-explainer__score">
+          <span class="index-explainer__score-label">GoTango Index</span>
+          <span class="index-explainer__score-value">84</span>
+        </div>
+        <p class="index-explainer__footer">Higher scores signal stronger, broader, more durable travel momentum.</p>
+      </div>
+
       <div class="hero-stats">
         <div class="stat-cell">
           <div class="stat-label">Private arrivals · 24h</div>
-          <div class="stat-value" id="stat-arrivals">—</div>
-          <div class="stat-delta delta-up" id="stat-arrivals-delta">—</div>
+          <div class="stat-value hero-stat-value--private" id="stat-arrivals">—</div>
+          <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-arrivals-delta">—</div>
         </div>
         <div class="stat-cell">
           <div class="stat-label">Heating signals</div>
-          <div class="stat-value" id="stat-heating">—</div>
-          <div class="stat-delta delta-up" id="stat-heating-delta">—</div>
+          <div class="stat-value hero-stat-value--heating" id="stat-heating">—</div>
+          <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-heating-delta">—</div>
         </div>
         <div class="stat-cell">
           <div class="stat-label">Cooling signals</div>
-          <div class="stat-value" id="stat-cooling">—</div>
-          <div class="stat-delta delta-down" id="stat-cooling-delta">—</div>
+          <div class="stat-value hero-stat-value--cooling" id="stat-cooling">—</div>
+          <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-cooling-delta">—</div>
         </div>
       </div>
     </section>
@@ -3216,6 +3422,67 @@
     if (overlayCount) overlayCount.textContent = label;
   }
 
+  function _heroWeightedPrivateSignal24h(dest) {
+    const n = Number(dest.weighted_private_signal_24h ?? dest.qualified_private_arrivals_24h);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function _aggregateWowPctFromDestinations(destinations, valueFn) {
+    if (!Array.isArray(destinations)) return null;
+    let currentSum = 0;
+    let baseSum = 0;
+    let contributed = 0;
+    for (const d of destinations) {
+      if (!d || d.ok !== true) continue;
+      const pct = Number(d.wow_change_pct);
+      if (!Number.isFinite(pct)) continue;
+      const current = valueFn(d);
+      if (!Number.isFinite(current)) continue;
+      const denom = 1 + pct / 100;
+      if (denom === 0) continue;
+      const base = current / denom;
+      if (!Number.isFinite(base)) continue;
+      currentSum += current;
+      baseSum += base;
+      contributed += 1;
+    }
+    if (contributed === 0 || baseSum <= 0) return null;
+    return Math.round(((currentSum - baseSum) / baseSum) * 100);
+  }
+
+  function _averageWowPctFromDestinations(destinations) {
+    if (!Array.isArray(destinations) || destinations.length === 0) return null;
+    const pcts = destinations
+      .filter((d) => d && d.ok === true)
+      .map((d) => Number(d.wow_change_pct))
+      .filter((n) => Number.isFinite(n));
+    if (!pcts.length) return null;
+    return Math.round(pcts.reduce((sum, n) => sum + n, 0) / pcts.length);
+  }
+
+  function formatHeroStatDelta(value, suffix) {
+    if (value == null || !Number.isFinite(value)) return null;
+    const rounded = Math.round(value);
+    const sign = rounded > 0 ? '+' : (rounded < 0 ? '−' : '');
+    const absVal = Math.abs(rounded);
+    const base = rounded === 0 ? '0%' : `${sign}${absVal}%`;
+    return suffix ? `${base}${suffix}` : base;
+  }
+
+  function getHeroStatDeltaClass(value) {
+    if (value == null || !Number.isFinite(value)) return 'hero-stat-delta--muted';
+    if (value > 0) return 'hero-stat-delta--up';
+    if (value < 0) return 'hero-stat-delta--down';
+    return 'hero-stat-delta--muted';
+  }
+
+  function setHeroStatDelta(el, value, suffix, fallback) {
+    if (!el) return;
+    const label = formatHeroStatDelta(value, suffix);
+    el.textContent = label || fallback || '—';
+    el.className = `stat-delta hero-stat-delta ${getHeroStatDeltaClass(value)}`;
+  }
+
   function updateStats(data) {
     const payload = data && data.data;
     const destinations = payload && Array.isArray(payload.destinations) ? payload.destinations : null;
@@ -3270,6 +3537,42 @@
       }
     } catch (error) {
       console.warn('Error updating cooling stat:', error);
+    }
+
+    const heroDeltaFallback = 'Trend building';
+    const okDestinations = destinations.filter((d) => d && d.ok === true);
+
+    try {
+      const arrivalsDeltaEl = document.getElementById('stat-arrivals-delta');
+      const privateWowPct = _aggregateWowPctFromDestinations(
+        okDestinations,
+        _heroWeightedPrivateSignal24h,
+      );
+      setHeroStatDelta(arrivalsDeltaEl, privateWowPct, ' WoW', heroDeltaFallback);
+    } catch (error) {
+      console.warn('Error updating arrivals stat delta:', error);
+    }
+
+    try {
+      const heatingDeltaEl = document.getElementById('stat-heating-delta');
+      const heatingDests = payload.homepage && Array.isArray(payload.homepage.heating_up)
+        ? payload.homepage.heating_up
+        : okDestinations.filter((d) => ['heating', 'warming', 'sleeper'].includes(d.status));
+      const heatingWowPct = _averageWowPctFromDestinations(heatingDests);
+      setHeroStatDelta(heatingDeltaEl, heatingWowPct, ' WoW', heroDeltaFallback);
+    } catch (error) {
+      console.warn('Error updating heating stat delta:', error);
+    }
+
+    try {
+      const coolingDeltaEl = document.getElementById('stat-cooling-delta');
+      const coolingDests = payload.homepage && Array.isArray(payload.homepage.cooling_down)
+        ? payload.homepage.cooling_down
+        : okDestinations.filter((d) => d.status === 'cooling' || d.status === 'softening');
+      const coolingWowPct = _averageWowPctFromDestinations(coolingDests);
+      setHeroStatDelta(coolingDeltaEl, coolingWowPct, ' WoW', heroDeltaFallback);
+    } catch (error) {
+      console.warn('Error updating cooling stat delta:', error);
     }
   }
 
