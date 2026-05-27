@@ -2060,9 +2060,20 @@
   .d-index-interpret {
     margin-top: 12px;
     font-family: 'Geist Mono', monospace;
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.45;
-    color: var(--text-dim, #A8A293);
+    color: var(--text, #F5F1E8);
+  }
+
+  .d-index-interpret-lead {
+    color: var(--amber, #E8A317);
+    font-style: italic;
+    font-weight: 600;
+  }
+
+  .d-index-interpret-rest {
+    color: var(--text, #F5F1E8);
+    opacity: 0.92;
   }
 
   /* Pulse summary (history-backed) */
@@ -5091,17 +5102,19 @@
   }
 
   function _indexInterpretiveLine(windowPts) {
-    if (!windowPts || windowPts.length < 2) return 'Index trend building.';
+    if (!windowPts || windowPts.length < 2) {
+      return { lead: 'Index trend building.', rest: '' };
+    }
     const scores = windowPts.map((p) => Math.round(_safeNum(p.signal_score)));
     const latest = scores[scores.length - 1];
     const previous = scores[scores.length - 2];
     const diff = latest - previous;
-    if (diff >= 3) return 'Index is strengthening over the recent timeframe.';
+    if (diff >= 3) return { lead: 'Index is strengthening', rest: ' over the recent timeframe.' };
     if (diff <= -3) {
-      if (latest >= 70) return 'Index cooled from its recent high but remains elevated.';
-      return 'Index cooled over the recent timeframe.';
+      if (latest >= 70) return { lead: 'Index cooled from its recent high', rest: ' but remains elevated.' };
+      return { lead: 'Index cooled', rest: ' over the recent timeframe.' };
     }
-    return 'Index is holding steady over the recent timeframe.';
+    return { lead: 'Index is holding steady', rest: ' over the recent timeframe.' };
   }
 
   function buildIndexScoreChart(scores, dates, { gradId = 'areaGradIndex' } = {}) {
@@ -5208,7 +5221,7 @@
             <div class="d-placeholder-text">More daily score history needed.${n > 0 ? ` ${n} ${n === 1 ? 'day' : 'days'} collected.` : ''}</div>
           </div>
         </div>
-        <p class="d-index-interpret">Index trend building.</p>
+        <p class="d-index-interpret"><span class="d-index-interpret-lead">Index trend building.</span></p>
       `;
     }
 
@@ -5227,6 +5240,10 @@
       : `Daily Signal Score · ${windowN} ${windowN === 1 ? 'day' : 'days'}`;
     const highLabel = windowN >= 7 ? '7-day high' : 'High';
     const avgLabel = windowN >= 7 ? '7-day avg' : 'Avg';
+
+    const interpretation = _indexInterpretiveLine(windowPts);
+    const lead = interpretation && typeof interpretation === 'object' ? (interpretation.lead || '') : String(interpretation || '');
+    const rest = interpretation && typeof interpretation === 'object' ? (interpretation.rest || '') : '';
 
     return `
       <div class="d-section-head">
@@ -5250,7 +5267,7 @@
           <div class="d-index-metric-value d-index-metric-value--avg">${avgScore}</div>
         </div>
       </div>
-      <p class="d-index-interpret">${_escapeHtml(_indexInterpretiveLine(windowPts))}</p>
+      <p class="d-index-interpret"><span class="d-index-interpret-lead">${_escapeHtml(lead)}</span><span class="d-index-interpret-rest">${_escapeHtml(rest)}</span></p>
     `;
   }
 
