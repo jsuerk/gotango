@@ -1808,10 +1808,11 @@
 
   .dest-modal__close {
     position: sticky;
-    top: max(18px, calc(env(safe-area-inset-top, 0px) + 14px));
+    top: auto;
+    bottom: max(18px, calc(env(safe-area-inset-bottom, 0px) + 14px));
     margin-left: auto;
-    margin-right: 16px;
-    margin-top: max(18px, calc(env(safe-area-inset-top, 0px) + 14px));
+    margin-right: max(16px, env(safe-area-inset-right, 0px));
+    margin-top: 0;
     margin-bottom: -60px; /* pull subsequent content up so button overlays without taking layout space */
     z-index: 20;
     width: 42px;
@@ -2356,10 +2357,11 @@
     }
 
     .dest-modal__close {
-      top: max(20px, calc(env(safe-area-inset-top, 0px) + 16px));
-      margin-right: 14px;
-      margin-top: max(20px, calc(env(safe-area-inset-top, 0px) + 16px));
-      margin-bottom: -64px;
+      position: fixed;
+      top: auto;
+      right: max(14px, env(safe-area-inset-right, 0px));
+      bottom: max(20px, calc(env(safe-area-inset-bottom, 0px) + 16px));
+      margin: 0;
       width: 44px;
       height: 44px;
       font-size: 20px;
