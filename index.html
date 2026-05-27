@@ -3693,7 +3693,7 @@
 
         const rank = document.createElement('div');
         rank.className = 'dest-rank';
-        rank.textContent = String(i + 1).padStart(2, '0');
+        rank.textContent = romans[i] || String(i + 1);
 
         const main = document.createElement('div');
         main.className = 'dest-main';
