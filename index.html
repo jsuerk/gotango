@@ -2057,14 +2057,6 @@
     color: color-mix(in srgb, var(--teal, #5EAAA8) 58%, var(--text-dim, #A8A293) 42%);
   }
 
-  .d-index-interpret {
-    margin-top: 12px;
-    font-family: 'Geist Mono', monospace;
-    font-size: 11px;
-    line-height: 1.45;
-    color: var(--text-dim, #A8A293);
-  }
-
   /* Pulse summary (history-backed) */
   .d-pulse-metrics {
     display: grid;
@@ -2581,8 +2573,8 @@
     <section class="hero">
       <div class="hero-kicker" id="hero-kicker">The Index · TUESDAY, 28 APRIL</div>
       <h1 class="hero-headline">Where the world's <em>going.</em></h1>
-      <p class="hero-sub">A daily read on the destinations gaining heat, losing momentum, or quietly coming into view — powered by our GoTango Index.</p>
       <p class="hero-hook">Where will you GoTango?</p>
+      <p class="hero-sub">A daily read on the destinations gaining heat, losing momentum, or quietly coming into view — powered by our GoTango Index.</p>
 
       <div class="hero-stats">
         <div class="stat-cell">
@@ -2620,16 +2612,14 @@
 
     <!-- HOT LIST -->
     <div class="section-head">
-      <h2 class="section-title"><em>Heating up</em></h2>
-      <span class="section-meta">Top 6</span>
+      <h2 class="section-title"><em>Heating Up Today</em></h2>
     </div>
 
     <div class="dest-list" id="heating-up-list"></div>
 
     <!-- COOLING -->
     <div class="section-head">
-      <h2 class="section-title"><em>Cooling down</em></h2>
-      <span class="section-meta" id="cooling-down-meta">Last 7 days</span>
+      <h2 class="section-title"><em>Cooling Down Today</em></h2>
     </div>
 
     <div class="cooling-list" id="cooling-down-list"></div>
@@ -2684,7 +2674,7 @@
     <section class="hero movers-intro">
       <div class="hero-kicker">THE INDEX · SIGNAL SCORE</div>
       <h1 class="hero-headline">What's <em>moving</em> this week.</h1>
-      <p class="hero-sub">Every destination we track, ranked by weekly GoTango Index and colored by recent signal direction. Tap any market to open the full destination brief.</p>
+      <p class="hero-sub">A weekly look on where travel momentum is building, fading, or holding strong. Tap any destination for the full brief.</p>
     </section>
 
     <div id="movers-index">
@@ -3380,7 +3370,7 @@
 
         const rank = document.createElement('div');
         rank.className = 'dest-rank';
-        rank.textContent = romans[i] || '';
+        rank.textContent = String(i + 1).padStart(2, '0');
 
         const main = document.createElement('div');
         main.className = 'dest-main';
@@ -5092,20 +5082,6 @@
     return points.filter((p) => p && p.date != null && Number.isFinite(Number(p.signal_score)));
   }
 
-  function _indexInterpretiveLine(windowPts) {
-    if (!windowPts || windowPts.length < 2) return 'Index trend building.';
-    const scores = windowPts.map((p) => Math.round(_safeNum(p.signal_score)));
-    const latest = scores[scores.length - 1];
-    const previous = scores[scores.length - 2];
-    const diff = latest - previous;
-    if (diff >= 3) return 'Index is strengthening over the recent timeframe.';
-    if (diff <= -3) {
-      if (latest >= 70) return 'Index cooled from its recent high but remains elevated.';
-      return 'Index cooled over the recent timeframe.';
-    }
-    return 'Index is holding steady over the recent timeframe.';
-  }
-
   function buildIndexScoreChart(scores, dates, { gradId = 'areaGradIndex' } = {}) {
     if (!scores || scores.length < 2) return '';
     const w = 440;
@@ -5210,7 +5186,6 @@
             <div class="d-placeholder-text">More daily score history needed.${n > 0 ? ` ${n} ${n === 1 ? 'day' : 'days'} collected.` : ''}</div>
           </div>
         </div>
-        <p class="d-index-interpret">Index trend building.</p>
       `;
     }
 
@@ -5252,7 +5227,6 @@
           <div class="d-index-metric-value d-index-metric-value--avg">${avgScore}</div>
         </div>
       </div>
-      <p class="d-index-interpret">${_escapeHtml(_indexInterpretiveLine(windowPts))}</p>
     `;
   }
 
