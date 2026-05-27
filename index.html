@@ -1807,14 +1807,13 @@
   }
 
   .dest-modal__close {
-    position: sticky;
+    position: fixed;
     top: auto;
-    bottom: max(18px, calc(env(safe-area-inset-bottom, 0px) + 14px));
-    margin-left: auto;
-    margin-right: max(16px, env(safe-area-inset-right, 0px));
-    margin-top: 0;
-    margin-bottom: -60px; /* pull subsequent content up so button overlays without taking layout space */
-    z-index: 20;
+    right: max(16px, env(safe-area-inset-right, 0px));
+    bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+    margin: 0; /* fixed positioning keeps the button tappable while modal content scrolls */
+    z-index: 9999;
+    pointer-events: auto;
     width: 42px;
     height: 42px;
     border-radius: 999px;
@@ -2360,8 +2359,9 @@
       position: fixed;
       top: auto;
       right: max(14px, env(safe-area-inset-right, 0px));
-      bottom: max(20px, calc(env(safe-area-inset-bottom, 0px) + 16px));
+      bottom: calc(24px + env(safe-area-inset-bottom, 0px));
       margin: 0;
+      z-index: 9999;
       width: 44px;
       height: 44px;
       font-size: 20px;
