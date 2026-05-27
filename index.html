@@ -1826,29 +1826,33 @@
 
   .dest-modal__container {
     position: relative;
+    display: flex;
+    flex-direction: column;
     background: #0f0f14;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     width: min(720px, calc(100vw - 32px));
     max-height: calc(100vh - 32px);
     margin: 16px;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
     animation: dest-modal-slide-up 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 
   .dest-modal__close {
-    position: fixed;
-    top: auto !important;
-    right: max(16px, env(safe-area-inset-right, 0px));
-    bottom: calc(110px + env(safe-area-inset-bottom, 0px));
-    margin: 0; /* fixed positioning keeps the button tappable while modal content scrolls */
-    z-index: 10000;
+    position: absolute;
+    top: auto;
+    right: max(14px, env(safe-area-inset-right, 0px));
+    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    left: auto;
+    margin: 0;
+    z-index: 20;
     pointer-events: auto;
     touch-action: manipulation;
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
     border-radius: 999px;
     border: 2px solid var(--amber-bright);
     background: rgba(10, 13, 17, 0.88);
@@ -1863,8 +1867,6 @@
     line-height: 1;
     box-shadow: 0 2px 14px rgba(0, 0, 0, 0.45), 0 0 12px rgba(244, 181, 42, 0.12);
     transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
-    flex-shrink: 0;
-    align-self: flex-end;
   }
 
   .dest-modal__close:hover {
@@ -1881,6 +1883,11 @@
   }
 
   .dest-modal__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
     padding: 32px 28px calc(36px + env(safe-area-inset-bottom, 0px));
     color: rgba(255, 255, 255, 0.92);
   }
@@ -1902,7 +1909,7 @@
   /* === Destination Modal Sections === */
   .dest-modal__body {
     /* Override the existing minimal padding to match mockup section padding */
-    padding: 0 0 calc(32px + env(safe-area-inset-bottom, 0px));
+    padding: 0 0 calc(96px + env(safe-area-inset-bottom, 0px));
   }
 
   .d-hero {
@@ -2395,20 +2402,16 @@
     }
 
     .dest-modal__body {
-      padding: 56px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+      padding: 56px 20px calc(96px + env(safe-area-inset-bottom, 0px));
     }
 
     .dest-modal__close {
-      position: fixed;
-      top: auto !important;
-      right: max(16px, env(safe-area-inset-right, 0px));
-      bottom: calc(112px + env(safe-area-inset-bottom, 0px));
-      margin: 0;
-      z-index: 10000;
-      pointer-events: auto;
-      touch-action: manipulation;
-      width: 44px;
-      height: 44px;
+      right: max(14px, env(safe-area-inset-right, 0px));
+      bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+      width: 52px;
+      height: 52px;
+      min-width: 52px;
+      min-height: 52px;
       font-size: 20px;
     }
 
@@ -3154,13 +3157,13 @@
 <div id="destination-modal" class="dest-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="dest-modal-title" style="display: none;">
   <div class="dest-modal__backdrop" data-modal-close></div>
   <div class="dest-modal__container" role="document">
-    <button class="dest-modal__close" data-modal-close aria-label="Close destination brief">
-      <span aria-hidden="true">×</span>
-    </button>
     <div class="dest-modal__body" id="dest-modal-body">
       <h2 id="dest-modal-title" class="dest-modal__placeholder-title">Loading...</h2>
       <p class="dest-modal__placeholder-text">Loading destination details...</p>
     </div>
+    <button class="dest-modal__close" data-modal-close aria-label="Close destination brief">
+      <span aria-hidden="true">×</span>
+    </button>
   </div>
 </div>
 
