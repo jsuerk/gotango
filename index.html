@@ -1808,12 +1808,13 @@
 
   .dest-modal__close {
     position: fixed;
-    top: auto;
+    top: auto !important;
     right: max(16px, env(safe-area-inset-right, 0px));
-    bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(110px + env(safe-area-inset-bottom, 0px));
     margin: 0; /* fixed positioning keeps the button tappable while modal content scrolls */
-    z-index: 9999;
+    z-index: 10000;
     pointer-events: auto;
+    touch-action: manipulation;
     width: 42px;
     height: 42px;
     border-radius: 999px;
@@ -2357,11 +2358,13 @@
 
     .dest-modal__close {
       position: fixed;
-      top: auto;
-      right: max(14px, env(safe-area-inset-right, 0px));
-      bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      top: auto !important;
+      right: max(16px, env(safe-area-inset-right, 0px));
+      bottom: calc(112px + env(safe-area-inset-bottom, 0px));
       margin: 0;
-      z-index: 9999;
+      z-index: 10000;
+      pointer-events: auto;
+      touch-action: manipulation;
       width: 44px;
       height: 44px;
       font-size: 20px;
@@ -2400,7 +2403,7 @@
     }
     to {
       opacity: 1;
-      transform: translateY(0) scale(1);
+      transform: none;
     }
   }
 
