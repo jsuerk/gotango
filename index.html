@@ -37,10 +37,13 @@
     background: var(--bg);
     color: var(--text);
     font-family: 'Geist', -apple-system, sans-serif;
-    font-size: 15px;
+    /* Use rem so browser/mobile font-size settings scale text. */
+    font-size: 0.9375rem; /* 15px when the browser default is 16px */
     line-height: 1.5;
+    overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
+    text-size-adjust: 100%;
   }
 
   body {
@@ -65,8 +68,12 @@
     margin: 0 auto;
     min-height: 100vh;
     position: relative;
-    padding-bottom: 88px;
+    padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
     z-index: 2;
+  }
+
+  img, svg {
+    max-width: 100%;
   }
 
   /* ===== STATUS BAR ===== */
@@ -170,7 +177,7 @@
   .hero-kicker {
     display: flex; align-items: center; gap: 10px;
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: 0.6667rem;
     letter-spacing: 0.2em;
     color: var(--text-faint);
     text-transform: uppercase;
@@ -184,8 +191,8 @@
   .hero-headline {
     font-family: 'Fraunces', serif;
     font-weight: 400;
-    font-size: 46px;
-    line-height: 0.98;
+    font-size: 3.0667rem;
+    line-height: 1.02; /* avoid clipping when font-size is increased */
     letter-spacing: -0.028em;
     color: var(--text);
     margin-bottom: 8px;
@@ -206,9 +213,9 @@
     opacity: 0.25;
   }
   .hero-sub {
-    font-size: 14px;
+    font-size: 0.9333rem;
     color: var(--text-dim);
-    line-height: 1.5;
+    line-height: 1.55;
     max-width: 340px;
     margin-top: 10px;
   }
@@ -216,8 +223,8 @@
     font-family: 'Fraunces', serif;
     font-style: italic;
     font-weight: 500;
-    font-size: 26px;
-    line-height: 1.1;
+    font-size: 1.7333rem;
+    line-height: 1.15;
     letter-spacing: -0.02em;
     color: var(--amber);
     margin-top: 14px;
@@ -251,7 +258,7 @@
   .index-explainer > * { position: relative; z-index: 1; }
   .index-explainer__eyebrow {
     font-family: 'Geist Mono', monospace;
-    font-size: 8px;
+    font-size: 0.5333rem;
     letter-spacing: 0.18em;
     color: var(--amber);
     text-transform: uppercase;
@@ -260,21 +267,21 @@
   .index-explainer__title {
     font-family: 'Fraunces', serif;
     font-weight: 500;
-    font-size: 17px;
+    font-size: 1.1333rem;
     line-height: 1.15;
     letter-spacing: -0.02em;
     color: var(--text);
     margin-bottom: 6px;
   }
   .index-explainer__body {
-    font-size: 11px;
+    font-size: 0.7333rem;
     line-height: 1.45;
     color: var(--text-dim);
     margin-bottom: 12px;
   }
   .index-explainer__signals {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 4px;
     margin-bottom: 2px;
   }
@@ -308,14 +315,15 @@
   }
   .index-explainer__signal-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 7px;
+    font-size: 0.4667rem;
     letter-spacing: 0.04em;
     color: var(--text-faint);
     text-transform: uppercase;
     text-align: center;
-    line-height: 1.2;
+    line-height: 1.25;
     max-width: 100%;
     word-break: break-word;
+    overflow-wrap: anywhere;
   }
   .index-explainer__connector {
     display: block;
@@ -338,7 +346,7 @@
   .index-explainer__score-label {
     display: block;
     font-family: 'Geist Mono', monospace;
-    font-size: 8px;
+    font-size: 0.5333rem;
     letter-spacing: 0.1em;
     color: var(--text-faint);
     text-transform: uppercase;
@@ -348,13 +356,13 @@
     display: block;
     font-family: 'Fraunces', serif;
     font-weight: 600;
-    font-size: 28px;
+    font-size: 1.8667rem;
     line-height: 1;
     letter-spacing: -0.03em;
     color: var(--amber);
   }
   .index-explainer__footer {
-    font-size: 10px;
+    font-size: 0.6667rem;
     line-height: 1.4;
     color: var(--text-faint);
     text-align: center;
@@ -362,7 +370,7 @@
     margin: 0 auto;
   }
   @media (max-width: 360px) {
-    .index-explainer__signal-label { font-size: 6px; letter-spacing: 0.02em; }
+    .index-explainer__signal-label { font-size: 0.4rem; letter-spacing: 0.02em; }
     .index-explainer__signal-icon { width: 24px; height: 24px; }
     .index-explainer__signal-icon svg { width: 12px; height: 12px; }
   }
@@ -385,7 +393,7 @@
   }
   .stat-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: 0.6rem;
     letter-spacing: 0.12em;
     color: var(--text-faint);
     text-transform: uppercase;
@@ -393,15 +401,15 @@
   }
   .stat-value {
     font-family: 'Fraunces', serif;
-    font-size: 24px;
+    font-size: 1.6rem;
     font-weight: 500;
     color: var(--text);
-    line-height: 1;
+    line-height: 1.05;
     letter-spacing: -0.02em;
   }
   .stat-delta {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: 0.6667rem;
     margin-top: 5px;
     letter-spacing: 0.02em;
   }
@@ -413,7 +421,7 @@
   .hero-stats .hero-stat-value--cooling { color: var(--teal); }
   .hero-stats .hero-stat-delta {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: 0.6667rem;
     margin-top: 5px;
     letter-spacing: 0.02em;
   }
@@ -506,13 +514,15 @@
     cursor: pointer;
     transition: background 0.15s;
     position: relative;
+    min-height: 44px; /* reliable 44px tap target */
+    touch-action: manipulation;
   }
   .dest-card:active { background: var(--surface-2); }
   .dest-rank {
     font-family: 'Fraunces', serif;
     font-style: italic;
     font-weight: 500;
-    font-size: 22px;
+    font-size: 1.4667rem;
     color: var(--amber);
     opacity: 0.7;
     line-height: 1;
@@ -526,18 +536,20 @@
   }
   .dest-name {
     font-family: 'Fraunces', serif;
-    font-size: 19px;
+    font-size: 1.2667rem;
     font-weight: 500;
     letter-spacing: -0.015em;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
   .dest-code {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: 0.6667rem;
     color: var(--text-faint);
     letter-spacing: 0.05em;
   }
   .dest-vibe {
-    font-size: 12.5px;
+    font-size: 0.8333rem;
     color: var(--text-dim);
     margin-bottom: 8px;
     line-height: 1.35;
@@ -546,7 +558,7 @@
   .dest-meta {
     display: flex; gap: 14px;
     font-family: 'Geist Mono', monospace;
-    font-size: 11px;
+    font-size: 0.7333rem;
     color: var(--text-dim);
   }
   .dest-meta b {
@@ -562,7 +574,7 @@
   }
   .dest-scoreline__number {
     font-family: 'Fraunces', serif;
-    font-size: 22px;
+    font-size: 1.4667rem;
     font-weight: 600;
     line-height: 1;
     letter-spacing: -0.02em;
@@ -570,34 +582,36 @@
   }
   .dest-scoreline__label {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: 0.6667rem;
     color: var(--text-dim);
     letter-spacing: 0.03em;
   }
   .dest-arrivals {
     text-align: right;
-    min-width: 70px;
+    min-width: 0;
   }
   .dest-arrivals-num {
     font-family: 'Fraunces', serif;
-    font-size: 27px;
+    font-size: 1.8rem;
     font-weight: 500;
     line-height: 1;
     letter-spacing: -0.02em;
     color: var(--text);
+    white-space: nowrap;
   }
   .dest-arrivals-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 8px;
+    font-size: 0.5333rem;
     color: var(--text-faint);
     letter-spacing: 0.05em;
     text-transform: uppercase;
     margin-top: 3px;
+    white-space: nowrap;
   }
   .dest-trend {
     display: inline-flex; align-items: center; gap: 2px;
     font-family: 'Geist Mono', monospace;
-    font-size: 11px;
+    font-size: 0.7333rem;
     margin-top: 6px;
     justify-content: flex-end;
     line-height: 1.2;
@@ -605,7 +619,7 @@
   .dest-trend.up { color: var(--signal-up); }
   .dest-trend.down { color: var(--signal-down); }
   .dest-trend.building {
-    font-size: 10px;
+    font-size: 0.6667rem;
     color: var(--text-faint);
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -631,6 +645,8 @@
     align-items: center;
     cursor: pointer;
     transition: background 0.15s;
+    min-height: 44px; /* reliable 44px tap target */
+    touch-action: manipulation;
   }
   .cooling-card:active { background: var(--surface-2); }
   .cooling-name {
@@ -782,6 +798,8 @@
     font-size: 13px;
     outline: none;
     transition: border-color 0.15s;
+    min-height: 44px; /* reliable tap target */
+    touch-action: manipulation;
   }
   .brief-input:focus { border-color: var(--amber); }
   .brief-input::placeholder { color: var(--text-faint); }
@@ -797,6 +815,8 @@
     letter-spacing: 0.02em;
     cursor: pointer;
     transition: background 0.15s;
+    min-height: 44px; /* reliable tap target */
+    touch-action: manipulation;
   }
   .brief-btn:active { background: var(--amber-soft); }
 
@@ -874,7 +894,7 @@
     padding: 14px 0 18px;
     color: var(--text-faint);
     font-family: 'Geist', sans-serif;
-    font-size: 10px;
+    font-size: 0.6667rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     cursor: pointer;
@@ -882,6 +902,8 @@
     align-items: center; gap: 4px;
     transition: color 0.15s;
     position: relative;
+    min-height: 44px; /* reliable tap target */
+    touch-action: manipulation;
   }
   .nav-btn svg { width: 18px; height: 18px; opacity: 0.7; }
   .nav-btn.active { color: var(--amber); }
@@ -927,13 +949,15 @@
     background: var(--surface);
     cursor: pointer;
     transition: background 0.15s;
+    min-height: 44px; /* reliable 44px tap target */
+    touch-action: manipulation;
   }
   .mover-row:active { background: var(--surface-2); }
   .mover-rank {
     font-family: 'Fraunces', serif;
     font-style: italic;
     font-weight: 500;
-    font-size: 20px;
+    font-size: 1.3333rem;
     color: var(--amber);
     opacity: 0.65;
     line-height: 1;
@@ -959,25 +983,28 @@
   }
   .mover-name {
     font-family: 'Fraunces', serif;
-    font-size: 18px;
+    font-size: 1.2rem;
     font-weight: 500;
     letter-spacing: -0.015em;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
   .mover-icao {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: 0.6667rem;
     color: var(--text-faint);
     letter-spacing: 0.05em;
   }
   .mover-badge {
     display: inline-block;
     font-family: 'Geist Mono', monospace;
-    font-size: 8px;
+    font-size: 0.5333rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     padding: 2px 6px;
     border-radius: 3px;
     line-height: 1.3;
+    white-space: normal;
   }
   .mover-badge--top {
     color: var(--amber);
@@ -1005,10 +1032,10 @@
     border: 1px solid var(--border);
   }
   .mover-reason {
-    font-size: 12px;
+    font-size: 0.8rem;
     color: var(--text-dim);
     font-style: italic;
-    line-height: 1.35;
+    line-height: 1.4;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -1022,7 +1049,7 @@
   }
   .mover-today-score {
     font-family: 'Fraunces', serif;
-    font-size: 27px;
+    font-size: 1.8rem;
     font-weight: 500;
     line-height: 1;
     letter-spacing: -0.02em;
@@ -1030,7 +1057,7 @@
   }
   .mover-today-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: 0.6rem;
     letter-spacing: 0.12em;
     color: var(--text-faint);
     margin-top: 3px;
@@ -1038,7 +1065,7 @@
   }
   .mover-trend-tag {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: 0.6rem;
     margin-top: 4px;
     line-height: 1.2;
   }
@@ -1049,16 +1076,19 @@
     align-items: center;
     gap: 12px;
     padding-top: 2px;
+    flex-wrap: wrap;
+    row-gap: 6px;
   }
   .mover-sparkline {
     width: 72px;
     height: 28px;
-    flex-shrink: 0;
+    flex-shrink: 1;
+    max-width: 72px;
     display: block;
   }
   .mover-sparkline-fallback {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: 0.6rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--text-faint);
@@ -1066,10 +1096,11 @@
   }
   .mover-secondary-metrics {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: 0.6667rem;
     color: var(--text-faint);
     letter-spacing: 0.02em;
     line-height: 1.3;
+    overflow-wrap: anywhere;
   }
   .mover-secondary-metrics b {
     color: var(--text-dim);
@@ -1815,8 +1846,8 @@
     z-index: 10000;
     pointer-events: auto;
     touch-action: manipulation;
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     border-radius: 999px;
     border: 2px solid var(--amber-bright);
     background: rgba(10, 13, 17, 0.88);
@@ -1849,7 +1880,7 @@
   }
 
   .dest-modal__body {
-    padding: 32px 28px 36px;
+    padding: 32px 28px calc(36px + env(safe-area-inset-bottom, 0px));
     color: rgba(255, 255, 255, 0.92);
   }
 
@@ -1870,7 +1901,7 @@
   /* === Destination Modal Sections === */
   .dest-modal__body {
     /* Override the existing minimal padding to match mockup section padding */
-    padding: 0 0 32px;
+    padding: 0 0 calc(32px + env(safe-area-inset-bottom, 0px));
   }
 
   .d-hero {
@@ -1962,7 +1993,7 @@
 
   .d-section-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: 0.6667rem;
     letter-spacing: 0.2em;
     color: var(--text-faint, #6B6557);
     text-transform: uppercase;
@@ -2004,7 +2035,7 @@
 
   .d-stat-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: 0.6rem;
     letter-spacing: 0.12em;
     color: var(--text-faint, #6B6557);
     text-transform: uppercase;
@@ -2013,9 +2044,9 @@
 
   .d-stat-value {
     font-family: 'Fraunces', serif;
-    font-size: 22px;
+    font-size: 1.4667rem;
     font-weight: 500;
-    line-height: 1;
+    line-height: 1.05;
     letter-spacing: -0.02em;
     color: var(--text, #F5F1E8);
     word-break: break-word;
@@ -2027,7 +2058,7 @@
 
   .d-stat-sub {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: 0.6667rem;
     margin-top: 5px;
     color: var(--text-dim, #A8A293);
   }
@@ -2042,12 +2073,13 @@
   .d-glance-meta-line {
     margin: 0;
     font-family: 'Geist Mono', monospace;
-    font-size: 11px;
+    font-size: 0.7333rem;
     line-height: 1.45;
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     align-items: baseline;
+    overflow-wrap: anywhere;
   }
 
   .d-glance-meta-label::after {
@@ -2066,7 +2098,7 @@
 
   /* Trajectory placeholder (skeleton chart) */
   .d-trajectory-placeholder {
-    height: 140px;
+    height: clamp(140px, 26vh, 190px);
     border: 1px dashed var(--border-light, #313945);
     border-radius: 8px;
     background:
@@ -2132,12 +2164,12 @@
 
   .d-history-sparkline {
     width: 100%;
-    height: 168px;
+    height: clamp(168px, 30vh, 220px);
     display: block;
   }
 
   .d-history-sparkline--preview {
-    height: 112px;
+    height: clamp(112px, 24vh, 160px);
   }
 
   .d-trend-building {
@@ -2172,8 +2204,17 @@
 
   .d-index-sparkline {
     width: 100%;
-    height: 140px;
+    height: clamp(140px, 26vh, 190px);
     display: block;
+  }
+
+  /* SVG chart label scaling (charts are generated with inline 9px styles) */
+  .dest-modal__container svg text {
+    font-size: clamp(8px, 0.58rem, 11px) !important;
+  }
+
+  .dest-modal__container, .detail-sheet {
+    overflow-x: hidden;
   }
 
   .d-index-metrics {
@@ -2208,7 +2249,7 @@
 
   .d-index-metric-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: 0.6rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--text-faint, #6B6557);
@@ -2217,8 +2258,8 @@
 
   .d-index-metric-value {
     font-family: 'Fraunces', serif;
-    font-size: 22px;
-    line-height: 1.1;
+    font-size: 1.4667rem;
+    line-height: 1.05;
   }
 
   /* GoTango Index · 7d metric values only (distinct read: headline / peak / baseline) */
@@ -2256,7 +2297,7 @@
 
   .d-pulse-metric-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: 0.6rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--text-faint, #6B6557);
@@ -2265,9 +2306,9 @@
 
   .d-pulse-metric-value {
     font-family: 'Fraunces', serif;
-    font-size: 22px;
+    font-size: 1.4667rem;
     color: var(--text, #F5F1E8);
-    line-height: 1.1;
+    line-height: 1.05;
   }
 
   .d-pulse-metric-value.up {
@@ -2280,7 +2321,7 @@
 
   .d-pulse-metric-sub {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: 0.6667rem;
     color: var(--text-dim, #A8A293);
     margin-top: 4px;
   }
@@ -2353,7 +2394,7 @@
     }
 
     .dest-modal__body {
-      padding: 56px 20px 24px;
+      padding: 56px 20px calc(24px + env(safe-area-inset-bottom, 0px));
     }
 
     .dest-modal__close {
@@ -2620,7 +2661,7 @@
 .d-section-expand-btn {
   appearance: none;
   -webkit-appearance: none;
-  display: inline-block;
+  display: inline-flex;
   margin: 0;
   padding: 6px 14px;
   font-family: 'Geist Mono', monospace;
@@ -2635,6 +2676,10 @@
   border-radius: 999px;
   cursor: pointer;
   transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+  min-height: 44px; /* reliable tap target */
+  touch-action: manipulation;
+  align-items: center;
+  justify-content: center;
 }
 
 .d-section-expand-btn:hover {
