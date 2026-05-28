@@ -300,7 +300,6 @@
   }
   .index-explainer__title {
     font-family: 'Fraunces', serif;
-    font-style: italic;
     font-weight: 500;
     font-size: 28px;
     line-height: 1.05;
@@ -308,8 +307,10 @@
     color: var(--text);
     margin-bottom: 10px;
   }
-  .index-explainer__title-accent {
+  .index-explainer__title em {
+    font-style: italic;
     color: var(--amber);
+    font-weight: 500;
   }
   .index-explainer__body {
     font-size: clamp(0.8125rem, 2.6vw, 0.875rem);
@@ -724,6 +725,9 @@
     align-items: center;
     cursor: pointer;
     transition: background 0.15s;
+  }
+  .cooling-card--ranked {
+    grid-template-columns: auto 1fr auto;
   }
   .cooling-card:active { background: var(--surface-2); }
   .cooling-name {
@@ -2957,8 +2961,8 @@
     <section class="hero">
       <div class="hero-kicker" id="hero-kicker">The Index · TUESDAY, 28 APRIL</div>
       <h1 class="hero-headline">Where the world's <em>going.</em></h1>
+      <p class="hero-sub">Travel intelligence on destinations heating up, cooling down, or quietly coming into view - powered by <a class="hero-sub-link" href="#gotango-index-explainer">our GoTango Index</a>.</p>
       <p class="hero-hook">Where will you GoTango?</p>
-      <p class="hero-sub">Destinations gaining heat, losing momentum, or quietly coming into view - powered by <a class="hero-sub-link" href="#gotango-index-explainer">our GoTango Index</a>. Travel intelligence without the fluff.</p>
 
       <div class="hero-stats">
         <div class="stat-cell">
@@ -2981,7 +2985,7 @@
 
     <!-- MAP -->
     <div class="section-head">
-      <h2 class="section-title"><em>Live Map</em></h2>
+      <h2 class="section-title">Live <em>Map</em></h2>
       <span class="section-meta"><span id="map-dest-count">—</span> destinations · <span id="map-meta-time">04:17z</span></span>
     </div>
     <div class="world-strip">
@@ -2996,21 +3000,21 @@
 
     <!-- HOT LIST -->
     <div class="section-head">
-      <h2 class="section-title"><em>Heating Up Today</em></h2>
+      <h2 class="section-title">Heating <em>Up Today</em></h2>
     </div>
 
     <div class="dest-list" id="heating-up-list"></div>
 
     <!-- COOLING -->
     <div class="section-head">
-      <h2 class="section-title"><em>Cooling Down Today</em></h2>
+      <h2 class="section-title">Cooling <em>Down Today</em></h2>
     </div>
 
     <div class="cooling-list" id="cooling-down-list"></div>
 
     <!-- SLEEPER -->
     <div class="section-head">
-      <h2 class="section-title"><em>Sleeper Pick</em></h2>
+      <h2 class="section-title">Sleeper <em>Pick</em></h2>
       <span class="section-meta">Editor's note</span>
     </div>
     <div class="sleeper" id="todays-pick-card" data-destination-id="comporta">
@@ -3045,7 +3049,7 @@
 
     <div class="index-explainer" id="gotango-index-explainer" aria-label="GoTango Index explained">
       <p class="index-explainer__eyebrow">THE GO TANGO INDEX</p>
-      <h2 class="index-explainer__title"><span class="index-explainer__title-accent">More</span> than just arrivals</h2>
+      <h2 class="index-explainer__title">More <em>than just arrivals</em></h2>
       <p class="index-explainer__body">Our 0–100 GoTango Index blends private-travel activity, trend strength, origin diversity, aircraft mix, and broader market context to measure real destination momentum.</p>
       <div class="index-explainer__signals">
         <div class="index-explainer__signal">
@@ -3600,14 +3604,20 @@
     return main;
   }
 
-  function renderCoolingDestinationCard(dest, container, whyLine) {
+  function renderCoolingDestinationCard(dest, container, whyLine, rankIndex) {
+    const romans = ['I', 'II', 'III'];
     const card = document.createElement('div');
-    card.className = 'cooling-card';
+    card.className = 'cooling-card cooling-card--ranked';
     card.dataset.dest = String(dest.id || '');
     card.setAttribute('data-destination-id', String(dest.id || ''));
 
+    const rank = document.createElement('div');
+    rank.className = 'dest-rank';
+    rank.textContent = romans[rankIndex] || String((rankIndex || 0) + 1);
+
     const main = _buildCoolingCardMain(dest, whyLine);
     main.appendChild(_buildDestPrivateSupport(dest));
+    card.appendChild(rank);
     card.appendChild(main);
     card.appendChild(_buildDestScoreColumn(dest, 'negative'));
     container.appendChild(card);
@@ -3990,9 +4000,9 @@
 
         setCoolingDownSectionMeta('Last 7 days');
 
-        homepageCooling.forEach(dest => {
+        homepageCooling.forEach((dest, i) => {
           const whyLine = formatDisplayCopy(dest.status_label || '') || 'Private signal softening';
-          renderCoolingDestinationCard(dest, container, whyLine);
+          renderCoolingDestinationCard(dest, container, whyLine, i);
         });
         return;
       }
@@ -4013,9 +4023,9 @@
         return;
       }
 
-      coolingPicks.forEach(dest => {
+      coolingPicks.forEach((dest, i) => {
         const whyLine = dest.status_label || 'Private signal softening';
-        renderCoolingDestinationCard(dest, container, whyLine);
+        renderCoolingDestinationCard(dest, container, whyLine, i);
       });
     } catch (error) {
       container.innerHTML = '';
@@ -6806,11 +6816,11 @@
       renderEditorial(dest),
       renderModalStats(dest),
       renderIndexPlaceholder(),
+      renderTrajectoryPlaceholder(),
+      renderPulsePlaceholder(),
       renderModalOrigins(dest),
       renderModalAircraft(dest),
       renderModalRecentFlights(dest),
-      renderTrajectoryPlaceholder(),
-      renderPulsePlaceholder(),
       renderModalPeers(dest, allDestinations),
     ].join('');
   }
