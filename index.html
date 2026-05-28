@@ -2513,6 +2513,35 @@
     margin: 0;
   }
 
+  .editor-note__content .d-note + .d-note {
+    margin-top: 12px;
+  }
+
+  .editor-note__content.is-collapsed {
+    max-height: calc(1.6em * 4);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .editor-note__content.is-collapsed::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2.2em;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(22, 27, 35, 0), var(--surface-2, #1F2733));
+  }
+
+  .editor-note__toggle-wrap {
+    text-align: left;
+  }
+
+  .editor-note__toggle {
+    margin-top: 12px;
+  }
+
   .d-note-byline {
     font-family: 'Geist Mono', monospace;
     font-size: 10px;
@@ -5524,6 +5553,8 @@
       if (scrollContainer) {
         scrollContainer.scrollTop = 0;
       }
+
+      initModalEditorNoteState(modal);
     }
 
     // Lock body scroll
@@ -6132,6 +6163,21 @@
     if (!modal) return;
 
     modal.addEventListener('click', (e) => {
+      const editorToggleBtn = e.target.closest('[data-editor-note-toggle]');
+      if (editorToggleBtn) {
+        const noteRoot = editorToggleBtn.closest('[data-editor-note]');
+        const content = noteRoot && noteRoot.querySelector('[data-editor-note-content]');
+        if (!content) return;
+
+        const isExpanded = content.classList.contains('is-expanded');
+        const nextExpanded = !isExpanded;
+        content.classList.toggle('is-expanded', nextExpanded);
+        content.classList.toggle('is-collapsed', !nextExpanded);
+        editorToggleBtn.setAttribute('aria-expanded', nextExpanded ? 'true' : 'false');
+        editorToggleBtn.textContent = nextExpanded ? 'READ LESS' : 'READ MORE';
+        return;
+      }
+
       const btn = e.target.closest('[data-expand-toggle]');
       if (!btn) return;
 
@@ -6510,15 +6556,59 @@
         </div>
       `;
     }
+    const paragraphs = text
+      .split(/\n\s*\n/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => `<p class="d-note">${_escapeHtml(p)}</p>`)
+      .join('');
     return `
       <div class="d-section">
         <div class="d-section-head">
           <span class="d-section-label">Editor's note</span>
         </div>
-        <p class="d-note">${_escapeHtml(text)}</p>
+        <div class="editor-note" data-editor-note>
+          <div class="editor-note__content is-collapsed" data-editor-note-content>
+            ${paragraphs}
+          </div>
+          <div class="d-section-expand-wrap editor-note__toggle-wrap" data-editor-note-toggle-wrap hidden>
+            <button
+              type="button"
+              class="d-section-expand-btn editor-note__toggle"
+              data-editor-note-toggle
+              aria-expanded="false"
+            >
+              READ MORE
+            </button>
+          </div>
+        </div>
         <div class="d-note-byline">— Go Tango Editorial</div>
       </div>
     `;
+  }
+
+  function initModalEditorNoteState(modal) {
+    if (!modal) return;
+    modal.querySelectorAll('[data-editor-note]').forEach((noteRoot) => {
+      const content = noteRoot.querySelector('[data-editor-note-content]');
+      const toggleWrap = noteRoot.querySelector('[data-editor-note-toggle-wrap]');
+      const toggleBtn = noteRoot.querySelector('[data-editor-note-toggle]');
+      if (!content || !toggleWrap || !toggleBtn) return;
+
+      content.classList.remove('is-expanded');
+      content.classList.add('is-collapsed');
+      toggleBtn.textContent = 'READ MORE';
+      toggleBtn.setAttribute('aria-expanded', 'false');
+
+      requestAnimationFrame(() => {
+        const isOverflowing = content.scrollHeight > content.clientHeight + 1;
+        toggleWrap.hidden = !isOverflowing;
+        if (!isOverflowing) {
+          content.classList.remove('is-collapsed');
+          content.classList.add('is-expanded');
+        }
+      });
+    });
   }
 
   // === Helper: filter out coordinate-formatted origins ===
