@@ -6544,9 +6544,121 @@
     `;
   }
 
+  const APPROVED_EDITOR_NOTES = {
+    'cabo-san-lucas':
+      "Cabo is Baja's primary luxury gateway, serving both the classic Cabo resort corridor and the quieter East Cape. Its private-aviation signal is useful because the market is broad: resort travelers, villa owners, golf groups, fishing trips, and long-weekend escapes all show up in the data.\n\nFor Go Tango, Cabo is a benchmark destination. When its score rises, it often suggests more than a single event - it can point to a wider luxury-travel appetite across Southern California, Texas, the Mountain West, and Mexico's high-end leisure circuit.",
+    'st-tropez':
+      "St. Tropez is one of Europe's most recognizable summer status markets, but La Mole's runway keeps the aviation picture unusually selective. The airport favors smaller aircraft and more intentional arrivals, which makes the signal feel more curated than mass-market.\n\nFor Go Tango users, St. Tropez is a place where volume alone can miss the story. A move here is often about quality of traffic, origin mix, and whether the Riviera's private-travel crowd is arriving early, staying late, or shifting from neighboring Mediterranean markets.",
+    'sardinia-olbia':
+      "Olbia is the aviation gateway to Costa Smeralda, one of the Mediterranean's most established luxury coastlines. The signal is often shaped by Italian, German, Swiss, British, and broader European charter activity layered over yacht and villa demand.\n\nFor Go Tango, Sardinia is useful because it sits between pure resort traffic and broader Mediterranean movement. When the Index strengthens, it can suggest that the high-end summer circuit is spreading beyond the obvious party islands into more discreet coastal luxury.",
+    ibiza:
+      "Ibiza has two identities: the global club circuit and a quieter northern villa-and-wellness scene. That split makes it especially interesting for Go Tango because a strong signal can mean either obvious nightlife demand or a more discreet private-travel pattern beneath the surface.\n\nThe Index helps separate hype from momentum. If Ibiza is rising while other Balearic or Mediterranean markets are flat, it may suggest concentrated demand; if it cools while still showing high volume, the destination may remain busy but past peak intensity.",
+    mallorca:
+      "Mallorca is larger, more residential, and more commercially developed than Ibiza, which gives its private-aviation signal a different character. It tends to reflect second-home patterns, family travel, sailing, golf, and European long-stay demand rather than a single party calendar.\n\nFor Go Tango users, Mallorca can act as a stabilizer in the Balearics. A strong read here may suggest durable regional momentum, while a softer read can show when attention is shifting back toward more event-driven or scene-heavy Mediterranean destinations.",
+    'marthas-vineyard':
+      "Martha's Vineyard is a politically and culturally networked New England island with a summer rhythm distinct from Nantucket and the Hamptons. Private and semi-private service from Northeast origins reinforces its role as a high-touch seasonal market.\n\nFor Go Tango, the Vineyard is useful because it can reveal the movement of a quieter but influential crowd. A rising Index may suggest Washington, Boston, New York, and family-compound traffic building before it becomes obvious on the ground.",
+    'sun-valley':
+      "Sun Valley is Idaho's quiet-luxury anchor: less visible than Aspen or Jackson Hole, but with a serious private-travel clientele. Its signal is shaped by second homes, outdoor culture, finance and media circles, and a year-round preference for discretion.\n\nFor Go Tango users, Sun Valley is a destination where modest volume can still matter. A rising score may indicate that a highly selective audience is moving, even if raw arrivals look smaller than larger resort markets.",
+    'harbour-island':
+      "Harbour Island is small, polished, and highly social, with North Eleuthera serving as the practical aviation gateway. The appeal is not mass luxury; it is beach-house intimacy, pink-sand aesthetics, and a crowd that often overlaps with Palm Beach, New York, and the Bahamas villa circuit.\n\nFor Go Tango, Harbour Island is a classic 'small signal, high meaning' market. A move here may not produce massive volume, but it can reveal when a discreet island crowd is shifting toward the Bahamas' more boutique end.",
+    antigua:
+      "Antigua has a broader private-aviation footprint than many Caribbean islands, supported by resorts, yachting, sailing culture, and regional island-hopping. Its signal can capture both traditional Caribbean leisure and more mobile luxury travelers moving between islands.\n\nFor Go Tango users, Antigua is useful because it often behaves like a connector market. A stronger read may indicate not just local demand, but broader Caribbean momentum across villas, yachts, and multi-stop winter travel.",
+    'jackson-hole':
+      "Jackson Hole is one of the most important mountain luxury markets in North America. Its signal blends ski demand, summer national-park travel, ranch estates, finance-family traffic, and a private-aviation culture that extends well beyond peak winter.\n\nFor Go Tango, Jackson Hole is a clean read on high-end mountain demand. A rising score can suggest the Rockies are pulling attention, while a cooling score may show when the luxury traveler is rotating back toward coast, island, or international destinations.",
+    'casa-de-campo':
+      "Casa de Campo is the Dominican Republic's primary luxury anchor, with a resort ecosystem built around villas, golf, marina life, and private compounds. La Romana gives the market a more direct private-travel read than broader Punta Cana-style resort volume.\n\nFor Go Tango users, Casa de Campo is about concentrated wealth rather than broad tourism. A stronger signal here may indicate villa owners, family groups, and Caribbean regulars choosing a more self-contained luxury environment.",
+    hamptons:
+      "The Hamptons remain one of the densest private-aviation patterns in the world, shaped by short-hop aircraft, helicopter connections, summer-house rhythms, and New York wealth moving east. The signal is less about discovery and more about timing.\n\nFor Go Tango, the Hamptons are a control market. When the score shifts, it can reveal whether the core Northeast luxury crowd is staying local, moving offshore to Nantucket or the Vineyard, or rotating into longer-haul summer destinations.",
+    'st-barts':
+      "St. Barth is one of the purest private-travel status markets in the Caribbean, but its airport constraints make the signal unusually nuanced. Because larger jets cannot land directly and many travelers connect through nearby islands, the arrivals pattern reflects intent, planning, and aircraft suitability as much as raw demand.\n\nFor Go Tango users, St. Barth is a place where the Index matters more than simple volume. A strong read can suggest that the island's villa, yacht, and restaurant scene is drawing real movement, even when the aircraft mix looks different from larger jet airports.",
+    nantucket:
+      "Nantucket is a highly concentrated summer market with a distinct private-aviation rhythm from New York, Boston, and the broader Northeast. Its demand is seasonal, social, and deeply tied to family compounds, clubs, and repeat visitors.\n\nFor Go Tango, Nantucket is a useful lens on old-line summer luxury. When the Index rises, it may show the island pulling early or unusually broad traffic; when it cools, the Northeast crowd may be spreading toward the Vineyard, Cape, Hamptons, or farther afield.",
+    'destin-30a':
+      "Destin and 30A represent a Gulf Coast luxury market that has matured beyond traditional beach tourism. Seaside, Alys Beach, Rosemary Beach, and the surrounding corridor attract second-home owners, family groups, and high-end regional travelers.\n\nFor Go Tango users, 30A is valuable because it can show movement from Southern, Texas, and Midwest origin markets that may not register in the same way as coastal resort hubs. A rising score can point to a regional luxury wave building before it becomes visible on the ground.",
+    'turks-caicos':
+      "Providenciales is one of the Caribbean's most convenient private-aviation gateways, with full-service FBO access and a resort market built around villas, beaches, and controlled ease. It offers a cleaner aviation signal than many island chains because the luxury traffic concentrates around Provo.\n\nFor Go Tango, Turks & Caicos is a core Caribbean momentum read. If the score strengthens, it often suggests broad villa-and-resort demand rather than a single event; if it fades, the market may still be active but losing intensity against other islands.",
+    marrakech:
+      "Marrakech is North Africa's strongest luxury leisure signal, blending riads, design hotels, golf, desert excursions, and a European long-weekend pattern. It attracts a sophisticated traveler who may be choosing culture and atmosphere over beach repetition.\n\nFor Go Tango users, Marrakech is useful because it can show when luxury demand is rotating toward experiential travel. A rising Index may suggest a broader appetite for design, food, and cultural depth rather than only sand-and-sea destinations.",
+    'hilton-head':
+      "Hilton Head is a steady Southern luxury market built around golf, beach houses, family travel, and a relaxed resort rhythm. It does not need to behave like Palm Beach or the Hamptons to matter; its strength is consistency.\n\nFor Go Tango, Hilton Head is a useful 'quiet strength' destination. A rising score can show regional wealth moving into familiar, comfortable places - the kind of travel pattern that may not be flashy, but is highly durable.",
+    'capri-naples':
+      "Capri is one of the Mediterranean's iconic luxury islands, but Naples is the practical aviation gateway. That makes the signal broader than Capri alone: it can include Amalfi, Ischia, yacht traffic, coastal villas, and high-end Italian itineraries.\n\nFor Go Tango users, Capri is a proxy for Southern Italy's luxury pull. A stronger Index may suggest travelers are choosing classic Mediterranean glamour and boat-based itineraries, while a softer read can show attention shifting toward Sardinia, Greece, or the Balearics.",
+    anguilla:
+      "Anguilla is smaller, quieter, and more villa-driven than many Caribbean peers. It attracts travelers who want beach luxury without the crowd density or spectacle of more social islands.\n\nFor Go Tango, Anguilla is a subtle but useful signal. When the Index strengthens, it may indicate that high-end Caribbean demand is moving toward privacy, long stays, and lower-friction resort environments rather than scene-heavy destinations.",
+    'amalfi-salerno':
+      "The Amalfi Coast has always had luxury demand, but access has historically shaped how that demand appeared. Salerno gives the region a more direct aviation signal than relying only on Naples, making it easier to watch Southern Italy's coastal momentum.\n\nFor Go Tango users, Amalfi is a classic 'access changes the signal' destination. A stronger read may suggest that travelers are leaning into Italy's coastline and yacht-adjacent itineraries, while a softer read may show when the Mediterranean crowd is moving elsewhere.",
+    'dubai-private':
+      "Dubai's private-travel signal is different from a pure resort market because it blends business, luxury retail, events, family travel, and long-haul connectivity. Al Maktoum is especially useful for reading private aviation because it captures a segment of traffic that may not fit neatly into commercial airport patterns.\n\nFor Go Tango, Dubai is a global connector signal. A rising Index can suggest movement across the Middle East, Europe, India, and Africa - less 'vacation spike' and more high-end mobility across business and leisure.",
+    'koh-samui':
+      "Koh Samui is Thailand's more selective island signal, shaped by runway constraints, villas, wellness travel, and a quieter luxury profile than Phuket. Its appeal is less about scale and more about controlled access and resort intimacy.\n\nFor Go Tango users, Koh Samui is useful when the Index moves despite modest raw volume. A stronger read may suggest a higher-quality island signal, while cooling can show when Thailand demand is consolidating around larger gateways.",
+    nassau:
+      "Nassau is the Bahamas' most accessible luxury gateway, with Paradise Island, resorts, marinas, and nearby island connections all feeding into its traffic. Its signal is broader and more commercial than Harbour Island or Exuma, but still highly useful.\n\nFor Go Tango, Nassau helps distinguish baseline Bahamas demand from true movement into smaller islands. If Nassau rises while boutique islands also rise, the Bahamas may be broadly heating; if Nassau rises alone, the signal may be more access-driven than exclusive.",
+    verbier:
+      "Verbier's aviation signal is filtered through Sion, one of the key Swiss gateways for Valais ski resorts. That makes the read less about the airport alone and more about who is moving into the Alpine network.\n\nFor Go Tango users, Verbier is a refined winter and shoulder-season signal. A rising score may suggest demand for Swiss mountain privacy, serious skiing, and chalet-based travel rather than larger, more visible resort scenes.",
+    courchevel:
+      "Courchevel is one of the most constrained and distinctive aviation markets in the world. The altiport's short, steep runway and special operating requirements make arrivals highly selective, which gives the signal a different meaning than a standard airport count.\n\nFor Go Tango, Courchevel is a quality-over-volume destination. A move here can suggest very intentional luxury travel - the kind of signal that matters precisely because not every aircraft, pilot, or traveler can access it easily.",
+    mustique:
+      "Mustique operates closer to a private club than a conventional destination, with a fixed villa culture and controlled island rhythm. Its aviation signal is naturally small, but the audience behind it is highly concentrated.\n\nFor Go Tango users, Mustique is important because low volume can still be meaningful. A stronger read may indicate movement among a discreet Caribbean owner-and-villa crowd rather than broad tourism demand.",
+    'st-moritz':
+      "St. Moritz is served by Engadin Airport at Samedan, one of Europe's most distinctive alpine aviation gateways. The airport's location and operating environment make it a strong signal for high-end winter movement into the Engadin.\n\nFor Go Tango, St. Moritz is useful because the market is both seasonal and elite. A rising Index can show when the classic alpine luxury circuit is drawing traffic, while a softer read may suggest rotation toward France, Switzerland's Valais, or non-ski winter destinations.",
+    comporta:
+      "Comporta is Portugal's quiet Atlantic luxury play: design-forward, understated, and close enough to Lisbon to use broader airport infrastructure. The signal is less about one airfield and more about who is choosing Portugal's slower, coastal version of high-end travel.\n\nFor Go Tango users, Comporta is a useful emerging-luxury read. A strengthening Index may suggest that travelers are looking beyond the usual Mediterranean circuit toward privacy, architecture, food, and longer, quieter stays.",
+    'puerto-escondido':
+      "Puerto Escondido sits at the intersection of surf culture, design travel, and Mexico's growing boutique-luxury scene. It is not a traditional private-aviation powerhouse, which makes movement there more interesting when it appears.\n\nFor Go Tango, Puerto Escondido is a sleeper market. A rising score may signal early adoption by a creative, villa-oriented, or hospitality-curious crowd before the destination becomes fully mainstream.",
+    bali:
+      "Bali's aviation signal is broad because Denpasar serves everything from backpacker traffic to ultra-luxury villas, wellness resorts, surf trips, and long-stay digital nomads. The challenge is separating mass tourism from meaningful high-end movement.\n\nFor Go Tango users, the Index is valuable here because raw volume alone is noisy. A stronger score can suggest broader private-travel quality, origin diversity, or luxury demand beyond Bali's baseline popularity.",
+    'coronado-san-diego':
+      "Coronado and the broader San Diego luxury market are different from a remote resort island: they blend beach, military, biotech, family wealth, golf, and Southern California lifestyle travel. The aviation signal is steady, regional, and quietly affluent.\n\nFor Go Tango, Coronado is useful because it can show movement in a mature coastal market that rarely screams for attention. A rising Index may suggest stronger Southern California leisure demand without the volatility of more seasonal resort towns.",
+    'cape-cod':
+      "Hyannis serves as a practical aviation gateway for Cape Cod, Nantucket overflow, island connections, and traditional New England summer travel. Its signal can catch both destination traffic and movement through the Cape into nearby coastal markets.\n\nFor Go Tango users, Cape Cod is valuable as a regional pressure gauge. A rising score may suggest the Northeast summer circuit is broadening beyond the headline islands, while a softer read can show consolidation back into the Hamptons, Nantucket, or the Vineyard.",
+    'block-island':
+      "Block Island is a small, highly seasonal market with a single-airport footprint and a yachting-and-summer-house crowd. It is not built for scale, which makes any meaningful movement in the signal worth watching.\n\nFor Go Tango, Block Island is a micro-market. A stronger read may indicate that the Northeast summer crowd is spreading into more casual, understated coastal escapes rather than only the marquee destinations.",
+    'megeve-chamonix':
+      "Megève and Chamonix represent two different sides of the French Alps: old-money village luxury and serious mountain culture. Chambéry and nearby alpine gateways help capture movement into this wider Mont Blanc and Haute-Savoie corridor.\n\nFor Go Tango users, this is a useful read on Alpine demand beyond Courchevel. A strengthening signal may suggest broader interest in classic ski villages, mountaineering culture, and chalet-based travel rather than only the most famous luxury resorts.",
+    phuket:
+      "Phuket is Southeast Asia's broadest luxury island gateway, with private villas, five-star resorts, marina access, wellness, and regional connectivity. Its signal is bigger and noisier than Koh Samui, but that scale makes it important.\n\nFor Go Tango, Phuket helps show whether Southeast Asian beach luxury is heating broadly. If the Index rises with stronger origin diversity, it may point to real momentum rather than simple baseline tourism volume.",
+    'palm-beach':
+      "Palm Beach is one of the strongest private-aviation markets in the United States, supported by wealth migration, seasonal residences, finance, golf, family offices, and a year-round luxury infrastructure. PBI is a major business-aviation gateway with multiple FBO options.\n\nFor Go Tango users, Palm Beach is a core signal market. A move here can indicate whether the high-net-worth Florida circuit is intensifying, cooling, or simply holding steady as a baseline luxury hub.",
+    whistler:
+      "Whistler's signal is filtered through Vancouver, which means the read combines mountain travel, international access, Pacific Northwest wealth, and Canadian resort demand. It is less direct than Aspen or Jackson Hole, but still valuable.\n\nFor Go Tango, Whistler is useful because it shows movement into a globally known mountain destination through a major city gateway. A rising Index may suggest renewed attention to ski, outdoor, and summer alpine travel in Western Canada.",
+    charleston:
+      "Charleston has evolved from a historic Southern city into a broader luxury destination, with food, design, islands, golf, and second-home demand all contributing to its draw. Its signal is less seasonal than many beach markets and more lifestyle-driven.\n\nFor Go Tango users, Charleston is a refined domestic read. A stronger score may suggest travelers are choosing culture, restaurants, and coastal Southern ease over more obvious resort destinations.",
+    napa:
+      "Napa is wine country's primary private-aviation signal, with KAPC capturing traffic that bypasses San Francisco and Oakland for faster access to vineyards, estates, and resort properties. The market is intimate, premium, and highly intentional.\n\nFor Go Tango, Napa is a destination where modest arrivals can be meaningful. A rising Index may suggest stronger luxury leisure demand from the Bay Area, Southern California, Texas, or national wine-travel circles.",
+    tulum:
+      "The Riviera Maya is a layered market: Cancún brings broad access, while Tulum adds design, wellness, villas, and a more image-driven travel culture. The result is a signal that can show both mainstream resort volume and higher-end movement.\n\nFor Go Tango users, this market matters because it can reveal whether demand is spreading beyond Cancún into more boutique Riviera Maya patterns. A stronger Index may suggest villa, wellness, and lifestyle travel gaining traction.",
+    'santa-fe':
+      "Santa Fe is a small but distinct private-travel market built around art, design, landscape, food, and quiet second-home wealth. It does not need large volume to produce a meaningful signal.\n\nFor Go Tango, Santa Fe is a 'taste market.' A rising score may suggest movement from travelers choosing culture and atmosphere over traditional resort infrastructure - the kind of destination that often heats up quietly.",
+    mykonos:
+      "Mykonos is Greece's most visible summer luxury island, known for beach clubs, villas, nightlife, and a highly international crowd. Its airport can become a pressure point during peak season, which makes the timing of arrivals especially important.\n\nFor Go Tango users, Mykonos is a pure momentum destination. A rising Index can show when the Aegean party-and-villa circuit is accelerating; a cooling Index may suggest travelers are rotating toward quieter Greek islands or other Mediterranean markets.",
+    maldives:
+      "Malé is the gateway to a fragmented luxury archipelago where the final destination is often a resort island reached by seaplane or boat. That makes the aviation signal broader than any one property or atoll.\n\nFor Go Tango, the Maldives are useful because they reflect long-haul luxury intent. A stronger read may suggest travelers are willing to commit to distance, privacy, and high-end resort isolation rather than shorter-haul beach alternatives.",
+    'punta-del-este':
+      "Punta del Este is South America's signature summer resort market, with a sharp seasonal profile tied to Uruguay, Argentina, Brazil, and international second-home culture. Its signal often compresses into a shorter window than Northern Hemisphere resort markets.\n\nFor Go Tango users, Punta del Este is valuable because it reveals Southern Hemisphere luxury timing. A rising Index may show the region's social season forming; a cooling score can signal that the market is moving past its peak.",
+    santorini:
+      "Santorini is the Aegean's quieter, more romantic counterpart to Mykonos, with a stronger pull for couples, villas, views, and slower luxury. Its aviation signal can be more measured, but still meaningful during the Mediterranean season.\n\nFor Go Tango, Santorini helps separate Greece's scene-driven demand from its softer luxury demand. A rising score may suggest travelers are favoring atmosphere, privacy, and iconic scenery over nightlife intensity.",
+    aspen:
+      "Aspen is one of the clearest private-aviation signals in North America, with winter ski weeks, summer culture, real estate, finance, and family-office traffic all layered into one market. It is both a resort town and a social graph.\n\nFor Go Tango users, Aspen is a headline luxury indicator. A rising Index can suggest mountain demand is strengthening across a serious high-net-worth crowd; cooling can show when the same crowd rotates to coast, island, or international destinations.",
+    barbados:
+      "Barbados is one of the Caribbean's most established luxury markets, with British colonial bones, strong resort infrastructure, villas, golf, and increasing private-aviation support. Its signal is steadier and broader than smaller boutique islands.\n\nFor Go Tango, Barbados is a durable Caribbean read. A strengthening Index can suggest more than a short spike - it may point to sustained winter-sun demand across families, villa travelers, and repeat Caribbean regulars.",
+    exuma:
+      "Exuma is one of the Bahamas' most distinctive luxury signals, built around turquoise water, boating, villas, private islands, and a UHNW yachting crowd. It is less about scale and more about exclusivity and movement between islands.\n\nFor Go Tango users, Exuma is a sleeper-market favorite. A rising Index may suggest the Bahamas luxury crowd is shifting from accessible gateways toward more secluded, water-led itineraries.",
+    'puerto-vallarta':
+      "Puerto Vallarta provides the access, while Punta Mita supplies much of the high-end resort and villa pull. Together they form one of Mexico's most important Pacific luxury corridors, with golf, surf, beach clubs, and second-home demand.\n\nFor Go Tango, this market is useful because it captures both established resort travel and quieter Punta Mita-style wealth. A stronger signal can show Mexico's west coast gaining attention against Cabo, Tulum, and Caribbean alternatives.",
+    'sicily-catania':
+      "Catania is the gateway to eastern Sicily, including Taormina, Etna, coastal villas, and a growing luxury-hospitality profile. Sicily's appeal is different from Capri or Sardinia: more cultural, volcanic, culinary, and layered.\n\nFor Go Tango users, Sicily is a Mediterranean depth signal. A rising Index may suggest travelers are moving beyond the obvious island circuit toward places with more texture, food, history, and long-stay potential.",
+  };
+
   function renderEditorial(dest) {
-    const text = dest.editorial && String(dest.editorial).trim();
+    const rawApproved = dest && dest.id ? APPROVED_EDITOR_NOTES[dest.id] : null;
+    const text =
+      (rawApproved && String(rawApproved).trim()) ||
+      (dest.editorial && String(dest.editorial).trim());
     if (!text) {
+      if (dest && dest.id) {
+        // Development-only helper to spot missing notes
+        console.warn('Missing approved/editorial note for destination', dest.id);
+      }
       return `
         <div class="d-section">
           <div class="d-section-head">
@@ -6935,6 +7047,20 @@
     attachModalShareHandler();
     attachDestinationCardClickHandlers();
     maybeOpenModalFromUrl();
+
+    // Development-only sanity check: ensure approved notes cover all destinations
+    try {
+      const approvedCount = Object.keys(APPROVED_EDITOR_NOTES || {}).length;
+      if (approvedCount && approvedCount !== 51) {
+        console.info(
+          '[GoTango] APPROVED_EDITOR_NOTES count is',
+          approvedCount,
+          '(expected 51).'
+        );
+      }
+    } catch (e) {
+      // ignore
+    }
 
     const briefForm = document.getElementById('brief-form');
     if (briefForm) {
