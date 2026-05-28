@@ -667,6 +667,43 @@
     text-transform: uppercase;
     font-style: normal;
   }
+  .dest-score-main {
+    text-align: right;
+    min-width: 70px;
+  }
+  .dest-score-main__value {
+    font-family: 'Fraunces', serif;
+    font-size: 27px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--amber);
+  }
+  .dest-score-main__label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.03em;
+    margin-top: 3px;
+  }
+  .dest-private-support {
+    margin-top: 2px;
+  }
+  .dest-private-support__value {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .dest-private-support__label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.03em;
+    margin-top: 2px;
+  }
 
   /* ===== COOLING SECTION ===== */
   .cooling-list {
@@ -3491,27 +3528,49 @@
     else if (signedVal != null && signedVal < 0) trendEl.classList.add('down');
   }
 
-  function _buildDestArrivalsColumn(dest, direction) {
-    const arrivals = document.createElement('div');
-    arrivals.className = 'dest-arrivals';
+  function _destSignalScoreLabel(dest) {
+    const signalScore = Number(dest.signal_score);
+    return Number.isFinite(signalScore) ? String(signalScore) : '—';
+  }
 
-    const arrivalsNum = document.createElement('div');
-    arrivalsNum.className = 'dest-arrivals-num';
-    arrivalsNum.textContent = String(_integerArrivals24h(dest));
+  function _buildDestPrivateSupport(dest) {
+    const block = document.createElement('div');
+    block.className = 'dest-private-support';
 
-    const arrivalsLabel = document.createElement('div');
-    arrivalsLabel.className = 'dest-arrivals-label';
-    arrivalsLabel.textContent = 'Private Arrivals 24h';
+    const value = document.createElement('div');
+    value.className = 'dest-private-support__value';
+    value.textContent = String(_integerArrivals24h(dest));
+
+    const label = document.createElement('div');
+    label.className = 'dest-private-support__label';
+    label.textContent = 'Private Arrivals 24H';
+
+    block.appendChild(value);
+    block.appendChild(label);
+    return block;
+  }
+
+  function _buildDestScoreColumn(dest, direction) {
+    const col = document.createElement('div');
+    col.className = 'dest-score-main';
+
+    const scoreVal = document.createElement('div');
+    scoreVal.className = 'dest-score-main__value';
+    scoreVal.textContent = _destSignalScoreLabel(dest);
+
+    const scoreLbl = document.createElement('div');
+    scoreLbl.className = 'dest-score-main__label';
+    scoreLbl.textContent = 'GoTango Score';
 
     const trend = document.createElement('div');
     const { movementText, signedVal } = _resolveCardMovement(dest, direction);
     trend.textContent = movementText || 'Trend building';
     _applyDestTrendClasses(trend, movementText, signedVal);
 
-    arrivals.appendChild(arrivalsNum);
-    arrivals.appendChild(arrivalsLabel);
-    arrivals.appendChild(trend);
-    return arrivals;
+    col.appendChild(scoreVal);
+    col.appendChild(scoreLbl);
+    col.appendChild(trend);
+    return col;
   }
 
   function _buildCoolingCardMain(dest, whyLine) {
@@ -3547,8 +3606,10 @@
     card.dataset.dest = String(dest.id || '');
     card.setAttribute('data-destination-id', String(dest.id || ''));
 
-    card.appendChild(_buildCoolingCardMain(dest, whyLine));
-    card.appendChild(_buildDestArrivalsColumn(dest, 'negative'));
+    const main = _buildCoolingCardMain(dest, whyLine);
+    main.appendChild(_buildDestPrivateSupport(dest));
+    card.appendChild(main);
+    card.appendChild(_buildDestScoreColumn(dest, 'negative'));
     container.appendChild(card);
   }
 
@@ -3839,9 +3900,6 @@
           .slice(0, 6);
 
       top6.forEach((dest, i) => {
-        const arrivalsCount = _integerArrivals24h(dest);
-        const signalScore = Number(dest.signal_score);
-        const signalLabel = Number.isFinite(signalScore) ? String(signalScore) : '—';
         const rawOrigins = Array.isArray(dest.top_origins) ? dest.top_origins : [];
         const cleanOrigins = rawOrigins.filter(o => o && o.code && !_isValidOrigin({ code: String(o.code).startsWith('L ') ? o.code : o.code.replace(/^UNKNOWN$/i, '') }) ? false : true);
         const originCodes = cleanOrigins.slice(0, 3).map(o => o && o.code).filter(Boolean);
@@ -3887,47 +3945,13 @@
         vibe.className = 'dest-vibe';
         vibe.textContent = insightLine;
 
-        const scoreline = document.createElement('div');
-        scoreline.className = 'dest-scoreline';
-
-        const scoreNum = document.createElement('span');
-        scoreNum.className = 'dest-scoreline__number';
-        scoreNum.textContent = signalLabel;
-
-        const scoreLbl = document.createElement('span');
-        scoreLbl.className = 'dest-scoreline__label';
-        scoreLbl.textContent = 'GoTango Score';
-
-        scoreline.appendChild(scoreNum);
-        scoreline.appendChild(scoreLbl);
-
         main.appendChild(row1);
         main.appendChild(vibe);
-        main.appendChild(scoreline);
-
-        const arrivals = document.createElement('div');
-        arrivals.className = 'dest-arrivals';
-
-        const arrivalsNum = document.createElement('div');
-        arrivalsNum.className = 'dest-arrivals-num';
-        arrivalsNum.textContent = String(arrivalsCount);
-
-        const arrivalsLabel = document.createElement('div');
-        arrivalsLabel.className = 'dest-arrivals-label';
-        arrivalsLabel.textContent = 'Private Arrivals 24h';
-
-        const trend = document.createElement('div');
-        const { movementText, signedVal } = _resolveCardMovement(dest, 'positive');
-        trend.textContent = movementText || 'Trend building';
-        _applyDestTrendClasses(trend, movementText, signedVal);
-
-        arrivals.appendChild(arrivalsNum);
-        arrivals.appendChild(arrivalsLabel);
-        arrivals.appendChild(trend);
+        main.appendChild(_buildDestPrivateSupport(dest));
 
         card.appendChild(rank);
         card.appendChild(main);
-        card.appendChild(arrivals);
+        card.appendChild(_buildDestScoreColumn(dest, 'positive'));
         container.appendChild(card);
       });
     } catch (error) {
