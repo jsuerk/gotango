@@ -397,6 +397,55 @@ function computeSignalScore(dest, movement, hasHistory) {
   return Math.max(0, Math.min(100, provisional));
 }
 
+function applySignalDepthGuard(rawScore, metrics) {
+  const normalizedRaw = Math.max(0, Math.min(100, _safeNum(rawScore)));
+  const roundedRaw = Math.round(normalizedRaw);
+
+  const privateArrivals24h = _safeNum(
+    metrics?.private_arrivals_24h ??
+    metrics?.raw_ga_arrivals_24h ??
+    metrics?.raw_private_arrivals_24h,
+  );
+  const origins = Array.isArray(metrics?.top_origins) ? metrics.top_origins : [];
+  const originCount = origins.length;
+
+  let cap = null;
+  let reason = null;
+
+  if (roundedRaw >= 75) {
+    if (privateArrivals24h >= 5 || originCount >= 4) {
+      cap = null;
+    } else if (privateArrivals24h <= 2 && originCount <= 2) {
+      cap = 72;
+      reason = 'thin_private_and_origin_breadth';
+    } else if (privateArrivals24h <= 4 && originCount <= 2) {
+      cap = 78;
+      reason = 'thin_private_narrow_origins';
+    } else if (privateArrivals24h <= 4 && originCount <= 3) {
+      cap = 84;
+      reason = 'modest_private_limited_origins';
+    }
+  }
+
+  const finalScore = cap == null ? roundedRaw : Math.min(roundedRaw, cap);
+  const boundedFinal = Math.max(0, Math.min(100, Math.round(finalScore)));
+  const capApplied = cap != null && boundedFinal < roundedRaw;
+
+  let signalConfidence = 'confirmed';
+  if (capApplied) {
+    if (privateArrivals24h <= 2 && originCount <= 2) signalConfidence = 'thin';
+    else signalConfidence = 'developing';
+  }
+
+  return {
+    finalScore: boundedFinal,
+    capApplied,
+    cap: capApplied ? cap : null,
+    reason: capApplied ? reason : null,
+    confidence: signalConfidence,
+  };
+}
+
 function algorithmRead(dest) {
   const parts = [];
   parts.push(`GA raw ${dest.raw_ga_arrivals_24h}`);
@@ -602,7 +651,9 @@ function enrichDestinationsWithHistory(destinations, historyList) {
     const histCtx = findHistoryForDestination(historyList, dest.id);
     const movement = computeMovementMetrics(dest, histCtx);
     const hasHistory = histCtx.hasV2 && (histCtx.priorDay != null || histCtx.weekAgo != null);
-    const signal_score = computeSignalScore(dest, movement, hasHistory);
+    const rawSignalScore = computeSignalScore(dest, movement, hasHistory);
+    const guardedSignal = applySignalDepthGuard(rawSignalScore, dest);
+    const signal_score = guardedSignal.finalScore;
     const status = statusFromSignal(
       signal_score,
       hasHistory,
@@ -615,6 +666,11 @@ function enrichDestinationsWithHistory(destinations, historyList) {
       ...dest,
       ...movement,
       signal_score,
+      raw_signal_score: rawSignalScore,
+      signal_depth_cap_applied: guardedSignal.capApplied,
+      signal_depth_cap: guardedSignal.cap,
+      signal_depth_reason: guardedSignal.reason,
+      signal_confidence: guardedSignal.confidence,
       status,
       status_label: statusLabel(status),
       algorithm_read: algorithmRead(dest),
