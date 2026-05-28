@@ -5653,37 +5653,40 @@
     return name || 'This destination';
   }
 
-  function _signalReadSecondSentence(dest, historyPoints) {
+  function _signalReadSecondSentence(dest, details) {
     if (!dest) return '';
 
-    const origins = Array.isArray(dest.top_origins)
-      ? dest.top_origins.filter((o) => _isValidOrigin(o))
-      : [];
-    const originCount = origins.length;
+    const originCount = Number.isFinite(Number(details && details.originCount))
+      ? Number(details.originCount)
+      : 0;
+    const privateToday = _safeNum(details && details.privateToday);
+    const avgPrivate7 = _safeNum(details && details.avgPrivate7);
+    const mentionsConcentrated = !!(details && details.mentionsConcentrated);
+    const mentionsBreadthSupport = !!(details && details.mentionsBreadthSupport);
+    const mentionsPrivatePace = !!(details && details.mentionsPrivatePace);
+    const allowCommercialFallback = !!(details && details.allowCommercialFallback);
 
-    const latestPrivate = _safeNum(
-      dest.private_arrivals_24h ?? dest.raw_ga_arrivals_24h ?? dest.arrivals_count,
-    );
-    const privateHist = (Array.isArray(historyPoints) ? historyPoints : [])
-      .map((p) => _safeNum(p.private_arrivals_24h))
-      .filter((v) => Number.isFinite(v) && v >= 0);
-
-    if (privateHist.length >= 2 && latestPrivate > 0) {
-      const avgPrivate = privateHist.reduce((s, v) => s + v, 0) / privateHist.length;
-      if (avgPrivate > 0 && latestPrivate >= avgPrivate * 1.25) {
-        return 'Private arrivals continue to support the read.';
-      }
+    if (originCount >= 4 && !mentionsBreadthSupport) {
+      return 'Origin breadth also supports the read.';
     }
 
-    if (originCount >= 5) {
-      return 'Origin breadth also supports the move.';
-    }
-
-    if (originCount > 0 && originCount <= 2) {
+    if (originCount <= 2 && !mentionsConcentrated) {
       return 'The signal appears more concentrated than broad.';
     }
 
-    if (dest.commercial_backdrop_label) {
+    if (
+      Number.isFinite(privateToday) &&
+      Number.isFinite(avgPrivate7) &&
+      avgPrivate7 > 0 &&
+      !mentionsPrivatePace
+    ) {
+      if (privateToday < avgPrivate7) {
+        return 'Private arrivals remain lighter than the recent pace.';
+      }
+      return 'Private arrivals are supporting the current read.';
+    }
+
+    if (allowCommercialFallback && dest.commercial_backdrop_label) {
       return 'Commercial traffic remains backdrop context.';
     }
 
@@ -5704,25 +5707,104 @@
       }
 
       const windowPts = daysCount >= 7 ? pts.slice(-7) : pts;
-      const scores = windowPts.map((p) => _safeNum(p.signal_score));
+      const scores = windowPts.map((p) => _safeNum(p.signal_score)).filter((v) => Number.isFinite(v));
+      if (scores.length < 2) return buildingMsg;
+
       const latestScore = scores[scores.length - 1];
       const firstScore = scores[0];
-      const high7 = Math.max(...scores);
-      const avg7 = scores.reduce((s, v) => s + v, 0) / scores.length;
+      const highScore = Math.max(...scores);
+      const lowScore = Math.min(...scores);
+      const avgScore = scores.reduce((s, v) => s + v, 0) / scores.length;
+      const deltaVsAvg = latestScore - avgScore;
+      const deltaFromHigh = highScore - latestScore;
+      const deltaAcrossWindow = latestScore - firstScore;
 
-      const aboveAvg = latestScore >= avg7 + 8;
-      const belowAvg = latestScore <= avg7 - 8;
-      const nearAvg = Math.abs(latestScore - avg7) <= 7;
-      const nearWeeklyHigh = latestScore >= high7 - 5;
-      const pulledBackFromHigh = high7 - latestScore >= 12;
-      const risingAcross = latestScore - firstScore >= 10;
-      const coolingAcross = firstScore - latestScore >= 10;
+      const origins = Array.isArray(dest && dest.top_origins)
+        ? dest.top_origins.filter((o) => _isValidOrigin(o))
+        : [];
+      const originCount = origins.length;
+
+      const latestPoint = windowPts[windowPts.length - 1] || null;
+      const privateToday = _safeNum(
+        (latestPoint && latestPoint.private_arrivals_24h) ??
+        (dest && (dest.private_arrivals_24h ?? dest.raw_ga_arrivals_24h)),
+      );
+      const privateHist = windowPts
+        .map((p) => _safeNum(p && p.private_arrivals_24h))
+        .filter((v) => Number.isFinite(v) && v >= 0);
+      const avgPrivate7 = privateHist.length >= 2
+        ? privateHist.reduce((s, v) => s + v, 0) / privateHist.length
+        : NaN;
+      const privateVsAvg = Number.isFinite(privateToday) && Number.isFinite(avgPrivate7) && avgPrivate7 > 0
+        ? privateToday - avgPrivate7
+        : NaN;
+
+      const confidence = String((dest && dest.signal_confidence) || '').toLowerCase();
+      const signalDepthCapApplied = !!(dest && dest.signal_depth_cap_applied);
+
+      const aboveAvg = deltaVsAvg >= 8;
+      const belowAvg = deltaVsAvg <= -8;
+      const nearAvg = Math.abs(deltaVsAvg) <= 7;
+      const nearWeeklyHigh = deltaFromHigh <= 5;
+      const pulledBackFromHigh = deltaFromHigh >= 12;
+      const risingAcross = deltaAcrossWindow >= 10;
+      const coolingAcross = -deltaAcrossWindow >= 10;
+
+      const privateLight = Number.isFinite(privateToday) ? privateToday <= 2 : false;
+      const originsNarrow = originCount <= 2;
+      const elevatedRead = aboveAvg || nearWeeklyHigh;
+      const thinConfidence = confidence === 'thin';
+      const developingConfidence = confidence === 'developing';
+      const thinSignal =
+        thinConfidence ||
+        (signalDepthCapApplied && privateLight && originsNarrow) ||
+        (privateLight && originsNarrow && elevatedRead);
+      const developingSignal =
+        developingConfidence ||
+        signalDepthCapApplied ||
+        (aboveAvg && (privateLight || originsNarrow || (Number.isFinite(privateVsAvg) && privateVsAvg < 0)));
 
       let primary = '';
+      let suppressSecondSentence = false;
+      const detailHints = {
+        originCount,
+        privateToday,
+        avgPrivate7,
+        mentionsConcentrated: false,
+        mentionsBreadthSupport: false,
+        mentionsPrivatePace: false,
+        allowCommercialFallback: true,
+      };
 
-      if (aboveAvg && nearWeeklyHigh) {
+      if (thinSignal) {
+        if (elevatedRead) {
+          primary =
+            `${name}'s Index is elevated versus its recent range, but today's private-arrival depth is still light.`;
+          primary += ' Treat this as an early, concentrated signal rather than a broad market surge.';
+        } else {
+          primary =
+            `${name} is moving from a small private-arrival base, so the signal is more concentrated than broad.`;
+          primary += ' More origin depth would strengthen the read.';
+        }
+        detailHints.mentionsConcentrated = true;
+        detailHints.mentionsPrivatePace = true;
+      } else if (developingSignal) {
         primary =
-          `${name} is running above its 7-day average and sitting near its weekly high, suggesting travel momentum is still strengthening.`;
+          `${name} is running above its 7-day average, but confirmation is still building.`;
+        primary += ' This looks like a developing signal worth watching, not yet a fully broad move.';
+        detailHints.mentionsConcentrated = originsNarrow;
+      } else if (
+        aboveAvg &&
+        nearWeeklyHigh &&
+        confidence !== 'thin' &&
+        (originCount >= 4 || !privateLight)
+      ) {
+        primary =
+          `${name} is running above its 7-day average and holding near its weekly high, suggesting travel momentum is still strengthening.`;
+        primary += ' Private arrivals and origin breadth support the move.';
+        detailHints.mentionsBreadthSupport = true;
+        detailHints.mentionsPrivatePace = true;
+        suppressSecondSentence = true;
       } else if (aboveAvg && pulledBackFromHigh) {
         primary =
           `${name} remains above its 7-day average, but has eased from its weekly high — still active, though not at peak intensity.`;
@@ -5731,10 +5813,10 @@
           `${name} has cooled from its weekly high and is now below its 7-day average, suggesting momentum is fading from its recent pace.`;
       } else if (belowAvg) {
         primary =
-          `${name} is sitting below its 7-day average, suggesting travel momentum has softened from its recent norm.`;
+          `${name} is sitting below its 7-day average, suggesting private-travel momentum has softened from its recent norm.`;
       } else if (nearAvg) {
         primary =
-          `${name} is tracking close to its 7-day average, pointing to a steady signal rather than a sharp move in either direction.`;
+          `${name} is tracking close to its 7-day average, pointing to a steady private-travel signal rather than a sharp move in either direction.`;
       } else if (risingAcross) {
         primary =
           `${name} has strengthened across the recent window, suggesting the signal is building rather than appearing as a one-day spike.`;
@@ -5746,7 +5828,15 @@
           `${name} is showing a stable weekly read, with the Index holding near its recent range.`;
       }
 
-      const secondary = _signalReadSecondSentence(dest, scorePoints);
+      if (Number.isFinite(lowScore) && !Number.isFinite(latestScore)) {
+        return buildingMsg;
+      }
+
+      if (suppressSecondSentence) {
+        return primary;
+      }
+
+      const secondary = _signalReadSecondSentence(dest, detailHints);
       if (secondary) {
         return `${primary} ${secondary}`;
       }
