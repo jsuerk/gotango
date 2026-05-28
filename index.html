@@ -2363,6 +2363,39 @@
     color: color-mix(in srgb, var(--teal, #5EAAA8) 58%, var(--text-dim, #A8A293) 42%);
   }
 
+  /* Signal read (modal index interpretation) */
+  .signal-read {
+    margin-top: 12px;
+    margin-bottom: 2px;
+  }
+
+  .signal-read__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-faint, #6B6557);
+    margin-bottom: 8px;
+  }
+
+  .signal-read__label::before {
+    content: "";
+    width: 14px;
+    height: 1px;
+    background: var(--amber, #E8A317);
+  }
+
+  .signal-read__text {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--text, #F5F1E8);
+    margin: 0;
+  }
+
   /* Pulse summary (history-backed) */
   .d-pulse-metrics {
     display: grid;
@@ -5506,10 +5539,20 @@
     }
   }
 
+  function _lookupModalDest() {
+    if (!_modalCurrentDestId || !_modalArrivalsData) return null;
+    const data = _modalArrivalsData;
+    const destinations = Array.isArray(data.destinations)
+      ? data.destinations
+      : (data.data && Array.isArray(data.data.destinations) ? data.data.destinations : null);
+    if (!destinations) return null;
+    return destinations.find((d) => d && d.id === _modalCurrentDestId) || null;
+  }
+
   function applyModalHistoryError() {
     const indexEl = document.querySelector('[data-modal-section="index-7d"]');
     if (indexEl) {
-      indexEl.innerHTML = renderModalIndexUnavailable();
+      indexEl.innerHTML = renderModalIndexUnavailable(_lookupModalDest());
     }
   }
 
@@ -5521,7 +5564,7 @@
 
     const n = points.length;
     if (indexEl) {
-      indexEl.innerHTML = renderModalIndexSection(points, n);
+      indexEl.innerHTML = renderModalIndexSection(dest, points, n);
     }
     if (trajectoryEl) {
       trajectoryEl.innerHTML = renderModalTrajectorySection(points, n);
@@ -5538,6 +5581,125 @@
   function _indexScorePoints(points) {
     if (!Array.isArray(points)) return [];
     return points.filter((p) => p && p.date != null && Number.isFinite(Number(p.signal_score)));
+  }
+
+  function _signalReadDestName(dest) {
+    const name = dest && dest.name != null ? String(dest.name).trim() : '';
+    return name || 'This destination';
+  }
+
+  function _signalReadSecondSentence(dest, historyPoints) {
+    if (!dest) return '';
+
+    const origins = Array.isArray(dest.top_origins)
+      ? dest.top_origins.filter((o) => _isValidOrigin(o))
+      : [];
+    const originCount = origins.length;
+
+    const latestPrivate = _safeNum(
+      dest.private_arrivals_24h ?? dest.raw_ga_arrivals_24h ?? dest.arrivals_count,
+    );
+    const privateHist = (Array.isArray(historyPoints) ? historyPoints : [])
+      .map((p) => _safeNum(p.private_arrivals_24h))
+      .filter((v) => Number.isFinite(v) && v >= 0);
+
+    if (privateHist.length >= 2 && latestPrivate > 0) {
+      const avgPrivate = privateHist.reduce((s, v) => s + v, 0) / privateHist.length;
+      if (avgPrivate > 0 && latestPrivate >= avgPrivate * 1.25) {
+        return 'Private arrivals continue to support the read.';
+      }
+    }
+
+    if (originCount >= 5) {
+      return 'Origin breadth also supports the move.';
+    }
+
+    if (originCount > 0 && originCount <= 2) {
+      return 'The signal appears more concentrated than broad.';
+    }
+
+    if (dest.commercial_backdrop_label) {
+      return 'Commercial traffic remains backdrop context.';
+    }
+
+    return '';
+  }
+
+  function buildSignalRead(dest, scorePoints) {
+    const name = _signalReadDestName(dest);
+    const buildingMsg =
+      `The Index read is still building for ${name}. A clearer weekly pattern will appear as more daily scores come in.`;
+
+    try {
+      const pts = Array.isArray(scorePoints) ? _indexScorePoints(scorePoints) : [];
+      const daysCount = pts.length;
+
+      if (daysCount < 2) {
+        return buildingMsg;
+      }
+
+      const windowPts = daysCount >= 7 ? pts.slice(-7) : pts;
+      const scores = windowPts.map((p) => _safeNum(p.signal_score));
+      const latestScore = scores[scores.length - 1];
+      const firstScore = scores[0];
+      const high7 = Math.max(...scores);
+      const avg7 = scores.reduce((s, v) => s + v, 0) / scores.length;
+
+      const aboveAvg = latestScore >= avg7 + 8;
+      const belowAvg = latestScore <= avg7 - 8;
+      const nearAvg = Math.abs(latestScore - avg7) <= 7;
+      const nearWeeklyHigh = latestScore >= high7 - 5;
+      const pulledBackFromHigh = high7 - latestScore >= 12;
+      const risingAcross = latestScore - firstScore >= 10;
+      const coolingAcross = firstScore - latestScore >= 10;
+
+      let primary = '';
+
+      if (aboveAvg && nearWeeklyHigh) {
+        primary =
+          `${name} is running above its 7-day average and sitting near its weekly high, suggesting travel momentum is still strengthening.`;
+      } else if (aboveAvg && pulledBackFromHigh) {
+        primary =
+          `${name} remains above its 7-day average, but has eased from its weekly high — still active, though not at peak intensity.`;
+      } else if (belowAvg && pulledBackFromHigh) {
+        primary =
+          `${name} has cooled from its weekly high and is now below its 7-day average, suggesting momentum is fading from its recent pace.`;
+      } else if (belowAvg) {
+        primary =
+          `${name} is sitting below its 7-day average, suggesting travel momentum has softened from its recent norm.`;
+      } else if (nearAvg) {
+        primary =
+          `${name} is tracking close to its 7-day average, pointing to a steady signal rather than a sharp move in either direction.`;
+      } else if (risingAcross) {
+        primary =
+          `${name} has strengthened across the recent window, suggesting the signal is building rather than appearing as a one-day spike.`;
+      } else if (coolingAcross) {
+        primary =
+          `${name} has eased across the recent window, suggesting the current read is cooler than earlier in the week.`;
+      } else {
+        primary =
+          `${name} is showing a stable weekly read, with the Index holding near its recent range.`;
+      }
+
+      const secondary = _signalReadSecondSentence(dest, scorePoints);
+      if (secondary) {
+        return `${primary} ${secondary}`;
+      }
+      return primary;
+    } catch (err) {
+      return buildingMsg;
+    }
+  }
+
+  function renderSignalReadBlock(dest, scorePoints) {
+    const text = buildSignalRead(dest, scorePoints);
+    if (!text) return '';
+    return `
+      <div class="signal-read" aria-label="Signal read">
+        <div class="signal-read__label">Signal read</div>
+        <p class="signal-read__text">${_escapeHtml(text)}</p>
+      </div>
+    `;
   }
 
   function buildIndexScoreChart(scores, dates, { gradId = 'areaGradIndex' } = {}) {
@@ -5627,9 +5789,10 @@
     `;
   }
 
-  function renderModalIndexSection(points, count) {
+  function renderModalIndexSection(dest, points, count) {
     const scorePts = _indexScorePoints(points);
     const n = scorePts.length;
+    const signalReadHtml = renderSignalReadBlock(dest, points);
 
     if (n < 2) {
       return `
@@ -5644,6 +5807,7 @@
             <div class="d-placeholder-text">More daily score history needed.${n > 0 ? ` ${n} ${n === 1 ? 'day' : 'days'} collected.` : ''}</div>
           </div>
         </div>
+        ${signalReadHtml}
       `;
     }
 
@@ -5671,6 +5835,7 @@
       <div class="d-history-chart-wrap">
         ${buildIndexScoreChart(scores, dates, { gradId })}
       </div>
+      ${signalReadHtml}
       <div class="d-index-metrics">
         <div class="d-index-metric">
           <div class="d-index-metric-label">${todayMetricLabel}</div>
@@ -5688,13 +5853,15 @@
     `;
   }
 
-  function renderModalIndexUnavailable() {
+  function renderModalIndexUnavailable(dest) {
+    const signalReadHtml = renderSignalReadBlock(dest, null);
     return `
       <div class="d-section-head">
         <span class="d-section-label">GoTango Index · 7d</span>
         <span class="d-section-meta">Daily Signal Score</span>
       </div>
       <div class="d-index-status">Index trend unavailable.</div>
+      ${signalReadHtml}
     `;
   }
 
@@ -6612,9 +6779,9 @@
 
     return [
       renderModalHero(dest, tier),
+      renderEditorial(dest),
       renderModalStats(dest),
       renderIndexPlaceholder(),
-      renderEditorial(dest),
       renderModalOrigins(dest),
       renderModalAircraft(dest),
       renderModalRecentFlights(dest),
