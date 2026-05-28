@@ -269,22 +269,31 @@
   }
   .index-explainer > * { position: relative; z-index: 1; }
   .index-explainer__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     font-family: 'Geist Mono', monospace;
-    font-size: 8px;
-    letter-spacing: 0.18em;
+    font-size: 10px;
+    letter-spacing: 0.2em;
     color: var(--amber);
     text-transform: uppercase;
-    margin-bottom: 8px;
+    margin-bottom: 14px;
+  }
+  .index-explainer__eyebrow::before {
+    content: "";
+    width: 18px;
+    height: 1px;
+    background: var(--amber);
   }
   .index-explainer__title {
     font-family: 'Fraunces', serif;
     font-style: italic;
     font-weight: 500;
-    font-size: clamp(1.0625rem, 4.5vw, 1.125rem);
-    line-height: 1.15;
-    letter-spacing: -0.02em;
+    font-size: 28px;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
     color: var(--amber);
-    margin-bottom: 8px;
+    margin-bottom: 10px;
   }
   .index-explainer__body {
     font-size: clamp(0.8125rem, 2.6vw, 0.875rem);
@@ -2948,7 +2957,7 @@
     </div>
 
     <div class="index-explainer" id="gotango-index-explainer" aria-label="GoTango Index explained">
-      <p class="index-explainer__eyebrow">THE GOTANGO INDEX</p>
+      <p class="index-explainer__eyebrow">THE GO TANGO INDEX</p>
       <h2 class="index-explainer__title">More than just arrivals</h2>
       <p class="index-explainer__body">Our 0–100 GoTango Index blends private-travel activity, trend strength, origin diversity, aircraft mix, and broader market context to measure real destination momentum.</p>
       <div class="index-explainer__signals">
