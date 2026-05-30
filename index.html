@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0A0D11">
 <title>Go Tango — Where the world's going</title>
 <meta name="description" content="Destinations gaining heat, losing momentum, or quietly coming into view — powered by the GoTango Index. Travel intelligence without the fluff.">
@@ -42,21 +42,32 @@
     --signal-down: #E07856;
     --teal: #5EAAA8;
     --coral: #E58C5E;
+    --fs-micro: clamp(0.72rem, 0.68rem + 0.18vw, 0.82rem);
+    --fs-label: clamp(0.78rem, 0.72rem + 0.24vw, 0.92rem);
+    --fs-body: clamp(1rem, 0.95rem + 0.35vw, 1.12rem);
+    --fs-editorial: clamp(1.05rem, 1rem + 0.45vw, 1.25rem);
+    --fs-card-title: clamp(1.28rem, 1.08rem + 1vw, 1.75rem);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html {
+    font-size: 100%;
+    -webkit-text-size-adjust: auto;
+    text-size-adjust: auto;
+  }
 
   html, body {
     background: var(--bg);
     color: var(--text);
     font-family: 'Geist', -apple-system, sans-serif;
-    font-size: 15px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
   }
 
   body {
+    font-size: var(--fs-body);
     background-image:
       radial-gradient(ellipse 700px 500px at 85% -15%, rgba(232, 163, 23, 0.08), transparent 55%),
       radial-gradient(ellipse 500px 400px at -10% 40%, rgba(94, 170, 168, 0.05), transparent 60%),
@@ -219,7 +230,7 @@
     opacity: 0.25;
   }
   .hero-sub {
-    font-size: 14px;
+    font-size: var(--fs-body);
     color: var(--text-dim);
     line-height: 1.5;
     max-width: 340px;
@@ -286,7 +297,7 @@
     align-items: center;
     gap: 8px;
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     letter-spacing: 0.2em;
     color: var(--amber);
     text-transform: uppercase;
@@ -313,7 +324,7 @@
     font-weight: 500;
   }
   .index-explainer__body {
-    font-size: clamp(0.8125rem, 2.6vw, 0.875rem);
+    font-size: var(--fs-body);
     line-height: 1.5;
     color: var(--text-dim);
     margin-bottom: 14px;
@@ -355,7 +366,7 @@
   }
   .index-explainer__signal-label {
     font-family: 'Geist Mono', monospace;
-    font-size: clamp(0.5rem, 2.2vw, 0.5625rem);
+    font-size: var(--fs-micro);
     letter-spacing: 0.05em;
     color: var(--text-faint);
     text-transform: uppercase;
@@ -385,7 +396,7 @@
   .index-explainer__score-label {
     display: block;
     font-family: 'Geist Mono', monospace;
-    font-size: 8px;
+    font-size: var(--fs-micro);
     letter-spacing: 0.1em;
     color: var(--text-faint);
     text-transform: uppercase;
@@ -402,7 +413,7 @@
   }
   .index-explainer__footer {
     font-family: 'Fraunces', serif;
-    font-size: 15px;
+    font-size: var(--fs-editorial);
     line-height: 1.55;
     color: var(--text);
     text-align: center;
@@ -442,7 +453,7 @@
   }
   .stat-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     letter-spacing: 0.12em;
     color: var(--text-faint);
     text-transform: uppercase;
@@ -458,7 +469,7 @@
   }
   .stat-delta {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     margin-top: 5px;
     letter-spacing: 0.02em;
   }
@@ -470,7 +481,7 @@
   .hero-stats .hero-stat-value--cooling { color: var(--teal); }
   .hero-stats .hero-stat-delta {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     margin-top: 5px;
     letter-spacing: 0.02em;
   }
@@ -498,7 +509,7 @@
   }
   .section-meta {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     letter-spacing: 0.1em;
     color: var(--text-faint);
     text-transform: uppercase;
@@ -576,10 +587,11 @@
     width: 22px;
     text-align: center;
   }
-  .dest-main { min-width: 0; }
+  .dest-main { min-width: 0; overflow-wrap: break-word; }
   .dest-row1 {
     display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px;
     flex-wrap: wrap;
+    overflow-wrap: anywhere;
   }
   .dest-name {
     font-family: 'Fraunces', serif;
@@ -589,12 +601,12 @@
   }
   .dest-code {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     color: var(--text-faint);
     letter-spacing: 0.05em;
   }
   .dest-vibe {
-    font-size: 12.5px;
+    font-size: var(--fs-body);
     color: var(--text-dim);
     margin-bottom: 8px;
     line-height: 1.35;
@@ -603,7 +615,7 @@
   .dest-meta {
     display: flex; gap: 14px;
     font-family: 'Geist Mono', monospace;
-    font-size: 11px;
+    font-size: var(--fs-label);
     color: var(--text-dim);
   }
   .dest-meta b {
@@ -627,7 +639,7 @@
   }
   .dest-scoreline__label {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     color: var(--text-dim);
     letter-spacing: 0.03em;
   }
@@ -645,7 +657,7 @@
   }
   .dest-arrivals-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 8px;
+    font-size: var(--fs-micro);
     color: var(--text-faint);
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -654,7 +666,7 @@
   .dest-trend {
     display: inline-flex; align-items: center; gap: 2px;
     font-family: 'Geist Mono', monospace;
-    font-size: 11px;
+    font-size: var(--fs-label);
     margin-top: 6px;
     justify-content: flex-end;
     line-height: 1.2;
@@ -662,7 +674,7 @@
   .dest-trend.up { color: var(--signal-up); }
   .dest-trend.down { color: var(--signal-down); }
   .dest-trend.building {
-    font-size: 10px;
+    font-size: var(--fs-label);
     color: var(--text-faint);
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -682,7 +694,7 @@
   }
   .dest-score-main__label {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     color: var(--text-dim);
     letter-spacing: 0.03em;
     margin-top: 3px;
@@ -700,7 +712,7 @@
   }
   .dest-private-support__label {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     color: var(--text-dim);
     letter-spacing: 0.03em;
     margin-top: 2px;
@@ -737,7 +749,7 @@
     letter-spacing: -0.015em;
   }
   .cooling-why {
-    font-size: 12.5px;
+    font-size: var(--fs-body);
     color: var(--text-dim);
     margin-top: 3px;
     margin-bottom: 0;
@@ -876,7 +888,7 @@
     padding: 12px 13px;
     border-radius: 7px;
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: var(--fs-body);
     outline: none;
     transition: border-color 0.15s;
   }
@@ -890,7 +902,7 @@
     border-radius: 7px;
     font-family: 'Geist', sans-serif;
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--fs-body);
     letter-spacing: 0.02em;
     cursor: pointer;
     transition: background 0.15s;
@@ -930,7 +942,7 @@
     text-align: center;
     padding: 32px 20px 20px;
     color: var(--text-faint);
-    font-size: 11px;
+    font-size: var(--fs-label);
     line-height: 1.7;
   }
   .footnote-mark {
@@ -971,7 +983,7 @@
     padding: 14px 0 18px;
     color: var(--text-faint);
     font-family: 'Geist', sans-serif;
-    font-size: 10px;
+    font-size: var(--fs-label);
     letter-spacing: 0.12em;
     text-transform: uppercase;
     cursor: pointer;
@@ -1046,7 +1058,7 @@
     align-items: start;
     margin-bottom: 8px;
   }
-  .mover-info { min-width: 0; }
+  .mover-info { min-width: 0; overflow-wrap: break-word; }
   .mover-name-row {
     display: flex;
     align-items: baseline;
@@ -1062,14 +1074,14 @@
   }
   .mover-icao {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     color: var(--text-faint);
     letter-spacing: 0.05em;
   }
   .mover-badge {
     display: inline-block;
     font-family: 'Geist Mono', monospace;
-    font-size: 8px;
+    font-size: var(--fs-micro);
     letter-spacing: 0.14em;
     text-transform: uppercase;
     padding: 2px 6px;
@@ -1102,7 +1114,7 @@
     border: 1px solid var(--border);
   }
   .mover-reason {
-    font-size: 12px;
+    font-size: var(--fs-body);
     color: var(--text-dim);
     font-style: italic;
     line-height: 1.35;
@@ -1127,7 +1139,7 @@
   }
   .mover-today-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     letter-spacing: 0.12em;
     color: var(--text-faint);
     margin-top: 3px;
@@ -1135,7 +1147,7 @@
   }
   .mover-trend-tag {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     margin-top: 4px;
     line-height: 1.2;
   }
@@ -1155,7 +1167,7 @@
   }
   .mover-sparkline-fallback {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--text-faint);
@@ -1163,7 +1175,7 @@
   }
   .mover-secondary-metrics {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     color: var(--text-faint);
     letter-spacing: 0.02em;
     line-height: 1.3;
@@ -1371,9 +1383,10 @@
   }
   .d-meta {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     color: var(--text-faint);
     letter-spacing: 0.08em;
+    overflow-wrap: break-word;
   }
   .d-meta-sep { color: var(--border-light); margin: 0 8px; }
 
@@ -1387,7 +1400,7 @@
   }
   .d-section-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     letter-spacing: 0.2em;
     color: var(--text-faint);
     text-transform: uppercase;
@@ -1400,7 +1413,7 @@
   }
   .d-section-meta {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     color: var(--text-faint);
   }
 
@@ -1416,7 +1429,7 @@
   .d-stat { background: var(--surface); padding: 14px 12px; }
   .d-stat-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     letter-spacing: 0.12em;
     color: var(--text-faint);
     text-transform: uppercase;
@@ -1432,7 +1445,7 @@
   .d-stat-value.accent { color: var(--amber); }
   .d-stat-delta {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     margin-top: 5px;
   }
   .d-stat-delta.up { color: var(--signal-up); }
@@ -1462,7 +1475,7 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     color: var(--text-faint);
     letter-spacing: 0.05em;
   }
@@ -1492,7 +1505,7 @@
   .d-dow-bar.weekend { background: var(--teal); }
   .d-dow-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     color: var(--text-faint);
     letter-spacing: 0.05em;
   }
@@ -1507,17 +1520,18 @@
     grid-template-columns: 90px 1fr 56px;
     gap: 10px;
     align-items: center;
-    font-size: 12px;
+    font-size: var(--fs-body);
   }
   .d-origin-name {
     color: var(--text);
     font-family: 'Geist', sans-serif;
     font-weight: 500;
+    overflow-wrap: break-word;
   }
   .d-origin-sub {
     color: var(--text-faint);
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     letter-spacing: 0.05em;
     margin-top: 2px;
   }
@@ -1538,13 +1552,13 @@
   .d-origin-val {
     text-align: right;
     font-family: 'Geist Mono', monospace;
-    font-size: 11px;
+    font-size: var(--fs-label);
     color: var(--text);
   }
   .d-origin-val small {
     display: block;
     color: var(--text-faint);
-    font-size: 9px;
+    font-size: var(--fs-micro);
     margin-top: 2px;
   }
 
@@ -1563,13 +1577,13 @@
   }
   .d-craft-name {
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: var(--fs-body);
     font-weight: 500;
     color: var(--text);
   }
   .d-craft-class {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     color: var(--text-faint);
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -1643,7 +1657,7 @@
   .d-feed-item:last-child { border-bottom: none; }
   .d-feed-time {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     color: var(--text-faint);
   }
   .d-feed-main { min-width: 0; }
@@ -1651,17 +1665,17 @@
     font-family: 'Geist', sans-serif;
     font-weight: 500;
     color: var(--text);
-    font-size: 12.5px;
+    font-size: var(--fs-body);
   }
   .d-feed-route {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     color: var(--text-dim);
     margin-top: 2px;
   }
   .d-feed-tag {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     padding: 3px 6px;
     border-radius: 3px;
     letter-spacing: 0.1em;
@@ -1704,13 +1718,13 @@
 
   .d-note {
     font-family: 'Fraunces', serif;
-    font-size: 17px;
+    font-size: var(--fs-editorial);
     line-height: 1.55;
     color: var(--text);
   }
   .d-note-byline {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     color: var(--text-faint);
     letter-spacing: 0.1em;
     margin-top: 14px;
@@ -1738,7 +1752,7 @@
   }
   .d-peer-code {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     color: var(--text-faint);
     margin-top: 3px;
   }
@@ -1748,7 +1762,7 @@
     color: var(--amber);
     text-align: right;
   }
-  .d-peer-pvt small { display: block; color: var(--text-faint); font-size: 8px; margin-top: 2px; }
+  .d-peer-pvt small { display: block; color: var(--text-faint); font-size: var(--fs-micro); margin-top: 2px; }
   .d-peer-trend {
     font-family: 'Geist Mono', monospace;
     font-size: 11px;
@@ -2087,7 +2101,7 @@
   .dest-modal__share-status {
     display: block;
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     letter-spacing: 0.06em;
     color: var(--amber, #E8A317);
     min-height: 14px;
@@ -2102,9 +2116,10 @@
 
   .d-meta {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     color: var(--text-faint, #6B6557);
     letter-spacing: 0.08em;
+    overflow-wrap: break-word;
   }
 
   .d-meta-sep {
@@ -2132,7 +2147,7 @@
 
   .d-section-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     letter-spacing: 0.2em;
     color: var(--text-faint, #6B6557);
     text-transform: uppercase;
@@ -2150,7 +2165,7 @@
 
   .d-section-meta {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     color: var(--text-faint, #6B6557);
     letter-spacing: 0.08em;
   }
@@ -2174,7 +2189,7 @@
 
   .d-stat-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     letter-spacing: 0.12em;
     color: var(--text-faint, #6B6557);
     text-transform: uppercase;
@@ -2197,7 +2212,7 @@
 
   .d-stat-sub {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     margin-top: 5px;
     color: var(--text-dim, #A8A293);
   }
@@ -2212,12 +2227,13 @@
   .d-glance-meta-line {
     margin: 0;
     font-family: 'Geist Mono', monospace;
-    font-size: 11px;
+    font-size: var(--fs-label);
     line-height: 1.45;
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     align-items: baseline;
+    overflow-wrap: break-word;
   }
 
   .d-glance-meta-label::after {
@@ -2314,7 +2330,7 @@
     margin-top: 12px;
     text-align: center;
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--amber, #E8A317);
@@ -2322,7 +2338,7 @@
 
   .d-trend-building-sub {
     margin-top: 4px;
-    font-size: 12px;
+    font-size: var(--fs-body);
     color: var(--text-dim, #A8A293);
     text-transform: none;
     letter-spacing: normal;
@@ -2378,7 +2394,7 @@
 
   .d-index-metric-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--text-faint, #6B6557);
@@ -2415,7 +2431,7 @@
     align-items: center;
     gap: 8px;
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--text-faint, #6B6557);
@@ -2431,7 +2447,7 @@
 
   .signal-read__text {
     font-family: 'Fraunces', serif;
-    font-size: 15px;
+    font-size: var(--fs-editorial);
     line-height: 1.55;
     color: var(--text, #F5F1E8);
     margin: 0;
@@ -2440,6 +2456,7 @@
   /* Modal section label readability */
   .dest-modal .d-meta {
     color: var(--amber);
+    overflow-wrap: break-word;
   }
 
   .dest-modal .d-section-label {
@@ -2472,7 +2489,7 @@
 
   .d-pulse-metric-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 9px;
+    font-size: var(--fs-micro);
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--text-faint, #6B6557);
@@ -2496,7 +2513,7 @@
 
   .d-pulse-metric-sub {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     color: var(--text-dim, #A8A293);
     margin-top: 4px;
   }
@@ -2520,7 +2537,7 @@
   /* Editorial note */
   .d-note {
     font-family: 'Fraunces', serif;
-    font-size: 16px;
+    font-size: var(--fs-editorial);
     line-height: 1.6;
     color: var(--text, #F5F1E8);
     margin: 0;
@@ -2557,7 +2574,7 @@
 
   .d-note-byline {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
+    font-size: var(--fs-label);
     color: var(--text-faint, #6B6557);
     letter-spacing: 0.1em;
     margin-top: 14px;
@@ -2566,7 +2583,7 @@
   .d-note-empty {
     font-style: italic;
     color: var(--text-faint, #6B6557);
-    font-size: 13px;
+    font-size: var(--fs-body);
   }
 
   /* Click affordance for destination cards */
@@ -2673,14 +2690,14 @@
   grid-template-columns: minmax(0, 140px) 1fr 64px;
   gap: 12px;
   align-items: center;
-  font-size: 12px;
+  font-size: var(--fs-body);
 }
 
 .d-origin-name {
   color: var(--text, #F5F1E8);
   font-family: 'Geist', sans-serif;
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--fs-body);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2689,7 +2706,7 @@
 .d-origin-sub {
   color: var(--text-faint, #6B6557);
   font-family: 'Geist Mono', monospace;
-  font-size: 9px;
+  font-size: var(--fs-micro);
   letter-spacing: 0.05em;
   margin-top: 2px;
 }
@@ -2717,14 +2734,14 @@
 .d-origin-val {
   text-align: right;
   font-family: 'Geist Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-label);
   color: var(--text, #F5F1E8);
 }
 
 .d-origin-val small {
   display: block;
   color: var(--text-faint, #6B6557);
-  font-size: 9px;
+  font-size: var(--fs-micro);
   margin-top: 2px;
 }
 
@@ -2747,14 +2764,14 @@
 
 .d-craft-name {
   font-family: 'Geist', sans-serif;
-  font-size: 13px;
+  font-size: var(--fs-body);
   font-weight: 500;
   color: var(--text, #F5F1E8);
 }
 
 .d-craft-class {
   font-family: 'Geist Mono', monospace;
-  font-size: 9px;
+  font-size: var(--fs-micro);
   color: var(--text-faint, #6B6557);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -2787,7 +2804,7 @@
   padding: 12px;
   background: var(--surface, #161B23);
   border-bottom: 1px solid var(--border, #252C37);
-  font-size: 12px;
+  font-size: var(--fs-body);
 }
 
 .d-feed-item:last-child {
@@ -2796,7 +2813,7 @@
 
 .d-feed-time {
   font-family: 'Geist Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-label);
   color: var(--text-faint, #6B6557);
 }
 
@@ -2808,20 +2825,20 @@
   font-family: 'Geist Mono', monospace;
   font-weight: 500;
   color: var(--text, #F5F1E8);
-  font-size: 12px;
+  font-size: var(--fs-body);
   letter-spacing: 0.02em;
 }
 
 .d-feed-aircraft {
   font-family: 'Geist Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-label);
   color: var(--text-dim, #A8A293);
   margin-left: 6px;
 }
 
 .d-feed-route {
   font-family: 'Geist Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-label);
   color: var(--text-faint, #6B6557);
   margin-top: 3px;
   white-space: nowrap;
@@ -2831,7 +2848,7 @@
 
 .d-feed-tag {
   font-family: 'Geist Mono', monospace;
-  font-size: 9px;
+  font-size: var(--fs-micro);
   padding: 3px 7px;
   border-radius: 3px;
   letter-spacing: 0.1em;
@@ -2873,7 +2890,7 @@
   margin: 0;
   padding: 6px 14px;
   font-family: 'Geist Mono', monospace;
-  font-size: 9px;
+  font-size: var(--fs-micro);
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -2935,7 +2952,7 @@
 
 .d-peer-region {
   font-family: 'Geist Mono', monospace;
-  font-size: 9px;
+  font-size: var(--fs-micro);
   color: var(--text-faint, #6B6557);
   margin-top: 3px;
   letter-spacing: 0.05em;
@@ -2954,7 +2971,7 @@
 
 .d-peer-tier {
   font-family: 'Geist Mono', monospace;
-  font-size: 8px;
+  font-size: var(--fs-micro);
   letter-spacing: 0.15em;
   text-transform: uppercase;
   margin-top: 4px;
@@ -2971,7 +2988,7 @@
     gap: 10px;
   }
 
-  .d-origin-name { font-size: 12px; }
+  .d-origin-name { font-size: var(--fs-body); }
 
   .d-feed-item {
     grid-template-columns: 50px 1fr auto;
@@ -3411,6 +3428,31 @@
     .index-page__graphic-signal:nth-child(5) { grid-column: 4 / 6; }
     .index-page__confidence-grid { grid-template-columns: 1fr; }
     .index-page__signal-state { grid-template-columns: 1fr; gap: 4px; }
+  }
+
+  /* ===== Mobile typography & accessibility safeguards ===== */
+  @media (max-width: 480px) {
+    :root {
+      --fs-micro: clamp(0.72rem, 0.70rem + 0.28vw, 0.82rem);
+      --fs-label: clamp(0.8125rem, 0.78rem + 0.38vw, 0.92rem);
+      --fs-body: clamp(1rem, 0.98rem + 0.45vw, 1.12rem);
+      --fs-editorial: clamp(1.0625rem, 1.02rem + 0.55vw, 1.25rem);
+    }
+
+    .nav-btn {
+      min-height: 44px;
+    }
+
+    .d-section-expand-btn {
+      min-height: 44px;
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+
+    .brief-input,
+    .brief-btn {
+      min-height: 44px;
+    }
   }
 
 </style>
