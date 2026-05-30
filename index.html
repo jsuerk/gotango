@@ -1233,20 +1233,24 @@
     min-width: 72px;
     flex-shrink: 0;
   }
-  .mover-secondary-metrics {
+  .mover-history-meta {
     font-family: 'Geist Mono', monospace;
-    font-size: clamp(1rem, 0.94rem + 0.28vw, 1.16rem);
+    font-size: clamp(0.82rem, 0.78rem + 0.16vw, 0.95rem);
     color: var(--text-dim);
     letter-spacing: 0.02em;
     line-height: 1.25;
-    font-weight: 500;
+    font-weight: 400;
     min-width: 0;
     flex: 1 1 auto;
     overflow-wrap: break-word;
     max-width: 100%;
   }
-  .mover-secondary-metrics b {
-    color: var(--text);
+  .mover-history-meta__avg {
+    color: var(--teal);
+    font-weight: 500;
+  }
+  .mover-history-meta__peak {
+    color: var(--green, #6BCB8B);
     font-weight: 500;
   }
   .movers-loading {
@@ -5514,11 +5518,13 @@
     }
 
     const metricsEl = document.createElement('div');
-    metricsEl.className = 'mover-secondary-metrics';
+    metricsEl.className = 'mover-history-meta';
     if (hasWeekly) {
       const avg = Math.round(Number(dest.index_7d_avg));
       const peak = Math.round(Number(dest.index_7d_high));
-      metricsEl.innerHTML = `7D avg <b>${avg}</b> · Peak <b>${peak}</b>`;
+      metricsEl.innerHTML =
+        `<span>7D avg </span><span class="mover-history-meta__avg">${avg}</span>` +
+        `<span> · Peak </span><span class="mover-history-meta__peak">${peak}</span>`;
     } else {
       metricsEl.textContent = 'Weekly trend building';
     }
