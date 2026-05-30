@@ -2966,6 +2966,440 @@
   }
 }
 
+  /* ===== ABOUT GOTANGO INDEX PAGE (scoped) ===== */
+  .index-page {
+    padding: 0 0 32px;
+  }
+  .index-page__top {
+    padding: 16px 20px 0;
+  }
+  .index-page__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .index-page__back:hover { color: var(--amber-bright); }
+  .index-page__hero {
+    padding: 28px 20px 36px;
+    border-bottom: 1px solid var(--border);
+  }
+  .index-page__kicker {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 14px;
+  }
+  .index-page__title {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: clamp(1.75rem, 6vw, 2rem);
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .index-page__subtitle {
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+    max-width: 36em;
+  }
+  .index-page__lead {
+    font-family: 'Fraunces', serif;
+    font-size: 1.125rem;
+    line-height: 1.5;
+    color: var(--text);
+    margin-bottom: 18px;
+  }
+  .index-page__hero p {
+    font-size: 0.875rem;
+    line-height: 1.65;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+  .index-page__hero p:last-child { margin-bottom: 0; }
+  .index-page__pullquote {
+    margin: 22px 0 0;
+    padding: 18px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    border-radius: 8px;
+    font-family: 'Fraunces', serif;
+    font-size: 1.0625rem;
+    line-height: 1.45;
+    color: var(--text);
+  }
+  .index-page__pullquote em {
+    font-style: italic;
+    color: var(--amber);
+  }
+  .index-page__section {
+    padding: 32px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .index-page__section:last-child { border-bottom: none; }
+  .index-page__section-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 1.375rem;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+  .index-page__section-title em {
+    font-style: italic;
+    color: var(--amber);
+    font-weight: 500;
+  }
+  .index-page__section p {
+    font-size: 0.875rem;
+    line-height: 1.65;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+  .index-page__section p:last-child { margin-bottom: 0; }
+  .index-page__section ul {
+    margin: 0 0 14px;
+    padding-left: 1.15em;
+    font-size: 0.875rem;
+    line-height: 1.65;
+    color: var(--text-dim);
+  }
+  .index-page__section li { margin-bottom: 6px; }
+  .index-page__section li:last-child { margin-bottom: 0; }
+  .index-page__link {
+    color: var(--amber);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .index-page__link:hover { color: var(--amber-bright); }
+  .index-page__card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 16px;
+    margin-bottom: 12px;
+  }
+  .index-page__card:last-child { margin-bottom: 0; }
+  .index-page__card-grid {
+    display: grid;
+    gap: 12px;
+    margin-top: 18px;
+  }
+  .index-page__card-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .index-page__card-num {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .index-page__card p {
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin: 0;
+  }
+  .index-page__graphic {
+    margin: 24px 0 0;
+    padding: 22px 18px;
+    background: linear-gradient(165deg, rgba(232, 163, 23, 0.06) 0%, var(--surface) 45%);
+    border: 1px solid rgba(232, 163, 23, 0.22);
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .index-page__graphic::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(232, 163, 23, 0.1), transparent 70%);
+    pointer-events: none;
+  }
+  .index-page__graphic > * { position: relative; z-index: 1; }
+  .index-page__graphic-eyebrow {
+    font-family: 'Geist Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .index-page__graphic-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.25rem;
+    font-weight: 500;
+    text-align: center;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .index-page__graphic-title em {
+    font-style: italic;
+    color: var(--amber);
+  }
+  .index-page__graphic-signals {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    margin: 18px 0 6px;
+  }
+  .index-page__graphic-signal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+  }
+  .index-page__graphic-signal-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 7px;
+    background: rgba(232, 163, 23, 0.08);
+    border: 1px solid rgba(232, 163, 23, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--amber);
+  }
+  .index-page__graphic-signal-icon svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.75;
+  }
+  .index-page__graphic-signal-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 0.5rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    text-align: center;
+    line-height: 1.2;
+  }
+  .index-page__graphic-connector {
+    display: block;
+    width: 100%;
+    height: 18px;
+    margin: 0 auto 6px;
+    color: var(--amber);
+    opacity: 0.4;
+  }
+  .index-page__graphic-score {
+    margin: 0 auto 12px;
+    text-align: center;
+    padding: 10px 20px 9px;
+    background: rgba(232, 163, 23, 0.07);
+    border: 1px solid rgba(232, 163, 23, 0.3);
+    border-radius: 8px;
+    max-width: 140px;
+  }
+  .index-page__graphic-score-label {
+    display: block;
+    font-family: 'Geist Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .index-page__graphic-score-value {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--amber);
+    line-height: 1;
+  }
+  .index-page__graphic-caption {
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--text-dim);
+    text-align: center;
+    margin: 0;
+  }
+  .index-page__confidence-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 16px 0 14px;
+  }
+  .index-page__confidence-cell {
+    padding: 14px 12px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    text-align: center;
+  }
+  .index-page__confidence-cell strong {
+    display: block;
+    font-family: 'Geist Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 6px;
+  }
+  .index-page__confidence-cell span {
+    display: block;
+    font-family: 'Fraunces', serif;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    color: var(--text);
+  }
+  .index-page__scale {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .index-page__scale-row {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 12px;
+    align-items: start;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .index-page__scale-range {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--amber);
+    line-height: 1.3;
+  }
+  .index-page__scale-label {
+    font-family: 'Fraunces', serif;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .index-page__scale-desc {
+    font-size: 0.75rem;
+    line-height: 1.55;
+    color: var(--text-dim);
+    margin: 0;
+  }
+  .index-page__pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .index-page__pill {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 8px 12px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    background: var(--bg-2);
+    color: var(--text-dim);
+  }
+  .index-page__pill--active {
+    border-color: rgba(232, 163, 23, 0.45);
+    background: rgba(232, 163, 23, 0.1);
+    color: var(--amber);
+  }
+  .index-page__signal-states {
+    display: grid;
+    gap: 8px;
+    margin: 16px 0 12px;
+  }
+  .index-page__signal-state {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .index-page__signal-state-name {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+  .index-page__signal-state-desc {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--text-dim);
+    margin: 0;
+  }
+  .index-page__closing {
+    margin: 0 20px 24px;
+    padding: 24px 20px;
+    text-align: center;
+    background: var(--surface);
+    border: 1px solid rgba(232, 163, 23, 0.28);
+    border-radius: 12px;
+  }
+  .index-page__closing p {
+    font-family: 'Fraunces', serif;
+    font-size: 1.0625rem;
+    line-height: 1.5;
+    color: var(--text);
+    margin: 0;
+  }
+  .index-page__example {
+    margin-top: 16px;
+    padding: 14px 16px;
+    background: var(--bg-2);
+    border: 1px dashed var(--border-light);
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-style: italic;
+    line-height: 1.55;
+    color: var(--text-dim);
+  }
+  .footnote a.footnote-link--about {
+    color: var(--amber);
+  }
+  .footnote a.footnote-link--about:hover {
+    color: var(--amber-bright);
+  }
+  @media (max-width: 360px) {
+    .index-page__graphic-signals {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    .index-page__graphic-signal:nth-child(1) { grid-column: 1 / 3; }
+    .index-page__graphic-signal:nth-child(2) { grid-column: 3 / 5; }
+    .index-page__graphic-signal:nth-child(3) { grid-column: 5 / 7; }
+    .index-page__graphic-signal:nth-child(4) { grid-column: 2 / 4; }
+    .index-page__graphic-signal:nth-child(5) { grid-column: 4 / 6; }
+    .index-page__confidence-grid { grid-template-columns: 1fr; }
+    .index-page__signal-state { grid-template-columns: 1fr; gap: 4px; }
+  }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
@@ -3131,7 +3565,7 @@
       Go Tango · Independent travel intelligence<br>
       Built on public ADS-B data · No advertiser influence<br>
       <div style="margin-top: 10px;">
-        <a href="#">About the index</a>·<a href="#">Methodology</a>·<a href="#">Contact</a>
+        <a href="#about-gotango-index" class="footnote-link--about" id="footnote-about-link">About the GoTango Index</a>·<a href="#">Contact</a>
       </div>
     </div>
   </div>
@@ -3306,6 +3740,385 @@
         <p style="color: var(--text-faint); font-size: 12px; text-align: center; padding: 20px 0 0;">— End of brief —</p>
       </div>
     </div>
+  </div>
+
+  <!-- ============ ABOUT GOTANGO INDEX ============ -->
+  <div class="tab-content" id="tab-about-index">
+    <article class="index-page">
+      <div class="index-page__top">
+        <button type="button" class="index-page__back" id="about-index-back" aria-label="Back to Now">← Back to Now</button>
+      </div>
+
+      <header class="index-page__hero">
+        <p class="index-page__kicker">Go Tango · Index Methodology</p>
+        <h1 class="index-page__title">About the GoTango Index</h1>
+        <p class="index-page__subtitle">Methodology, signal confidence, and how to read destination momentum.</p>
+        <p class="index-page__lead">Travel intelligence for where the world is going.</p>
+        <p>Go Tango tracks travel momentum across the world’s most watched leisure destinations. The GoTango Index is our daily 0–100 read on whether a destination appears to be gaining heat, losing momentum, holding steady, or quietly coming into view.</p>
+        <p>The Index is not a simple arrival counter. It is designed to interpret movement across multiple signals — private-travel activity, trend strength, origin breadth, aircraft mix, recent history, and broader market context — so users can understand not only where activity is showing up, but whether that activity appears meaningful.</p>
+        <p class="index-page__pullquote">At its core, Go Tango asks a simple question: <em>Is this destination showing a real travel signal, or just noise?</em></p>
+      </header>
+
+      <section class="index-page__section">
+        <h2 class="index-page__section-title">Why private-travel movement matters</h2>
+        <p>Luxury travel often moves before mass travel does. Private aviation, high-end leisure itineraries, villa markets, resort corridors, yacht destinations, mountain towns, and seasonal island routes can reveal shifts in attention before they become obvious through hotel headlines, social media, or commercial passenger volume.</p>
+        <p>That does not mean every private arrival is important. One aircraft does not make a trend. A single busy day can be misleading. A spike from a low baseline can look larger than it really is.</p>
+        <p>That is why Go Tango does not treat private arrivals as the whole answer. Instead, we use private-travel activity as the starting signal, then weigh it against trend behavior, recent history, origin diversity, aircraft mix, and confidence in the underlying pattern.</p>
+        <p>The result is the GoTango Index: a daily signal score built to help users understand destination momentum at a glance.</p>
+      </section>
+
+      <section class="index-page__section">
+        <h2 class="index-page__section-title">What the GoTango Index measures</h2>
+        <p>The GoTango Index is a 0–100 score designed to capture private-travel momentum for each destination.</p>
+        <p>A higher score generally means a destination is showing stronger, broader, or more durable travel momentum. A lower score generally means activity is quieter, softer, or not yet supported by enough evidence.</p>
+        <p>The score considers five broad signal groups.</p>
+        <div class="index-page__card-grid">
+          <div class="index-page__card">
+            <p class="index-page__card-num">1 · Private-travel activity</p>
+            <p class="index-page__card-title">Private-travel activity</p>
+            <p>This is the foundation of the Index. We look at private and general-aviation arrivals into the airports that best represent each destination.</p>
+            <p style="margin-top:8px">The goal is not simply to count every aircraft equally. Some destinations naturally have more traffic than others, and some aircraft categories are more relevant to high-end leisure travel than others. Go Tango looks at both the presence of arrivals and the character of those arrivals.</p>
+          </div>
+          <div class="index-page__card">
+            <p class="index-page__card-num">2 · Trend strength</p>
+            <p class="index-page__card-title">Trend strength</p>
+            <p>A destination becomes interesting when its activity changes meaningfully against its own recent baseline.</p>
+            <p style="margin-top:8px">Go Tango looks at recent movement, including short-term changes and week-over-week direction. A destination that is up sharply from its own normal pattern may deserve attention even if it is not one of the largest markets by raw volume.</p>
+            <p style="margin-top:8px">But trend strength is handled carefully. A small destination can show a large percentage increase from a small base. Go Tango’s methodology is designed to avoid treating every small-number jump as a major market surge.</p>
+          </div>
+          <div class="index-page__card">
+            <p class="index-page__card-num">3 · Origin breadth</p>
+            <p class="index-page__card-title">Origin breadth</p>
+            <p>Where flights are coming from matters.</p>
+            <p style="margin-top:8px">A destination receiving arrivals from a wider mix of origin markets may be showing a broader travel signal than a destination receiving the same number of arrivals from only one or two places.</p>
+            <p style="margin-top:8px">Origin breadth helps Go Tango distinguish between a concentrated move and a more widely supported destination trend.</p>
+          </div>
+          <div class="index-page__card">
+            <p class="index-page__card-num">4 · Aircraft mix</p>
+            <p class="index-page__card-title">Aircraft mix</p>
+            <p>Not all arrivals carry the same signal.</p>
+            <p style="margin-top:8px">The Index considers the aircraft mix associated with each destination’s arrivals. Larger private aircraft, turboprops in appropriate resort markets, and other aircraft categories can tell different stories depending on the destination.</p>
+            <p style="margin-top:8px">Aircraft mix is not used to identify people or speculate about passengers. It is used as a market-level signal about the character and quality of travel activity.</p>
+          </div>
+          <div class="index-page__card">
+            <p class="index-page__card-num">5 · Broader market context</p>
+            <p class="index-page__card-title">Broader market context</p>
+            <p>Commercial traffic, airport type, market size, seasonality, and destination category all matter — but they do not replace the private-travel signal.</p>
+            <p style="margin-top:8px">Commercial airline activity is used as backdrop context, not as the primary driver of the GoTango Index. A major airport may always be commercially busy, but that does not necessarily mean a luxury destination is gaining momentum.</p>
+            <p style="margin-top:8px">Go Tango is built to read the private-travel layer first.</p>
+          </div>
+        </div>
+
+        <div class="index-page__graphic" aria-label="More Than Just Arrivals graphic">
+          <p class="index-page__graphic-eyebrow">The Go Tango Index</p>
+          <h3 class="index-page__graphic-title">More <em>Than Just Arrivals.</em></h3>
+          <div class="index-page__graphic-signals">
+            <div class="index-page__graphic-signal">
+              <span class="index-page__graphic-signal-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 2 2 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span>
+              <span class="index-page__graphic-signal-label">Activity</span>
+            </div>
+            <div class="index-page__graphic-signal">
+              <span class="index-page__graphic-signal-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span>
+              <span class="index-page__graphic-signal-label">Trend</span>
+            </div>
+            <div class="index-page__graphic-signal">
+              <span class="index-page__graphic-signal-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></span>
+              <span class="index-page__graphic-signal-label">Origins</span>
+            </div>
+            <div class="index-page__graphic-signal">
+              <span class="index-page__graphic-signal-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 2 2 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span>
+              <span class="index-page__graphic-signal-label">Aircraft Mix</span>
+            </div>
+            <div class="index-page__graphic-signal">
+              <span class="index-page__graphic-signal-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
+              <span class="index-page__graphic-signal-label">Context</span>
+            </div>
+          </div>
+          <svg class="index-page__graphic-connector" viewBox="0 0 400 24" preserveAspectRatio="none" aria-hidden="true">
+            <line x1="40" y1="2" x2="200" y2="22" stroke="currentColor" stroke-width="1"/>
+            <line x1="120" y1="2" x2="200" y2="22" stroke="currentColor" stroke-width="1"/>
+            <line x1="200" y1="2" x2="200" y2="22" stroke="currentColor" stroke-width="1"/>
+            <line x1="280" y1="2" x2="200" y2="22" stroke="currentColor" stroke-width="1"/>
+            <line x1="360" y1="2" x2="200" y2="22" stroke="currentColor" stroke-width="1"/>
+          </svg>
+          <div class="index-page__graphic-score">
+            <span class="index-page__graphic-score-label">GoTango Index</span>
+            <span class="index-page__graphic-score-value">84</span>
+          </div>
+          <p class="index-page__graphic-caption">Higher scores signal stronger, broader, more durable travel momentum. The Index blends multiple signals into one daily read. We do not simply count flights; we interpret whether the movement appears broad, durable, and meaningful.</p>
+        </div>
+      </section>
+
+      <section class="index-page__section">
+        <h2 class="index-page__section-title">How the score works</h2>
+        <p>The GoTango Index is calculated daily for each tracked destination. The score is built from observed aviation movement and recent destination history.</p>
+        <p>We do not publish the exact formula, weighting, or thresholds. That methodology is proprietary. But we do publish the major principles behind the score because users should understand what the Index is designed to represent.</p>
+        <p><strong style="color:var(--text);font-weight:500">The Index generally rewards:</strong></p>
+        <ul>
+          <li>More relevant private-travel activity</li>
+          <li>Stronger movement versus recent history</li>
+          <li>Broader origin diversity</li>
+          <li>Higher-confidence aircraft mix</li>
+          <li>Signals that persist beyond a one-day spike</li>
+        </ul>
+        <p><strong style="color:var(--text);font-weight:500">The Index generally discounts:</strong></p>
+        <ul>
+          <li>Thin signals from very low arrival counts</li>
+          <li>Narrow activity from only one or two origins</li>
+          <li>Large percentage jumps from tiny baselines</li>
+          <li>Commercial traffic that is not supported by private-travel movement</li>
+          <li>Incomplete or still-building history</li>
+        </ul>
+        <p>The score is intentionally not a pure popularity ranking. A large market does not automatically win because it has more total traffic. A small market does not automatically win because it had one unusual day.</p>
+        <p>Go Tango is trying to identify meaningful movement.</p>
+      </section>
+
+      <section class="index-page__section">
+        <h2 class="index-page__section-title">The 0–100 scale</h2>
+        <p>The score is meant to be readable quickly.</p>
+        <div class="index-page__scale" role="list">
+          <div class="index-page__scale-row" role="listitem">
+            <span class="index-page__scale-range">0–24</span>
+            <div>
+              <p class="index-page__scale-label">Quiet</p>
+              <p class="index-page__scale-desc">A destination is showing lighter private-travel activity or limited signal depth. Quiet does not mean irrelevant. Some quiet destinations can become important if they begin moving from a low base.</p>
+            </div>
+          </div>
+          <div class="index-page__scale-row" role="listitem">
+            <span class="index-page__scale-range">25–49</span>
+            <div>
+              <p class="index-page__scale-label">Active</p>
+              <p class="index-page__scale-desc">The destination is showing usable activity, but not enough strength or confirmation to suggest a major move. This can describe steady resort markets, early signals, or places with normal seasonal activity.</p>
+            </div>
+          </div>
+          <div class="index-page__scale-row" role="listitem">
+            <span class="index-page__scale-range">50–69</span>
+            <div>
+              <p class="index-page__scale-label">Building</p>
+              <p class="index-page__scale-desc">The destination is beginning to show more meaningful travel momentum. It may be gaining against its own recent pattern, showing broader origin activity, or displaying a stronger aircraft mix.</p>
+            </div>
+          </div>
+          <div class="index-page__scale-row" role="listitem">
+            <span class="index-page__scale-range">70–84</span>
+            <div>
+              <p class="index-page__scale-label">Strong</p>
+              <p class="index-page__scale-desc">The destination is showing a clear signal. Private-travel activity, trend direction, or origin breadth may be supporting a stronger read.</p>
+            </div>
+          </div>
+          <div class="index-page__scale-row" role="listitem">
+            <span class="index-page__scale-range">85–100</span>
+            <div>
+              <p class="index-page__scale-label">Exceptional</p>
+              <p class="index-page__scale-desc">The destination is showing one of the strongest reads in the system. These scores are reserved for destinations with unusually strong or well-supported momentum.</p>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top:16px">That said, Go Tango also considers confidence. A destination should not receive an exceptional score simply because a small number changed sharply. Thin signals may be capped or described as developing until more evidence appears.</p>
+
+        <div class="index-page__graphic" aria-label="Score with confidence graphic">
+          <h3 class="index-page__graphic-title">Score with <em>confidence</em></h3>
+          <p class="index-page__graphic-caption" style="margin-bottom:14px">A score is not just a number.</p>
+          <div class="index-page__confidence-grid">
+            <div class="index-page__confidence-cell">
+              <strong>High score + broad support</strong>
+              <span>= Confirmed momentum</span>
+            </div>
+            <div class="index-page__confidence-cell">
+              <strong>High score + thin support</strong>
+              <span>= Developing signal</span>
+            </div>
+            <div class="index-page__confidence-cell">
+              <strong>Low score + rising pattern</strong>
+              <span>= Worth watching</span>
+            </div>
+            <div class="index-page__confidence-cell">
+              <strong>Low score + low activity</strong>
+              <span>= Quiet market</span>
+            </div>
+          </div>
+          <p class="index-page__graphic-caption">Go Tango is designed to separate broad market momentum from thin or early movement.</p>
+        </div>
+      </section>
+
+      <section class="index-page__section">
+        <h2 class="index-page__section-title">What the categories mean</h2>
+        <p>The app uses destination categories to make the Index easier to scan.</p>
+        <div class="index-page__card-grid">
+          <div class="index-page__card">
+            <p class="index-page__card-title">Top Weekly</p>
+            <p>These are destinations with the strongest weekly signal. They may not always be the loudest destination today, but they are showing the most meaningful recent strength across the Index.</p>
+          </div>
+          <div class="index-page__card">
+            <p class="index-page__card-title">Rising</p>
+            <p>These destinations are gaining momentum. A rising destination may be moving above its recent average, showing stronger origin breadth, or building a more durable signal.</p>
+          </div>
+          <div class="index-page__card">
+            <p class="index-page__card-title">Cooling</p>
+            <p>Cooling does not necessarily mean a destination is empty or unattractive. It means the signal has softened from its recent pace or has moved down from a recent high.</p>
+            <p style="margin-top:8px">A destination can still be active while cooling. This distinction matters.</p>
+          </div>
+          <div class="index-page__card">
+            <p class="index-page__card-title">Active</p>
+            <p>Active destinations are showing healthy travel movement without a sharp breakout or cool-down. These are markets with steady, meaningful activity.</p>
+          </div>
+          <div class="index-page__card">
+            <p class="index-page__card-title">Quiet</p>
+            <p>Quiet destinations are showing lighter signal strength. Some are simply in slower periods. Others may be early-stage markets worth watching if activity begins to build.</p>
+          </div>
+        </div>
+        <div class="index-page__pill-row" aria-hidden="true">
+          <span class="index-page__pill index-page__pill--active">Top Weekly</span>
+          <span class="index-page__pill">Rising</span>
+          <span class="index-page__pill">Cooling</span>
+          <span class="index-page__pill">Active</span>
+          <span class="index-page__pill">Quiet</span>
+        </div>
+      </section>
+
+      <section class="index-page__section">
+        <h2 class="index-page__section-title">How Go Tango uses aviation data</h2>
+        <p>Go Tango relies on public and commercially available aviation data to identify arrivals into destination-relevant airports.</p>
+        <p>A major underlying source of modern flight-position information is ADS-B. The FAA explains that ADS-B Out broadcasts an aircraft’s GPS location, altitude, ground speed, and other data to ground stations and other aircraft once per second.</p>
+        <p>Go Tango also uses FlightAware’s AeroAPI, which FlightAware describes as a query-based API providing on-demand access to flight status and tracking data from millions of flight-status inputs.</p>
+        <p>The app does not use this data to identify individual passengers. The Index is built at the destination level. We are interested in market movement, not personal tracking.</p>
+        <p>Sources: <a class="index-page__link" href="https://www.faa.gov/about/office_org/headquarters_offices/avs/offices/afx/afs/afs400/afs410/ads-b" target="_blank" rel="noopener noreferrer">FAA ADS-B</a> · <a class="index-page__link" href="https://www.flightaware.com/commercial/aeroapi/" target="_blank" rel="noopener noreferrer">FlightAware AeroAPI</a></p>
+      </section>
+
+      <section class="index-page__section">
+        <h2 class="index-page__section-title">What Go Tango does with the data</h2>
+        <p>For each destination, Go Tango identifies the airport or airports that best represent that destination’s private-travel pattern.</p>
+        <p>Then we look at:</p>
+        <ul>
+          <li>Private/general-aviation arrivals</li>
+          <li>Weighted private-travel signal</li>
+          <li>Recent day-over-day movement</li>
+          <li>Recent week-over-week movement</li>
+          <li>Origin diversity</li>
+          <li>Aircraft mix</li>
+          <li>Commercial backdrop</li>
+          <li>Historical score behavior</li>
+          <li>Signal confidence</li>
+        </ul>
+        <p>From those inputs, Go Tango creates a daily score and destination status.</p>
+        <p>The score is then used across the app:</p>
+        <ul>
+          <li><strong style="color:var(--text);font-weight:500">Now:</strong> what is moving today</li>
+          <li><strong style="color:var(--text);font-weight:500">Movers:</strong> what is carrying weekly momentum</li>
+          <li><strong style="color:var(--text);font-weight:500">Destination modals:</strong> deeper context for each market</li>
+          <li><strong style="color:var(--text);font-weight:500">Signal Read:</strong> plain-English explanation of the score movement</li>
+        </ul>
+      </section>
+
+      <section class="index-page__section">
+        <h2 class="index-page__section-title">Why commercial airline traffic is only context</h2>
+        <p>Commercial airline traffic can be useful, but it is not the heart of Go Tango.</p>
+        <p>A destination may have heavy airline volume because it is a major airport, a business hub, or a mass-tourism gateway. That does not necessarily tell us whether high-end leisure travel is gaining momentum.</p>
+        <p>For that reason, Go Tango treats commercial traffic as a backdrop. It may help explain the wider travel environment, but it does not drive the Index the way private-travel activity does.</p>
+        <p>This is especially important for places with large airports. A market like Dubai, Bali, Nassau, or Cancún may have heavy commercial activity almost all the time. The GoTango Index is designed to look past that baseline and ask whether the private-travel signal is changing.</p>
+      </section>
+
+      <section class="index-page__section">
+        <h2 class="index-page__section-title">Confidence and thin-signal protection</h2>
+        <p>A high score should mean more than “something moved.”</p>
+        <p>Go Tango uses confidence logic to avoid overstating thin signals. If a destination shows a sharp move but has very low private-arrival depth or narrow origin breadth, the Index may treat that as a developing signal rather than a fully confirmed surge.</p>
+        <p>This matters because some destinations are small. A move from one arrival to three arrivals can look large as a percentage, but that does not necessarily mean the market is broadly heating up.</p>
+        <p>Go Tango’s confidence layer helps distinguish between:</p>
+        <ul>
+          <li>A broad move</li>
+          <li>A concentrated move</li>
+          <li>An early move</li>
+          <li>A one-day spike</li>
+          <li>A confirmed trend</li>
+        </ul>
+        <p>In the app, this appears in plain language through the Signal Read.</p>
+        <p class="index-page__example">Example: Bali’s Index is elevated versus its recent range, but today’s private-arrival depth is still light. Treat this as an early, concentrated signal rather than a broad market surge.</p>
+
+        <div class="index-page__graphic" aria-label="Signal confidence graphic">
+          <h3 class="index-page__graphic-title">Signal <em>confidence</em></h3>
+          <div class="index-page__signal-states">
+            <div class="index-page__signal-state">
+              <span class="index-page__signal-state-name">Confirmed</span>
+              <p class="index-page__signal-state-desc">Private arrivals + origins + score movement agree.</p>
+            </div>
+            <div class="index-page__signal-state">
+              <span class="index-page__signal-state-name">Developing</span>
+              <p class="index-page__signal-state-desc">The Index is moving, but confirmation is still building.</p>
+            </div>
+            <div class="index-page__signal-state">
+              <span class="index-page__signal-state-name">Concentrated</span>
+              <p class="index-page__signal-state-desc">The signal is real enough to notice, but narrow.</p>
+            </div>
+            <div class="index-page__signal-state">
+              <span class="index-page__signal-state-name">Cooling</span>
+              <p class="index-page__signal-state-desc">The market has eased from its recent pace.</p>
+            </div>
+            <div class="index-page__signal-state">
+              <span class="index-page__signal-state-name">Steady</span>
+              <p class="index-page__signal-state-desc">The destination is holding near its recent range.</p>
+            </div>
+          </div>
+          <p class="index-page__graphic-caption">A destination can be interesting before it is fully confirmed. The Index is designed to show both movement and confidence.</p>
+        </div>
+      </section>
+
+      <section class="index-page__section">
+        <h2 class="index-page__section-title">The Signal Read</h2>
+        <p>Each destination modal includes a short Signal Read under the 7-day GoTango Index chart.</p>
+        <p>The Signal Read translates score movement into plain English.</p>
+        <p>It looks at whether the destination is:</p>
+        <ul>
+          <li>Above or below its 7-day average</li>
+          <li>Near or below its weekly high</li>
+          <li>Moving up or down across the recent window</li>
+          <li>Supported by private-arrival depth</li>
+          <li>Supported by origin breadth</li>
+          <li>Showing a confirmed, developing, concentrated, cooling, or steady signal</li>
+        </ul>
+        <p>The Signal Read is not meant to replace the score. It is meant to explain what the score appears to be saying.</p>
+        <p>A high score with broad support may read as strengthening. A high score with thin support may read as developing. A destination that has pulled back from a weekly high may still be active, but no longer at peak intensity.</p>
+        <p>This is where Go Tango becomes more than a chart.</p>
+      </section>
+
+      <section class="index-page__section">
+        <h2 class="index-page__section-title">What the Index is not</h2>
+        <p>The GoTango Index is not a travel booking recommendation.</p>
+        <p>It is not a safety rating.</p>
+        <p>It is not a prediction that prices will rise or fall.</p>
+        <p>It is not an official airport, government, tourism-board, or aviation authority metric.</p>
+        <p>It does not identify individual travelers.</p>
+        <p>It does not claim to know why a specific aircraft arrived.</p>
+        <p>It does not claim that every arrival is leisure travel.</p>
+        <p>The Index is a market-level signal. It is designed to help users understand destination movement, not to make absolute claims about any person, aircraft, company, or event.</p>
+      </section>
+
+      <section class="index-page__section">
+        <h2 class="index-page__section-title">Known limitations</h2>
+        <p>No aviation-data product is perfect.</p>
+        <p>Some aircraft data may be blocked, limited, anonymized, delayed, or unavailable depending on source, jurisdiction, operator privacy choices, or data-feed rules. The FAA’s LADD program, for example, allows aircraft owners or operators to limit how aircraft data is displayed through FAA data feeds, and the FAA also describes privacy programs such as PIA that can make aircraft identification harder in ADS-B contexts.</p>
+        <p>Coverage can also vary by geography, airport, aircraft equipment, and provider availability. Remote island, oceanic, mountain, and international markets may behave differently from large U.S. airport markets.</p>
+        <p>Go Tango handles these limitations by emphasizing trends, confidence, and multiple signals rather than treating any single data point as definitive.</p>
+        <p>The goal is not perfect certainty. The goal is a more useful read than raw arrivals alone.</p>
+        <p>Reference: <a class="index-page__link" href="https://www.faa.gov/pilots/ladd" target="_blank" rel="noopener noreferrer">FAA LADD</a></p>
+      </section>
+
+      <section class="index-page__section">
+        <h2 class="index-page__section-title">Why this matters</h2>
+        <p>Travel is emotional, social, and economic. Destinations gain heat before the crowd notices. Markets cool before the headlines say so. Certain places quietly build momentum long before they become obvious.</p>
+        <p>Go Tango is built for users who want to see that movement earlier and more intelligently.</p>
+        <p>For travelers, the Index can help reveal where attention is shifting.</p>
+        <p>For hospitality, real estate, aviation, luxury, and destination businesses, it can provide a daily read on where high-end movement is gathering.</p>
+        <p>For investors and partners, Go Tango represents a new category of travel intelligence: not booking data, not social-media hype, not generic tourism reporting — but a structured read on private-travel momentum across the world’s most watched destinations.</p>
+        <p class="index-page__pullquote" style="margin-top:20px">The promise is simple: <em>Follow the signal. Understand the movement. See where the world is going.</em></p>
+      </section>
+
+      <div class="index-page__closing">
+        <p>Go Tango is not trying to tell you where everyone is.<br>It is trying to tell you where meaningful travel momentum is starting to show.</p>
+      </div>
+
+      <div class="index-page__top" style="padding-bottom:24px">
+        <button type="button" class="index-page__back" id="about-index-back-bottom" aria-label="Back to Now">← Back to Now</button>
+      </div>
+    </article>
   </div>
 
 </div>
@@ -4597,9 +5410,77 @@
   }
 
   // ============ TABS ============
+  let tabBeforeAbout = 'tab-now';
+
+  function syncNavForTab(tabId) {
+    document.querySelectorAll('.nav-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tabId);
+    });
+  }
+
+  function restoreTabFromAbout(tabId) {
+    const prev = tabId || tabBeforeAbout || 'tab-now';
+    document.getElementById('tab-about-index').classList.remove('active');
+    const prevEl = document.getElementById(prev);
+    if (prevEl) prevEl.classList.add('active');
+    syncNavForTab(prev);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function openAboutIndexPage(pushHistory) {
+    const activeTab = document.querySelector('.tab-content.active');
+    if (activeTab && activeTab.id !== 'tab-about-index') {
+      tabBeforeAbout = activeTab.id;
+    }
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-about-index').classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (pushHistory !== false) {
+      const url = new URL(window.location.href);
+      url.hash = 'about-gotango-index';
+      history.pushState({ page: 'about-index', prevTab: tabBeforeAbout }, '', url);
+    }
+  }
+
+  function closeAboutIndexPage() {
+    if (location.hash === '#about-gotango-index') {
+      history.back();
+      return;
+    }
+    restoreTabFromAbout(tabBeforeAbout);
+  }
+
+  document.getElementById('footnote-about-link')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    openAboutIndexPage(true);
+  });
+
+  document.getElementById('about-index-back')?.addEventListener('click', closeAboutIndexPage);
+  document.getElementById('about-index-back-bottom')?.addEventListener('click', closeAboutIndexPage);
+
+  window.addEventListener('popstate', () => {
+    const aboutEl = document.getElementById('tab-about-index');
+    if (aboutEl.classList.contains('active') && location.hash !== '#about-gotango-index') {
+      restoreTabFromAbout(history.state && history.state.prevTab);
+    } else if (!aboutEl.classList.contains('active') && location.hash === '#about-gotango-index') {
+      openAboutIndexPage(false);
+    }
+  });
+
+  if (location.hash === '#about-gotango-index') {
+    tabBeforeAbout = 'tab-now';
+    openAboutIndexPage(false);
+    history.replaceState({ page: 'about-index', prevTab: tabBeforeAbout }, '', window.location.href);
+  }
+
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const target = btn.dataset.tab;
+      if (document.getElementById('tab-about-index').classList.contains('active') && location.hash === '#about-gotango-index') {
+        const url = new URL(window.location.href);
+        url.hash = '';
+        history.replaceState({}, '', url);
+      }
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
