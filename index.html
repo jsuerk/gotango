@@ -796,6 +796,14 @@
     line-height: 1.1;
     margin-bottom: 5px;
   }
+  /* Now tab: Heating Up / Cooling Down card titles match Sleeper Pick name */
+  #tab-now .dest-list .dest-name,
+  #tab-now .cooling-list .dest-name {
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
   .sleeper-code {
     font-family: 'Geist Mono', monospace;
     font-size: 10px;
@@ -2465,6 +2473,61 @@
 
   .dest-modal .signal-read__label {
     color: var(--amber);
+  }
+
+  /* Modal card data-value hierarchy — values primary over labels */
+  .dest-modal .d-stat-value {
+    font-size: clamp(1.45rem, 1.25rem + 0.75vw, 2rem);
+    line-height: 1.05;
+  }
+
+  .dest-modal .d-index-metric-value {
+    font-size: clamp(1.35rem, 1.15rem + 0.65vw, 1.85rem);
+    line-height: 1.05;
+  }
+
+  .dest-modal .d-pulse-metric-value {
+    font-size: clamp(1.35rem, 1.15rem + 0.65vw, 1.85rem);
+    line-height: 1.05;
+  }
+
+  .dest-modal .d-peer-name {
+    font-size: clamp(1.05rem, 0.98rem + 0.35vw, 1.25rem);
+    line-height: 1.15;
+    color: var(--text, #F5F1E8);
+    overflow-wrap: break-word;
+  }
+
+  .dest-modal .d-peer-arrivals {
+    font-size: clamp(1.15rem, 1.05rem + 0.45vw, 1.45rem);
+    line-height: 1.05;
+  }
+
+  .dest-modal .d-peer-pvt,
+  .dest-modal .d-peer-trend {
+    font-size: clamp(1.05rem, 0.98rem + 0.35vw, 1.25rem);
+    line-height: 1.1;
+  }
+
+  .dest-modal .d-feed-callsign {
+    font-size: clamp(1.02rem, 0.96rem + 0.32vw, 1.18rem);
+    line-height: 1.2;
+    font-weight: 500;
+  }
+
+  .dest-modal .d-stat-delta {
+    font-size: var(--fs-label);
+  }
+
+  .dest-modal .d-stat,
+  .dest-modal .d-index-metric,
+  .dest-modal .d-pulse-metric {
+    min-height: 0;
+  }
+
+  .dest-modal .d-peer-info {
+    min-width: 0;
+    overflow-wrap: break-word;
   }
 
   /* Pulse summary (history-backed) */
@@ -6933,12 +6996,12 @@
           <div class="d-index-metric-value d-index-metric-value--latest">${todayScore}</div>
         </div>
         <div class="d-index-metric">
-          <div class="d-index-metric-label">${highLabel}</div>
-          <div class="d-index-metric-value d-index-metric-value--high">${highScore}</div>
-        </div>
-        <div class="d-index-metric">
           <div class="d-index-metric-label">${avgLabel}</div>
           <div class="d-index-metric-value d-index-metric-value--avg">${avgScore}</div>
+        </div>
+        <div class="d-index-metric">
+          <div class="d-index-metric-label">${highLabel}</div>
+          <div class="d-index-metric-value d-index-metric-value--high">${highScore}</div>
         </div>
       </div>
     `;
