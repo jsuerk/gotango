@@ -5465,11 +5465,6 @@
       nameRow.appendChild(codeEl);
     }
 
-    const badgeEl = document.createElement('span');
-    badgeEl.className = `mover-badge ${badgeMeta.className}`;
-    badgeEl.textContent = badgeMeta.label;
-    nameRow.appendChild(badgeEl);
-
     const reasonEl = document.createElement('div');
     reasonEl.className = 'mover-reason';
     reasonEl.textContent = getMoverReason(dest, section);
