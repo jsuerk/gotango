@@ -818,13 +818,27 @@
   }
   #tab-now .dest-list .dest-row1,
   #tab-now .cooling-list .dest-row1 {
-    align-items: center;
+    align-items: flex-start;
     gap: 6px 8px;
     margin-bottom: 6px;
+  }
+  #tab-now .now-dest-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+  #tab-now .now-dest-title .dest-name {
+    display: block;
+  }
+  #tab-now .now-dest-title .dest-code {
+    display: block;
+    margin-top: 2px;
   }
   #tab-now .dest-list .mover-badge,
   #tab-now .cooling-list .mover-badge {
     margin-left: auto;
+    flex-shrink: 0;
+    align-self: flex-start;
   }
   .sleeper-code {
     font-family: 'Geist Mono', monospace;
@@ -1057,25 +1071,35 @@
     box-sizing: border-box;
   }
   #tab-movers .section-head {
+    width: 100%;
     min-width: 0;
     max-width: 100%;
     box-sizing: border-box;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 6px;
     overflow-wrap: break-word;
   }
   #tab-movers .section-title {
     min-width: 0;
     flex-shrink: 0;
+    text-align: left;
+    line-height: 1.1;
+    max-width: 100%;
   }
   #tab-movers .section-meta {
     white-space: normal;
-    text-align: right;
+    text-align: left;
     flex-shrink: 1;
     min-width: 0;
     max-width: 100%;
     overflow-wrap: break-word;
     word-break: break-word;
     box-sizing: border-box;
+    font-size: calc(var(--fs-label) * 0.88);
+    letter-spacing: 0.06em;
+    line-height: 1.4;
   }
   .movers-intro {
     padding: 30px 20px 0;
@@ -3637,13 +3661,10 @@
     #tab-movers .section-head {
       padding-left: 16px;
       padding-right: 16px;
-      align-items: baseline;
-      gap: 8px 16px;
+      gap: 4px;
     }
     #tab-movers .section-meta {
-      flex-basis: 100%;
-      text-align: left;
-      font-size: calc(var(--fs-label) * 0.92);
+      font-size: calc(var(--fs-label) * 0.85);
     }
     #tab-now .dest-list .mover-badge,
     #tab-now .cooling-list .mover-badge {
@@ -4693,6 +4714,23 @@
     return badge;
   }
 
+  function _buildNowCardTitleBlock(dest, nameExtraClass) {
+    const titleBlock = document.createElement('div');
+    titleBlock.className = 'now-dest-title';
+
+    const name = document.createElement('span');
+    name.className = nameExtraClass ? `dest-name ${nameExtraClass}` : 'dest-name';
+    name.textContent = String(dest.name || '');
+
+    const code = document.createElement('span');
+    code.className = 'dest-code';
+    code.textContent = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
+
+    titleBlock.appendChild(name);
+    titleBlock.appendChild(code);
+    return titleBlock;
+  }
+
   function _buildCoolingCardMain(dest, sectionHint) {
     const main = document.createElement('div');
     main.className = 'dest-main';
@@ -4700,16 +4738,7 @@
     const row1 = document.createElement('div');
     row1.className = 'dest-row1';
 
-    const name = document.createElement('span');
-    name.className = 'dest-name cooling-name';
-    name.textContent = String(dest.name || '');
-
-    const code = document.createElement('span');
-    code.className = 'dest-code';
-    code.textContent = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
-
-    row1.appendChild(name);
-    row1.appendChild(code);
+    row1.appendChild(_buildNowCardTitleBlock(dest, 'cooling-name'));
     row1.appendChild(_buildDestStatusBadge(dest, sectionHint || 'cooling'));
 
     main.appendChild(row1);
@@ -5037,16 +5066,7 @@
         const row1 = document.createElement('div');
         row1.className = 'dest-row1';
 
-        const name = document.createElement('span');
-        name.className = 'dest-name';
-        name.textContent = String(dest.name || '');
-
-        const code = document.createElement('span');
-        code.className = 'dest-code';
-        code.textContent = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
-
-        row1.appendChild(name);
-        row1.appendChild(code);
+        row1.appendChild(_buildNowCardTitleBlock(dest));
         row1.appendChild(_buildDestStatusBadge(dest, 'heating'));
 
         main.appendChild(row1);
@@ -5509,6 +5529,11 @@
       codeEl.textContent = icao;
       nameRow.appendChild(codeEl);
     }
+
+    const badgeEl = document.createElement('span');
+    badgeEl.className = `mover-badge ${badgeMeta.className}`;
+    badgeEl.textContent = badgeMeta.label;
+    nameRow.appendChild(badgeEl);
 
     const reasonEl = document.createElement('div');
     reasonEl.className = 'mover-reason';
