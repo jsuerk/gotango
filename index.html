@@ -488,6 +488,18 @@
   .hero-stats .hero-stat-delta--up { color: var(--signal-up); }
   .hero-stats .hero-stat-delta--down { color: var(--signal-down); }
   .hero-stats .hero-stat-delta--muted { color: var(--text-faint); }
+  .hero-stats .hero-stat-unit {
+    font-family: 'Geist Mono', monospace;
+    font-size: var(--fs-micro);
+    letter-spacing: 0.12em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-top: 3px;
+    line-height: 1.2;
+  }
+  .hero-stats .stat-cell--count .hero-stat-delta {
+    margin-top: 4px;
+  }
 
   /* ===== SECTION HEAD ===== */
   .section-head {
@@ -804,6 +816,16 @@
     letter-spacing: -0.02em;
     line-height: 1.1;
   }
+  #tab-now .dest-list .dest-row1,
+  #tab-now .cooling-list .dest-row1 {
+    align-items: center;
+    gap: 6px 8px;
+    margin-bottom: 6px;
+  }
+  #tab-now .dest-list .mover-badge,
+  #tab-now .cooling-list .mover-badge {
+    margin-left: auto;
+  }
   .sleeper-code {
     font-family: 'Geist Mono', monospace;
     font-size: 10px;
@@ -1036,12 +1058,24 @@
   }
   #tab-movers .section-head {
     min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    flex-wrap: wrap;
+    overflow-wrap: break-word;
+  }
+  #tab-movers .section-title {
+    min-width: 0;
+    flex-shrink: 0;
   }
   #tab-movers .section-meta {
     white-space: normal;
     text-align: right;
     flex-shrink: 1;
     min-width: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    box-sizing: border-box;
   }
   .movers-intro {
     padding: 30px 20px 0;
@@ -3603,6 +3637,17 @@
     #tab-movers .section-head {
       padding-left: 16px;
       padding-right: 16px;
+      align-items: baseline;
+      gap: 8px 16px;
+    }
+    #tab-movers .section-meta {
+      flex-basis: 100%;
+      text-align: left;
+      font-size: calc(var(--fs-label) * 0.92);
+    }
+    #tab-now .dest-list .mover-badge,
+    #tab-now .cooling-list .mover-badge {
+      margin-left: 0;
     }
   }
 
@@ -3639,14 +3684,16 @@
           <div class="stat-value hero-stat-value--private" id="stat-arrivals">—</div>
           <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-arrivals-delta">—</div>
         </div>
-        <div class="stat-cell">
+        <div class="stat-cell stat-cell--count">
           <div class="stat-label">Heating signals</div>
           <div class="stat-value hero-stat-value--heating" id="stat-heating">—</div>
+          <div class="hero-stat-unit">Destinations</div>
           <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-heating-delta">—</div>
         </div>
-        <div class="stat-cell">
+        <div class="stat-cell stat-cell--count">
           <div class="stat-label">Cooling signals</div>
           <div class="stat-value hero-stat-value--cooling" id="stat-cooling">—</div>
+          <div class="hero-stat-unit">Destinations</div>
           <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-cooling-delta">—</div>
         </div>
       </div>
@@ -4625,7 +4672,28 @@
     return col;
   }
 
-  function _buildCoolingCardMain(dest, whyLine) {
+  function _getNowCardStatusBadgeMeta(dest, sectionHint) {
+    const status = String(dest.status || '').toLowerCase();
+    if (status === 'heating' || status === 'warming') return MOVERS_BADGE_META.rising;
+    if (status === 'cooling' || status === 'softening' || status === 'off_season') return MOVERS_BADGE_META.cooling;
+    if (status === 'steady' || status === 'active') return MOVERS_BADGE_META.steady;
+    if (status === 'quiet' || status === 'data_building' || status === 'baseline_building' || status === 'baseline-building') {
+      return MOVERS_BADGE_META.quiet;
+    }
+    if (sectionHint === 'heating') return MOVERS_BADGE_META.rising;
+    if (sectionHint === 'cooling') return MOVERS_BADGE_META.cooling;
+    return MOVERS_BADGE_META.steady;
+  }
+
+  function _buildDestStatusBadge(dest, sectionHint) {
+    const meta = _getNowCardStatusBadgeMeta(dest, sectionHint);
+    const badge = document.createElement('span');
+    badge.className = `mover-badge ${meta.className}`;
+    badge.textContent = meta.label;
+    return badge;
+  }
+
+  function _buildCoolingCardMain(dest, sectionHint) {
     const main = document.createElement('div');
     main.className = 'dest-main';
 
@@ -4642,13 +4710,9 @@
 
     row1.appendChild(name);
     row1.appendChild(code);
-
-    const vibe = document.createElement('div');
-    vibe.className = 'dest-vibe cooling-why';
-    vibe.textContent = whyLine;
+    row1.appendChild(_buildDestStatusBadge(dest, sectionHint || 'cooling'));
 
     main.appendChild(row1);
-    main.appendChild(vibe);
     return main;
   }
 
@@ -4663,7 +4727,7 @@
     rank.className = 'dest-rank';
     rank.textContent = romans[rankIndex] || String((rankIndex || 0) + 1);
 
-    const main = _buildCoolingCardMain(dest, whyLine);
+    const main = _buildCoolingCardMain(dest, 'cooling');
     main.appendChild(_buildDestPrivateSupport(dest));
     card.appendChild(rank);
     card.appendChild(main);
@@ -4958,21 +5022,6 @@
           .slice(0, 6);
 
       top6.forEach((dest, i) => {
-        const rawOrigins = Array.isArray(dest.top_origins) ? dest.top_origins : [];
-        const cleanOrigins = rawOrigins.filter(o => o && o.code && !_isValidOrigin({ code: String(o.code).startsWith('L ') ? o.code : o.code.replace(/^UNKNOWN$/i, '') }) ? false : true);
-        const originCodes = cleanOrigins.slice(0, 3).map(o => o && o.code).filter(Boolean);
-        const hasCleanOrigins = originCodes.length > 0;
-        const topOriginCodes = hasCleanOrigins ? originCodes.join(', ') : 'Origin mix building';
-        const insightOrigins = hasCleanOrigins ? topOriginCodes : 'Origin mix building';
-
-        let insightLine = formatDisplayCopy(dest.status_label || dest.algorithm_read || '');
-        if (!insightLine) {
-          insightLine = `Private signal from ${insightOrigins}`;
-        }
-        if (dest.commercial_backdrop_label) {
-          insightLine += ` · ${formatCommercialBackdropLabel(dest.commercial_backdrop_label)}`;
-        }
-
         const card = document.createElement('div');
         card.className = 'dest-card';
         card.dataset.dest = String(dest.id || '');
@@ -4998,13 +5047,9 @@
 
         row1.appendChild(name);
         row1.appendChild(code);
-
-        const vibe = document.createElement('div');
-        vibe.className = 'dest-vibe';
-        vibe.textContent = insightLine;
+        row1.appendChild(_buildDestStatusBadge(dest, 'heating'));
 
         main.appendChild(row1);
-        main.appendChild(vibe);
         main.appendChild(_buildDestPrivateSupport(dest));
 
         card.appendChild(rank);
