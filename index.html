@@ -816,29 +816,32 @@
     letter-spacing: -0.02em;
     line-height: 1.1;
   }
-  #tab-now .dest-list .dest-row1,
-  #tab-now .cooling-list .dest-row1 {
-    align-items: flex-start;
-    gap: 6px 8px;
-    margin-bottom: 6px;
-  }
   #tab-now .now-dest-title {
-    flex: 1 1 auto;
     min-width: 0;
     max-width: 100%;
+    margin-bottom: 6px;
   }
   #tab-now .now-dest-title .dest-name {
     display: block;
+    max-width: 100%;
+    overflow-wrap: break-word;
+  }
+  #tab-now .now-dest-title .card-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    margin-top: 4px;
+    min-width: 0;
+    max-width: 100%;
   }
   #tab-now .now-dest-title .dest-code {
-    display: block;
-    margin-top: 2px;
+    display: inline;
+    margin-top: 0;
   }
   #tab-now .dest-list .mover-badge,
   #tab-now .cooling-list .mover-badge {
-    margin-left: auto;
     flex-shrink: 0;
-    align-self: flex-start;
   }
   .sleeper-code {
     font-family: 'Geist Mono', monospace;
@@ -1159,15 +1162,12 @@
     min-width: 0;
   }
   .mover-info { min-width: 0; overflow-wrap: break-word; max-width: 100%; }
-  .mover-name-row {
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 6px 8px;
-    margin-bottom: 4px;
+  .mover-title-block {
     min-width: 0;
+    max-width: 100%;
+    margin-bottom: 4px;
   }
-  .mover-name {
+  .mover-title-block .mover-name {
     font-family: 'Fraunces', serif;
     font-size: 26px;
     font-weight: 500;
@@ -1175,10 +1175,18 @@
     line-height: 1.1;
     min-width: 0;
     max-width: 100%;
-    flex: 1 1 auto;
     overflow-wrap: break-word;
     word-break: normal;
     hyphens: auto;
+  }
+  #tab-movers .mover-title-block .card-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    margin-top: 4px;
+    min-width: 0;
+    max-width: 100%;
   }
   .mover-icao {
     font-family: 'Geist Mono', monospace;
@@ -4714,34 +4722,35 @@
     return badge;
   }
 
-  function _buildNowCardTitleBlock(dest, nameExtraClass) {
+  function _buildNowCardTitleBlock(dest, nameExtraClass, sectionHint) {
     const titleBlock = document.createElement('div');
-    titleBlock.className = 'now-dest-title';
+    titleBlock.className = 'now-dest-title card-title-block';
 
-    const name = document.createElement('span');
-    name.className = nameExtraClass ? `dest-name ${nameExtraClass}` : 'dest-name';
+    const name = document.createElement('div');
+    name.className = nameExtraClass ? `dest-name card-destination-name ${nameExtraClass}` : 'dest-name card-destination-name';
     name.textContent = String(dest.name || '');
 
+    const metaRow = document.createElement('div');
+    metaRow.className = 'card-meta-row';
+
     const code = document.createElement('span');
-    code.className = 'dest-code';
+    code.className = 'dest-code card-airport-code';
     code.textContent = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
+    metaRow.appendChild(code);
+
+    if (sectionHint != null) {
+      metaRow.appendChild(_buildDestStatusBadge(dest, sectionHint));
+    }
 
     titleBlock.appendChild(name);
-    titleBlock.appendChild(code);
+    titleBlock.appendChild(metaRow);
     return titleBlock;
   }
 
   function _buildCoolingCardMain(dest, sectionHint) {
     const main = document.createElement('div');
     main.className = 'dest-main';
-
-    const row1 = document.createElement('div');
-    row1.className = 'dest-row1';
-
-    row1.appendChild(_buildNowCardTitleBlock(dest, 'cooling-name'));
-    row1.appendChild(_buildDestStatusBadge(dest, sectionHint || 'cooling'));
-
-    main.appendChild(row1);
+    main.appendChild(_buildNowCardTitleBlock(dest, 'cooling-name', sectionHint || 'cooling'));
     return main;
   }
 
@@ -5063,13 +5072,7 @@
         const main = document.createElement('div');
         main.className = 'dest-main';
 
-        const row1 = document.createElement('div');
-        row1.className = 'dest-row1';
-
-        row1.appendChild(_buildNowCardTitleBlock(dest));
-        row1.appendChild(_buildDestStatusBadge(dest, 'heating'));
-
-        main.appendChild(row1);
+        main.appendChild(_buildNowCardTitleBlock(dest, null, 'heating'));
         main.appendChild(_buildDestPrivateSupport(dest));
 
         card.appendChild(rank);
@@ -5515,31 +5518,36 @@
     const info = document.createElement('div');
     info.className = 'mover-info';
 
-    const nameRow = document.createElement('div');
-    nameRow.className = 'mover-name-row';
+    const titleBlock = document.createElement('div');
+    titleBlock.className = 'mover-title-block card-title-block';
 
     const nameEl = document.createElement('div');
-    nameEl.className = 'mover-name';
+    nameEl.className = 'mover-name card-destination-name';
     nameEl.textContent = String(dest.name || '');
+    titleBlock.appendChild(nameEl);
 
-    nameRow.appendChild(nameEl);
+    const metaRow = document.createElement('div');
+    metaRow.className = 'card-meta-row';
+
     if (icao) {
       const codeEl = document.createElement('span');
-      codeEl.className = 'mover-icao';
+      codeEl.className = 'mover-icao card-airport-code';
       codeEl.textContent = icao;
-      nameRow.appendChild(codeEl);
+      metaRow.appendChild(codeEl);
     }
 
     const badgeEl = document.createElement('span');
     badgeEl.className = `mover-badge ${badgeMeta.className}`;
     badgeEl.textContent = badgeMeta.label;
-    nameRow.appendChild(badgeEl);
+    metaRow.appendChild(badgeEl);
+
+    titleBlock.appendChild(metaRow);
 
     const reasonEl = document.createElement('div');
     reasonEl.className = 'mover-reason';
     reasonEl.textContent = getMoverReason(dest, section);
 
-    info.appendChild(nameRow);
+    info.appendChild(titleBlock);
     info.appendChild(reasonEl);
 
     const today = document.createElement('div');
