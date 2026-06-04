@@ -863,6 +863,10 @@
   #tab-now .cooling-list .mover-badge {
     flex-shrink: 0;
   }
+  #tab-now .dest-list .dest-private-support__label,
+  #tab-now .cooling-list .dest-private-support__label {
+    white-space: nowrap;
+  }
   .sleeper-code {
     font-family: 'Geist Mono', monospace;
     font-size: 10px;
@@ -4702,12 +4706,7 @@
 
     const label = document.createElement('div');
     label.className = 'dest-private-support__label';
-    const labelLine1 = document.createElement('span');
-    labelLine1.textContent = 'Private';
-    const labelLine2 = document.createElement('span');
-    labelLine2.textContent = 'Arrivals 24H';
-    label.appendChild(labelLine1);
-    label.appendChild(labelLine2);
+    label.textContent = 'Private Arrivals 24H';
 
     block.appendChild(value);
     block.appendChild(label);
