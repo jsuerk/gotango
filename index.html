@@ -5251,12 +5251,57 @@
     return Number.isFinite(n) ? Math.round(n) : 0;
   }
 
+  const MOVER_REASON_ABBREV_RES = [
+    /\bSt\./gi, /\bMt\./gi, /\bFt\./gi, /\bDr\./gi, /\bMr\./gi, /\bMrs\./gi, /\bMs\./gi,
+    /\bU\.S\./gi, /\bU\.K\./gi, /\bvs\./gi, /\be\.g\./gi, /\bi\.e\./gi,
+  ];
+
+  function _moverReasonAbbrevPeriodIndexes(text) {
+    const indexes = new Set();
+    MOVER_REASON_ABBREV_RES.forEach((pattern) => {
+      const re = new RegExp(pattern.source, 'gi');
+      let match;
+      while ((match = re.exec(text)) !== null) {
+        for (let i = match.index; i < match.index + match[0].length; i++) {
+          if (text[i] === '.') indexes.add(i);
+        }
+      }
+    });
+    return indexes;
+  }
+
+  function _moverReasonFirstSentence(text, minLen) {
+    const minFragment = minLen || 12;
+    const abbrevPeriods = _moverReasonAbbrevPeriodIndexes(text);
+    let start = 0;
+
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      const isBoundary = ch === '!' || ch === '?' || (ch === '.' && !abbrevPeriods.has(i));
+      if (!isBoundary) continue;
+
+      const next = text[i + 1];
+      if (i !== text.length - 1 && next && !/\s/.test(next)) continue;
+
+      const sentence = text.slice(start, i + 1).trim();
+      if (sentence.length >= minFragment || i >= text.length - 1) {
+        return sentence;
+      }
+      start = i + 1;
+      while (start < text.length && /\s/.test(text[start])) start++;
+      if (start >= text.length) return sentence;
+      i = start - 1;
+    }
+
+    return text.slice(start).trim();
+  }
+
   function _shortenMoverReason(text, maxLen) {
     if (!text) return '';
     let s = String(text).trim().replace(/\s+/g, ' ');
-    const sentenceMatch = s.match(/^[^.!?]+(?:[.!?](?=\s|$)|[.!?]$)?/);
-    if (sentenceMatch && sentenceMatch[0].length < s.length) {
-      s = sentenceMatch[0].trim();
+    const firstSentence = _moverReasonFirstSentence(s, 12);
+    if (firstSentence && firstSentence.length < s.length) {
+      s = firstSentence;
     }
     if (s.length > maxLen) {
       s = s.slice(0, maxLen - 1).trim() + '…';
