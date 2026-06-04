@@ -7025,12 +7025,20 @@
     return name || 'This destination';
   }
 
+  function _signalReadTopOriginConcentration(origins) {
+    if (!Array.isArray(origins) || origins.length === 0) return NaN;
+    const total = origins.reduce((s, o) => s + _safeNum(o.count), 0);
+    if (!(total > 0)) return NaN;
+    return (_safeNum(origins[0].count) / total) * 100;
+  }
+
   function _signalReadSecondSentence(dest, details) {
     if (!dest) return '';
 
     const originCount = Number.isFinite(Number(details && details.originCount))
       ? Number(details.originCount)
       : 0;
+    const topConcentration = _safeNum(details && details.topConcentration);
     const privateToday = _safeNum(details && details.privateToday);
     const avgPrivate7 = _safeNum(details && details.avgPrivate7);
     const mentionsConcentrated = !!(details && details.mentionsConcentrated);
@@ -7038,12 +7046,19 @@
     const mentionsPrivatePace = !!(details && details.mentionsPrivatePace);
     const allowCommercialFallback = !!(details && details.allowCommercialFallback);
 
-    if (originCount >= 4 && !mentionsBreadthSupport) {
-      return 'Origin breadth also supports the read.';
+    const originsConcentrated =
+      originCount <= 2 ||
+      (Number.isFinite(topConcentration) && topConcentration >= 50);
+    const originsBroad =
+      originCount >= 4 &&
+      (!Number.isFinite(topConcentration) || topConcentration < 45);
+
+    if (originsConcentrated && !mentionsConcentrated) {
+      return 'The signal is still fairly concentrated, so breadth is worth watching.';
     }
 
-    if (originCount <= 2 && !mentionsConcentrated) {
-      return 'The signal appears more concentrated than broad.';
+    if (originsBroad && !mentionsBreadthSupport) {
+      return 'Origin breadth also supports the read.';
     }
 
     if (
@@ -7059,7 +7074,7 @@
     }
 
     if (allowCommercialFallback && dest.commercial_backdrop_label) {
-      return 'Commercial traffic remains backdrop context.';
+      return 'Commercial traffic remains backdrop context, not the driver of the read.';
     }
 
     return '';
@@ -7095,6 +7110,7 @@
         ? dest.top_origins.filter((o) => _isValidOrigin(o))
         : [];
       const originCount = origins.length;
+      const topConcentration = _signalReadTopOriginConcentration(origins);
 
       const latestPoint = windowPts[windowPts.length - 1] || null;
       const privateToday = _safeNum(
@@ -7110,9 +7126,14 @@
       const privateVsAvg = Number.isFinite(privateToday) && Number.isFinite(avgPrivate7) && avgPrivate7 > 0
         ? privateToday - avgPrivate7
         : NaN;
+      const privateVsAvgPct = Number.isFinite(privateVsAvg) && avgPrivate7 > 0
+        ? privateVsAvg / avgPrivate7
+        : NaN;
 
       const confidence = String((dest && dest.signal_confidence) || '').toLowerCase();
       const signalDepthCapApplied = !!(dest && dest.signal_depth_cap_applied);
+      const badgeMeta = getPublicSignalBadge(dest);
+      const badgeKey = badgeMeta && badgeMeta.badgeKey ? String(badgeMeta.badgeKey) : '';
 
       const aboveAvg = deltaVsAvg >= 8;
       const belowAvg = deltaVsAvg <= -8;
@@ -7121,9 +7142,17 @@
       const pulledBackFromHigh = deltaFromHigh >= 12;
       const risingAcross = deltaAcrossWindow >= 10;
       const coolingAcross = -deltaAcrossWindow >= 10;
+      const aboveLowBase = Number.isFinite(lowScore) && latestScore > lowScore + 8;
+      const scoreFromLowBase = Number.isFinite(firstScore) && firstScore <= 35;
 
       const privateLight = Number.isFinite(privateToday) ? privateToday <= 2 : false;
       const originsNarrow = originCount <= 2;
+      const originsConcentrated =
+        originsNarrow ||
+        (Number.isFinite(topConcentration) && topConcentration >= 50);
+      const originsBroad =
+        originCount >= 4 &&
+        (!Number.isFinite(topConcentration) || topConcentration < 45);
       const elevatedRead = aboveAvg || nearWeeklyHigh;
       const thinConfidence = confidence === 'thin';
       const developingConfidence = confidence === 'developing';
@@ -7136,10 +7165,34 @@
         signalDepthCapApplied ||
         (aboveAvg && (privateLight || originsNarrow || (Number.isFinite(privateVsAvg) && privateVsAvg < 0)));
 
+      const arrivalsUp = Number.isFinite(privateVsAvg) && privateVsAvg > 0;
+      const arrivalsDown = Number.isFinite(privateVsAvg) && privateVsAvg < 0;
+      const arrivalsNearAvg =
+        Number.isFinite(privateVsAvgPct) && Math.abs(privateVsAvgPct) <= 0.12;
+      const arrivalsSupported =
+        arrivalsUp ||
+        (Number.isFinite(privateToday) &&
+          Number.isFinite(avgPrivate7) &&
+          privateToday >= avgPrivate7);
+      const arrivalsSoft =
+        arrivalsDown ||
+        (Number.isFinite(privateToday) &&
+          Number.isFinite(avgPrivate7) &&
+          avgPrivate7 > 0 &&
+          privateToday < avgPrivate7 * 0.9);
+
+      const indexCooling =
+        belowAvg ||
+        coolingAcross ||
+        badgeKey === 'cooling' ||
+        pulledBackFromHigh;
+      const indexBelowAvg = belowAvg || (Number.isFinite(latestScore) && latestScore < avgScore);
+
       let primary = '';
       let suppressSecondSentence = false;
       const detailHints = {
         originCount,
+        topConcentration,
         privateToday,
         avgPrivate7,
         mentionsConcentrated: false,
@@ -7148,53 +7201,104 @@
         allowCommercialFallback: true,
       };
 
-      if (thinSignal) {
-        if (elevatedRead) {
-          primary =
-            `${name}'s Index is elevated versus its recent range, but today's private-arrival depth is still light.`;
-          primary += ' Treat this as an early, concentrated signal rather than a broad market surge.';
-        } else {
-          primary =
-            `${name} is moving from a small private-arrival base, so the signal is more concentrated than broad.`;
-          primary += ' More origin depth would strengthen the read.';
-        }
+      if (thinSignal && elevatedRead) {
+        primary =
+          `${name}'s Index is elevated versus its recent range, but private-arrival depth is still light.`;
+        primary += ' Treat this as an early or concentrated signal rather than a broad market surge.';
         detailHints.mentionsConcentrated = true;
         detailHints.mentionsPrivatePace = true;
+      } else if (thinSignal) {
+        primary =
+          `${name} is moving from a small private-arrival base, so the signal is more concentrated than broad.`;
+        primary += ' More origin depth would strengthen the read.';
+        detailHints.mentionsConcentrated = true;
+        detailHints.mentionsPrivatePace = true;
+      } else if (
+        indexCooling &&
+        arrivalsSoft &&
+        !arrivalsSupported
+      ) {
+        primary =
+          `${name} is cooling across both the Index and private-arrival activity, suggesting the market has softened from its recent pace.`;
+        detailHints.mentionsPrivatePace = true;
+      } else if (
+        pulledBackFromHigh &&
+        indexBelowAvg &&
+        arrivalsSupported
+      ) {
+        primary = `${name} is still active by private-arrival count`;
+        if (arrivalsUp) {
+          primary += ', with today running above its recent daily average';
+        }
+        primary +=
+          '. But the Index has cooled from its weekly high and is sitting below its 7-day score average, so this reads more like a softer signal after a recent spike than a fresh breakout.';
+        detailHints.mentionsPrivatePace = true;
+      } else if (
+        scoreFromLowBase &&
+        risingAcross &&
+        (privateLight || originsNarrow || !originsBroad)
+      ) {
+        primary =
+          `${name} is starting to build from a quieter base. The signal is not broad yet, but the recent movement makes it worth watching.`;
+        detailHints.mentionsConcentrated = originsConcentrated;
+      } else if (
+        aboveAvg &&
+        nearWeeklyHigh &&
+        !scoreFromLowBase &&
+        latestScore >= 55 &&
+        confidence !== 'thin' &&
+        (originsBroad || arrivalsSupported) &&
+        !privateLight
+      ) {
+        primary =
+          `${name} is running above its 7-day Index average and sitting near its weekly high, with private-arrival depth supporting the move.`;
+        primary += ' That points to a stronger, better-confirmed travel signal.';
+        detailHints.mentionsBreadthSupport = originsBroad;
+        detailHints.mentionsPrivatePace = true;
+        suppressSecondSentence = originsBroad;
       } else if (developingSignal) {
         primary =
           `${name} is running above its 7-day average, but confirmation is still building.`;
         primary += ' This looks like a developing signal worth watching, not yet a fully broad move.';
-        detailHints.mentionsConcentrated = originsNarrow;
+        detailHints.mentionsConcentrated = originsNarrow || originsConcentrated;
       } else if (
-        aboveAvg &&
-        nearWeeklyHigh &&
-        confidence !== 'thin' &&
-        (originCount >= 4 || !privateLight)
+        belowAvg &&
+        pulledBackFromHigh &&
+        aboveLowBase &&
+        !arrivalsSupported
       ) {
         primary =
-          `${name} is running above its 7-day average and holding near its weekly high, suggesting travel momentum is still strengthening.`;
-        primary += ' Private arrivals and origin breadth support the move.';
-        detailHints.mentionsBreadthSupport = true;
-        detailHints.mentionsPrivatePace = true;
-        suppressSecondSentence = true;
-      } else if (aboveAvg && pulledBackFromHigh) {
+          `${name} has eased from its recent high, but activity has not disappeared. This looks more like cooling from a peak than a quiet-market reset.`;
+      } else if (aboveAvg && pulledBackFromHigh && !nearWeeklyHigh) {
         primary =
           `${name} remains above its 7-day average, but has eased from its weekly high — still active, though not at peak intensity.`;
-      } else if (belowAvg && pulledBackFromHigh) {
+      } else if (
+        belowAvg &&
+        pulledBackFromHigh
+      ) {
         primary =
           `${name} has cooled from its weekly high and is now below its 7-day average, suggesting momentum is fading from its recent pace.`;
+      } else if (
+        nearAvg &&
+        (arrivalsNearAvg || !Number.isFinite(privateVsAvg)) &&
+        !pulledBackFromHigh &&
+        badgeKey !== 'cooling' &&
+        badgeKey !== 'rising'
+      ) {
+        primary =
+          `${name} is tracking close to its recent Index range, pointing to a steady private-travel signal rather than a sharp move in either direction.`;
       } else if (belowAvg) {
         primary =
           `${name} is sitting below its 7-day average, suggesting private-travel momentum has softened from its recent norm.`;
-      } else if (nearAvg) {
-        primary =
-          `${name} is tracking close to its 7-day average, pointing to a steady private-travel signal rather than a sharp move in either direction.`;
       } else if (risingAcross) {
         primary =
           `${name} has strengthened across the recent window, suggesting the signal is building rather than appearing as a one-day spike.`;
-      } else if (coolingAcross) {
+      } else if (coolingAcross || badgeKey === 'cooling') {
         primary =
           `${name} has eased across the recent window, suggesting the current read is cooler than earlier in the week.`;
+      } else if (badgeKey === 'quiet') {
+        primary =
+          `${name} is holding in a quieter part of its recent range, with neither the Index nor arrivals showing much movement.`;
       } else {
         primary =
           `${name} is showing a stable weekly read, with the Index holding near its recent range.`;
