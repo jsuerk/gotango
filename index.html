@@ -463,14 +463,14 @@
     text-transform: uppercase;
     margin-bottom: 6px;
   }
-  .hero-stats .stat-label--private-arrivals {
+  .hero-stats .hero-stat-label {
     letter-spacing: 0.05em;
     font-size: clamp(0.6rem, 0.55rem + 0.2vw, 0.72rem);
   }
-  .hero-stats .stat-label--private-arrivals > span {
+  .hero-stats .hero-stat-label > span {
     display: block;
   }
-  .hero-stats .stat-label--private-arrivals > span:last-child {
+  .hero-stats .hero-stat-label > span:last-child {
     white-space: nowrap;
   }
   .stat-value {
@@ -504,12 +504,11 @@
   .hero-stats .hero-stat-delta--muted { color: var(--text-faint); }
   .hero-stats .hero-stat-unit {
     font-family: 'Geist Mono', monospace;
-    font-size: var(--fs-micro);
-    letter-spacing: 0.12em;
+    font-size: clamp(0.6rem, 0.55rem + 0.2vw, 0.72rem);
+    letter-spacing: 0.05em;
     color: var(--text-faint);
     text-transform: uppercase;
     margin-top: 3px;
-    line-height: 1.2;
   }
   .hero-stats .stat-cell--count .hero-stat-delta {
     margin-top: 4px;
@@ -3734,18 +3733,18 @@
 
       <div class="hero-stats">
         <div class="stat-cell">
-          <div class="stat-label stat-label--private-arrivals"><span>Private</span><span>Arrivals 24H</span></div>
+          <div class="stat-label hero-stat-label"><span>Private</span><span>Arrivals 24H</span></div>
           <div class="stat-value hero-stat-value--private" id="stat-arrivals">—</div>
           <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-arrivals-delta">—</div>
         </div>
         <div class="stat-cell stat-cell--count">
-          <div class="stat-label">Heating signals</div>
+          <div class="stat-label hero-stat-label"><span>Heating</span><span>Signals</span></div>
           <div class="stat-value hero-stat-value--heating" id="stat-heating">—</div>
           <div class="hero-stat-unit">Destinations</div>
           <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-heating-delta">—</div>
         </div>
         <div class="stat-cell stat-cell--count">
-          <div class="stat-label">Cooling signals</div>
+          <div class="stat-label hero-stat-label"><span>Cooling</span><span>Signals</span></div>
           <div class="stat-value hero-stat-value--cooling" id="stat-cooling">—</div>
           <div class="hero-stat-unit">Destinations</div>
           <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-cooling-delta">—</div>
