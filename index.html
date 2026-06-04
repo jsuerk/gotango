@@ -463,6 +463,11 @@
     text-transform: uppercase;
     margin-bottom: 6px;
   }
+  .hero-stats .stat-label--private-arrivals {
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+    font-size: clamp(0.6rem, 0.55rem + 0.2vw, 0.72rem);
+  }
   .stat-value {
     font-family: 'Fraunces', serif;
     font-size: 24px;
@@ -1110,6 +1115,17 @@
   }
   .movers-intro {
     padding: 30px 20px 0;
+  }
+  .movers-intro__desc {
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.55;
+    margin-top: 10px;
+    margin-bottom: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
   .movers-group {
     margin: 0 20px 8px;
@@ -3713,7 +3729,7 @@
 
       <div class="hero-stats">
         <div class="stat-cell">
-          <div class="stat-label">Private arrivals · 24h</div>
+          <div class="stat-label stat-label--private-arrivals">Private Arrivals 24H</div>
           <div class="stat-value hero-stat-value--private" id="stat-arrivals">—</div>
           <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-arrivals-delta">—</div>
         </div>
@@ -3861,7 +3877,7 @@
     <section class="hero movers-intro">
       <div class="hero-kicker">THE INDEX · SIGNAL SCORE</div>
       <h1 class="hero-headline">What's <em>moving</em> this week.</h1>
-      <p class="hero-sub">A weekly look on where travel momentum is building, fading, or holding strong. Tap any destination for the full brief.</p>
+      <p class="movers-intro__desc">A weekly look at where travel momentum is rising, cooling, steady and active, or quiet. Tap any destination for the full brief.</p>
     </section>
 
     <div id="movers-index">
