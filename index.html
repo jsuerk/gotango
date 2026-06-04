@@ -464,9 +464,14 @@
     margin-bottom: 6px;
   }
   .hero-stats .stat-label--private-arrivals {
-    white-space: nowrap;
     letter-spacing: 0.05em;
     font-size: clamp(0.6rem, 0.55rem + 0.2vw, 0.72rem);
+  }
+  .hero-stats .stat-label--private-arrivals > span {
+    display: block;
+  }
+  .hero-stats .stat-label--private-arrivals > span:last-child {
+    white-space: nowrap;
   }
   .stat-value {
     font-family: 'Fraunces', serif;
@@ -3729,7 +3734,7 @@
 
       <div class="hero-stats">
         <div class="stat-cell">
-          <div class="stat-label stat-label--private-arrivals">Private Arrivals 24H</div>
+          <div class="stat-label stat-label--private-arrivals"><span>Private</span><span>Arrivals 24H</span></div>
           <div class="stat-value hero-stat-value--private" id="stat-arrivals">—</div>
           <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-arrivals-delta">—</div>
         </div>
