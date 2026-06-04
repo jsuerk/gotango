@@ -236,6 +236,10 @@
     max-width: 340px;
     margin-top: 10px;
   }
+  #tab-now .hero-sub {
+    font-size: 13px;
+    line-height: 1.55;
+  }
   .hero-sub-link {
     color: var(--amber);
     text-decoration: none;
@@ -324,8 +328,8 @@
     font-weight: 500;
   }
   .index-explainer__body {
-    font-size: var(--fs-body);
-    line-height: 1.5;
+    font-size: 13px;
+    line-height: 1.55;
     color: var(--text-dim);
     margin-bottom: 14px;
   }
@@ -413,7 +417,7 @@
   }
   .index-explainer__footer {
     font-family: 'Fraunces', serif;
-    font-size: var(--fs-editorial);
+    font-size: 15px;
     line-height: 1.55;
     color: var(--text);
     text-align: center;
@@ -459,6 +463,16 @@
     text-transform: uppercase;
     margin-bottom: 6px;
   }
+  .hero-stats .hero-stat-label {
+    letter-spacing: 0.05em;
+    font-size: clamp(0.6rem, 0.55rem + 0.2vw, 0.72rem);
+  }
+  .hero-stats .hero-stat-label > span {
+    display: block;
+  }
+  .hero-stats .hero-stat-label > span:last-child {
+    white-space: nowrap;
+  }
   .stat-value {
     font-family: 'Fraunces', serif;
     font-size: 24px;
@@ -488,6 +502,17 @@
   .hero-stats .hero-stat-delta--up { color: var(--signal-up); }
   .hero-stats .hero-stat-delta--down { color: var(--signal-down); }
   .hero-stats .hero-stat-delta--muted { color: var(--text-faint); }
+  .hero-stats .hero-stat-unit {
+    font-family: 'Geist Mono', monospace;
+    font-size: clamp(0.6rem, 0.55rem + 0.2vw, 0.72rem);
+    letter-spacing: 0.05em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+  .hero-stats .stat-cell--count .hero-stat-delta {
+    margin-top: 4px;
+  }
 
   /* ===== SECTION HEAD ===== */
   .section-head {
@@ -712,10 +737,17 @@
   }
   .dest-private-support__label {
     font-family: 'Geist Mono', monospace;
-    font-size: var(--fs-label);
-    color: var(--text-dim);
-    letter-spacing: 0.03em;
+    font-size: clamp(0.6rem, 0.55rem + 0.2vw, 0.72rem);
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
     margin-top: 2px;
+  }
+  .dest-private-support__label > span {
+    display: block;
+  }
+  .dest-private-support__label > span:last-child {
+    white-space: nowrap;
   }
 
   /* ===== COOLING SECTION ===== */
@@ -803,6 +835,37 @@
     font-weight: 500;
     letter-spacing: -0.02em;
     line-height: 1.1;
+  }
+  #tab-now .now-dest-title {
+    min-width: 0;
+    max-width: 100%;
+    margin-bottom: 6px;
+  }
+  #tab-now .now-dest-title .dest-name {
+    display: block;
+    max-width: 100%;
+    overflow-wrap: break-word;
+  }
+  #tab-now .now-dest-title .card-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    margin-top: 4px;
+    min-width: 0;
+    max-width: 100%;
+  }
+  #tab-now .now-dest-title .dest-code {
+    display: inline;
+    margin-top: 0;
+  }
+  #tab-now .dest-list .mover-badge,
+  #tab-now .cooling-list .mover-badge {
+    flex-shrink: 0;
+  }
+  #tab-now .dest-list .dest-private-support__label,
+  #tab-now .cooling-list .dest-private-support__label {
+    white-space: nowrap;
   }
   .sleeper-code {
     font-family: 'Geist Mono', monospace;
@@ -1022,8 +1085,62 @@
   }
 
   /* ===== MOVERS TAB ===== */
+  #tab-movers {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+  #tab-movers #movers-index,
+  #tab-movers .movers-intro {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  #tab-movers .section-head {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 6px;
+    overflow-wrap: break-word;
+  }
+  #tab-movers .section-title {
+    min-width: 0;
+    flex-shrink: 0;
+    text-align: left;
+    line-height: 1.1;
+    max-width: 100%;
+  }
+  #tab-movers .section-meta {
+    white-space: normal;
+    text-align: left;
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    box-sizing: border-box;
+    font-size: calc(var(--fs-label) * 0.88);
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+  }
   .movers-intro {
     padding: 30px 20px 0;
+  }
+  .movers-intro__desc {
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.55;
+    margin-top: 10px;
+    margin-bottom: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
   .movers-group {
     margin: 0 20px 8px;
@@ -1034,16 +1151,23 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     overflow: hidden;
+    width: calc(100% - 40px);
+    max-width: calc(100% - 40px);
+    box-sizing: border-box;
   }
   .mover-row {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 12px 14px;
     align-items: start;
     padding: 16px;
     background: var(--surface);
     cursor: pointer;
     transition: background 0.15s;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
   }
   .mover-row:active { background: var(--surface-2); }
   .mover-rank {
@@ -1057,35 +1181,54 @@
     width: 22px;
     text-align: center;
     padding-top: 2px;
+    flex-shrink: 0;
   }
-  .mover-body { min-width: 0; }
+  .mover-body {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
   .mover-head {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 12px;
     align-items: start;
     margin-bottom: 8px;
+    min-width: 0;
   }
-  .mover-info { min-width: 0; overflow-wrap: break-word; }
-  .mover-name-row {
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 6px 8px;
+  .mover-info { min-width: 0; overflow-wrap: break-word; max-width: 100%; }
+  .mover-title-block {
+    min-width: 0;
+    max-width: 100%;
     margin-bottom: 4px;
   }
-  .mover-name {
+  .mover-title-block .mover-name {
     font-family: 'Fraunces', serif;
     font-size: 26px;
     font-weight: 500;
     letter-spacing: -0.02em;
     line-height: 1.1;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: auto;
+  }
+  #tab-movers .mover-title-block .card-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    margin-top: 4px;
+    min-width: 0;
+    max-width: 100%;
   }
   .mover-icao {
     font-family: 'Geist Mono', monospace;
     font-size: var(--fs-label);
     color: var(--text-faint);
     letter-spacing: 0.05em;
+    flex-shrink: 0;
   }
   .mover-badge {
     display: inline-block;
@@ -1096,6 +1239,7 @@
     padding: 2px 6px;
     border-radius: 3px;
     line-height: 1.3;
+    flex-shrink: 0;
   }
   .mover-badge--top {
     color: var(--amber);
@@ -1123,8 +1267,8 @@
     border: 1px solid var(--border);
   }
   .mover-reason {
-    font-size: var(--fs-body);
-    color: var(--text-dim);
+    font-size: clamp(0.92rem, 0.86rem + 0.22vw, 1.05rem);
+    color: var(--text);
     font-style: italic;
     line-height: 1.35;
     overflow: hidden;
@@ -1132,11 +1276,15 @@
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: break-word;
   }
   .mover-today {
     text-align: right;
     flex-shrink: 0;
     min-width: 48px;
+    max-width: 100%;
   }
   .mover-today-score {
     font-family: 'Fraunces', serif;
@@ -1165,8 +1313,11 @@
   .mover-chart-row {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 12px;
     padding-top: 2px;
+    min-width: 0;
+    max-width: 100%;
   }
   .mover-sparkline {
     width: 72px;
@@ -1181,16 +1332,26 @@
     text-transform: uppercase;
     color: var(--text-faint);
     min-width: 72px;
+    flex-shrink: 0;
   }
-  .mover-secondary-metrics {
+  .mover-history-meta {
     font-family: 'Geist Mono', monospace;
-    font-size: var(--fs-label);
-    color: var(--text-faint);
-    letter-spacing: 0.02em;
-    line-height: 1.3;
-  }
-  .mover-secondary-metrics b {
+    font-size: clamp(0.82rem, 0.78rem + 0.16vw, 0.95rem);
     color: var(--text-dim);
+    letter-spacing: 0.02em;
+    line-height: 1.25;
+    font-weight: 400;
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow-wrap: break-word;
+    max-width: 100%;
+  }
+  .mover-history-meta__avg {
+    color: var(--teal);
+    font-weight: 500;
+  }
+  .mover-history-meta__peak {
+    color: var(--green, #6BCB8B);
     font-weight: 500;
   }
   .movers-loading {
@@ -3517,6 +3678,41 @@
     .brief-btn {
       min-height: 44px;
     }
+
+    /* Movers: prevent horizontal overflow on narrow viewports */
+    #tab-movers .movers-group {
+      margin-left: 16px;
+      margin-right: 16px;
+      width: calc(100% - 32px);
+      max-width: calc(100% - 32px);
+    }
+    #tab-movers .movers-intro {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    #tab-movers .movers-loading {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    #tab-movers .mover-row {
+      padding: 14px;
+      gap: 10px 12px;
+    }
+    #tab-movers .mover-head {
+      gap: 10px;
+    }
+    #tab-movers .section-head {
+      padding-left: 16px;
+      padding-right: 16px;
+      gap: 4px;
+    }
+    #tab-movers .section-meta {
+      font-size: calc(var(--fs-label) * 0.85);
+    }
+    #tab-now .dest-list .mover-badge,
+    #tab-now .cooling-list .mover-badge {
+      margin-left: 0;
+    }
   }
 
 </style>
@@ -3548,18 +3744,20 @@
 
       <div class="hero-stats">
         <div class="stat-cell">
-          <div class="stat-label">Private arrivals · 24h</div>
+          <div class="stat-label hero-stat-label"><span>Private</span><span>Arrivals 24H</span></div>
           <div class="stat-value hero-stat-value--private" id="stat-arrivals">—</div>
           <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-arrivals-delta">—</div>
         </div>
-        <div class="stat-cell">
-          <div class="stat-label">Heating signals</div>
+        <div class="stat-cell stat-cell--count">
+          <div class="stat-label hero-stat-label"><span>Heating</span><span>Signals</span></div>
           <div class="stat-value hero-stat-value--heating" id="stat-heating">—</div>
+          <div class="hero-stat-unit">Destinations</div>
           <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-heating-delta">—</div>
         </div>
-        <div class="stat-cell">
-          <div class="stat-label">Cooling signals</div>
+        <div class="stat-cell stat-cell--count">
+          <div class="stat-label hero-stat-label"><span>Cooling</span><span>Signals</span></div>
           <div class="stat-value hero-stat-value--cooling" id="stat-cooling">—</div>
+          <div class="hero-stat-unit">Destinations</div>
           <div class="stat-delta hero-stat-delta hero-stat-delta--muted" id="stat-cooling-delta">—</div>
         </div>
       </div>
@@ -3614,7 +3812,7 @@
     <!-- BRIEF SIGNUP -->
     <div class="brief-card">
       <div class="brief-label">The Tuesday Brief</div>
-      <h3 class="brief-title">Launching <em>May 2026.</em></h3>
+      <h3 class="brief-title">Launching <em>June 2026.</em></h3>
       <p class="brief-desc">A 90-second weekly read on where the world's most mobile travelers are actually going — and why. No ads, no press release recycling, no affiliate links. Be the first to know when we ship.</p>
       <form class="brief-form" id="brief-form" novalidate>
         <input type="email" class="brief-input" placeholder="your@email.com" id="brief-email" name="email" autocomplete="email" required>
@@ -3694,7 +3892,7 @@
     <section class="hero movers-intro">
       <div class="hero-kicker">THE INDEX · SIGNAL SCORE</div>
       <h1 class="hero-headline">What's <em>moving</em> this week.</h1>
-      <p class="hero-sub">A weekly look on where travel momentum is building, fading, or holding strong. Tap any destination for the full brief.</p>
+      <p class="movers-intro__desc">A weekly look at where travel momentum is rising, cooling, steady and active, or quiet. Tap any destination for the full brief.</p>
     </section>
 
     <div id="movers-index">
@@ -4538,30 +4736,56 @@
     return col;
   }
 
-  function _buildCoolingCardMain(dest, whyLine) {
-    const main = document.createElement('div');
-    main.className = 'dest-main';
+  function _getNowCardStatusBadgeMeta(dest, sectionHint) {
+    const status = String(dest.status || '').toLowerCase();
+    if (status === 'heating' || status === 'warming') return MOVERS_BADGE_META.rising;
+    if (status === 'cooling' || status === 'softening' || status === 'off_season') return MOVERS_BADGE_META.cooling;
+    if (status === 'steady' || status === 'active') return MOVERS_BADGE_META.steady;
+    if (status === 'quiet' || status === 'data_building' || status === 'baseline_building' || status === 'baseline-building') {
+      return MOVERS_BADGE_META.quiet;
+    }
+    if (sectionHint === 'heating') return MOVERS_BADGE_META.rising;
+    if (sectionHint === 'cooling') return MOVERS_BADGE_META.cooling;
+    return MOVERS_BADGE_META.steady;
+  }
 
-    const row1 = document.createElement('div');
-    row1.className = 'dest-row1';
+  function _buildDestStatusBadge(dest, sectionHint) {
+    const meta = _getNowCardStatusBadgeMeta(dest, sectionHint);
+    const badge = document.createElement('span');
+    badge.className = `mover-badge ${meta.className}`;
+    badge.textContent = meta.label;
+    return badge;
+  }
 
-    const name = document.createElement('span');
-    name.className = 'dest-name cooling-name';
+  function _buildNowCardTitleBlock(dest, nameExtraClass, sectionHint) {
+    const titleBlock = document.createElement('div');
+    titleBlock.className = 'now-dest-title card-title-block';
+
+    const name = document.createElement('div');
+    name.className = nameExtraClass ? `dest-name card-destination-name ${nameExtraClass}` : 'dest-name card-destination-name';
     name.textContent = String(dest.name || '');
 
+    const metaRow = document.createElement('div');
+    metaRow.className = 'card-meta-row';
+
     const code = document.createElement('span');
-    code.className = 'dest-code';
+    code.className = 'dest-code card-airport-code';
     code.textContent = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
+    metaRow.appendChild(code);
 
-    row1.appendChild(name);
-    row1.appendChild(code);
+    if (sectionHint != null) {
+      metaRow.appendChild(_buildDestStatusBadge(dest, sectionHint));
+    }
 
-    const vibe = document.createElement('div');
-    vibe.className = 'dest-vibe cooling-why';
-    vibe.textContent = whyLine;
+    titleBlock.appendChild(name);
+    titleBlock.appendChild(metaRow);
+    return titleBlock;
+  }
 
-    main.appendChild(row1);
-    main.appendChild(vibe);
+  function _buildCoolingCardMain(dest, sectionHint) {
+    const main = document.createElement('div');
+    main.className = 'dest-main';
+    main.appendChild(_buildNowCardTitleBlock(dest, 'cooling-name', sectionHint || 'cooling'));
     return main;
   }
 
@@ -4576,7 +4800,7 @@
     rank.className = 'dest-rank';
     rank.textContent = romans[rankIndex] || String((rankIndex || 0) + 1);
 
-    const main = _buildCoolingCardMain(dest, whyLine);
+    const main = _buildCoolingCardMain(dest, 'cooling');
     main.appendChild(_buildDestPrivateSupport(dest));
     card.appendChild(rank);
     card.appendChild(main);
@@ -4871,21 +5095,6 @@
           .slice(0, 6);
 
       top6.forEach((dest, i) => {
-        const rawOrigins = Array.isArray(dest.top_origins) ? dest.top_origins : [];
-        const cleanOrigins = rawOrigins.filter(o => o && o.code && !_isValidOrigin({ code: String(o.code).startsWith('L ') ? o.code : o.code.replace(/^UNKNOWN$/i, '') }) ? false : true);
-        const originCodes = cleanOrigins.slice(0, 3).map(o => o && o.code).filter(Boolean);
-        const hasCleanOrigins = originCodes.length > 0;
-        const topOriginCodes = hasCleanOrigins ? originCodes.join(', ') : 'Origin mix building';
-        const insightOrigins = hasCleanOrigins ? topOriginCodes : 'Origin mix building';
-
-        let insightLine = formatDisplayCopy(dest.status_label || dest.algorithm_read || '');
-        if (!insightLine) {
-          insightLine = `Private signal from ${insightOrigins}`;
-        }
-        if (dest.commercial_backdrop_label) {
-          insightLine += ` · ${formatCommercialBackdropLabel(dest.commercial_backdrop_label)}`;
-        }
-
         const card = document.createElement('div');
         card.className = 'dest-card';
         card.dataset.dest = String(dest.id || '');
@@ -4898,26 +5107,7 @@
         const main = document.createElement('div');
         main.className = 'dest-main';
 
-        const row1 = document.createElement('div');
-        row1.className = 'dest-row1';
-
-        const name = document.createElement('span');
-        name.className = 'dest-name';
-        name.textContent = String(dest.name || '');
-
-        const code = document.createElement('span');
-        code.className = 'dest-code';
-        code.textContent = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
-
-        row1.appendChild(name);
-        row1.appendChild(code);
-
-        const vibe = document.createElement('div');
-        vibe.className = 'dest-vibe';
-        vibe.textContent = insightLine;
-
-        main.appendChild(row1);
-        main.appendChild(vibe);
+        main.appendChild(_buildNowCardTitleBlock(dest, null, 'heating'));
         main.appendChild(_buildDestPrivateSupport(dest));
 
         card.appendChild(rank);
@@ -5363,31 +5553,36 @@
     const info = document.createElement('div');
     info.className = 'mover-info';
 
-    const nameRow = document.createElement('div');
-    nameRow.className = 'mover-name-row';
+    const titleBlock = document.createElement('div');
+    titleBlock.className = 'mover-title-block card-title-block';
 
     const nameEl = document.createElement('div');
-    nameEl.className = 'mover-name';
+    nameEl.className = 'mover-name card-destination-name';
     nameEl.textContent = String(dest.name || '');
+    titleBlock.appendChild(nameEl);
 
-    nameRow.appendChild(nameEl);
+    const metaRow = document.createElement('div');
+    metaRow.className = 'card-meta-row';
+
     if (icao) {
       const codeEl = document.createElement('span');
-      codeEl.className = 'mover-icao';
+      codeEl.className = 'mover-icao card-airport-code';
       codeEl.textContent = icao;
-      nameRow.appendChild(codeEl);
+      metaRow.appendChild(codeEl);
     }
 
     const badgeEl = document.createElement('span');
     badgeEl.className = `mover-badge ${badgeMeta.className}`;
     badgeEl.textContent = badgeMeta.label;
-    nameRow.appendChild(badgeEl);
+    metaRow.appendChild(badgeEl);
+
+    titleBlock.appendChild(metaRow);
 
     const reasonEl = document.createElement('div');
     reasonEl.className = 'mover-reason';
     reasonEl.textContent = getMoverReason(dest, section);
 
-    info.appendChild(nameRow);
+    info.appendChild(titleBlock);
     info.appendChild(reasonEl);
 
     const today = document.createElement('div');
@@ -5431,11 +5626,13 @@
     }
 
     const metricsEl = document.createElement('div');
-    metricsEl.className = 'mover-secondary-metrics';
+    metricsEl.className = 'mover-history-meta';
     if (hasWeekly) {
       const avg = Math.round(Number(dest.index_7d_avg));
       const peak = Math.round(Number(dest.index_7d_high));
-      metricsEl.innerHTML = `7D avg <b>${avg}</b> · Peak <b>${peak}</b>`;
+      metricsEl.innerHTML =
+        `<span>7D avg </span><span class="mover-history-meta__avg">${avg}</span>` +
+        `<span> · Peak </span><span class="mover-history-meta__peak">${peak}</span>`;
     } else {
       metricsEl.textContent = 'Weekly trend building';
     }
