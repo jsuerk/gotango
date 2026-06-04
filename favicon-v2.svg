@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Go Tango">
+  <defs>
+    <linearGradient id="amber-v2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F4B52A"/>
+      <stop offset="55%" stop-color="#E8A317"/>
+      <stop offset="100%" stop-color="#C28A1A"/>
+    </linearGradient>
+    <radialGradient id="tile-glow" cx="78%" cy="18%" r="65%">
+      <stop offset="0%" stop-color="#E8A317" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#E8A317" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="#0A0D11"/>
+  <rect width="32" height="32" rx="7" fill="url(#tile-glow)"/>
+  <text x="9.2" y="22.5" font-family="'Fraunces', Georgia, 'Times New Roman', serif" font-size="17" font-weight="700" font-style="italic" fill="url(#amber-v2)" letter-spacing="-0.02em">G</text>
+  <text x="17.8" y="22.5" font-family="'Fraunces', Georgia, 'Times New Roman', serif" font-size="17" font-weight="700" font-style="italic" fill="url(#amber-v2)" letter-spacing="-0.05em">T</text>
+</svg>
