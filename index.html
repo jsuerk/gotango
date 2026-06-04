@@ -737,10 +737,17 @@
   }
   .dest-private-support__label {
     font-family: 'Geist Mono', monospace;
-    font-size: var(--fs-label);
-    color: var(--text-dim);
-    letter-spacing: 0.03em;
+    font-size: clamp(0.6rem, 0.55rem + 0.2vw, 0.72rem);
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
     margin-top: 2px;
+  }
+  .dest-private-support__label > span {
+    display: block;
+  }
+  .dest-private-support__label > span:last-child {
+    white-space: nowrap;
   }
 
   /* ===== COOLING SECTION ===== */
@@ -4695,7 +4702,12 @@
 
     const label = document.createElement('div');
     label.className = 'dest-private-support__label';
-    label.textContent = 'Private Arrivals 24H';
+    const labelLine1 = document.createElement('span');
+    labelLine1.textContent = 'Private';
+    const labelLine2 = document.createElement('span');
+    labelLine2.textContent = 'Arrivals 24H';
+    label.appendChild(labelLine1);
+    label.appendChild(labelLine2);
 
     block.appendChild(value);
     block.appendChild(label);
