@@ -2,8 +2,30 @@ import { kv } from '@vercel/kv';
 import { DESTINATIONS, PEER_DESTINATIONS, EDITORIAL_BLURBS } from '../destinations.config.js';
 
 const TIMEOUT_MS = 25_000;
-const GA_MAX_PAGES = Number(process.env.GA_MAX_PAGES || 3);
+const GA_MAX_PAGES_DEFAULT = 10;
+const GA_MAX_PAGES_HARD_MAX = 20;
 const AIRLINE_CONTEXT_MAX_PAGES = Number(process.env.AIRLINE_CONTEXT_MAX_PAGES || 1);
+
+function parseGaMaxPages() {
+  const raw = process.env.GA_MAX_PAGES;
+  if (raw == null || String(raw).trim() === '') return GA_MAX_PAGES_DEFAULT;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1) {
+    console.warn(
+      `[fetch-all-arrivals] Invalid GA_MAX_PAGES=${JSON.stringify(raw)}, using default ${GA_MAX_PAGES_DEFAULT}`,
+    );
+    return GA_MAX_PAGES_DEFAULT;
+  }
+  if (n > GA_MAX_PAGES_HARD_MAX) {
+    console.warn(
+      `[fetch-all-arrivals] GA_MAX_PAGES=${n} exceeds hard max ${GA_MAX_PAGES_HARD_MAX}, capping`,
+    );
+    return GA_MAX_PAGES_HARD_MAX;
+  }
+  return n;
+}
+
+const GA_MAX_PAGES = parseGaMaxPages();
 const HISTORY_VERSION = 'ga_filtered_v2';
 
 const PREMIUM_PRIVATE_PREFIXES = [
@@ -83,6 +105,21 @@ function aircraftBreakdownFromArrivals(arrivals) {
     }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 8);
+}
+
+function dedupeFlightsByFaId(flights) {
+  const seen = new Set();
+  const out = [];
+  for (const f of flights) {
+    const id = f?.fa_flight_id || f?.ident;
+    if (id) {
+      const key = String(id);
+      if (seen.has(key)) continue;
+      seen.add(key);
+    }
+    out.push(f);
+  }
+  return out;
 }
 
 function flightTimeMs(flight) {
@@ -482,6 +519,10 @@ async function fetchArrivalsForAirport(icao, apiKey, start, end, { type, maxPage
       ok: false,
       arrivals: null,
       hasMore: false,
+      numPages: null,
+      requestedMaxPages: maxPages,
+      rawRecordCount: 0,
+      filteredRecordCount: 0,
       error: isAbort ? 'timeout' : fetchErr instanceof Error ? fetchErr.message : String(fetchErr),
     };
   } finally {
@@ -499,6 +540,10 @@ async function fetchArrivalsForAirport(icao, apiKey, start, end, { type, maxPage
       ok: false,
       arrivals: null,
       hasMore: false,
+      numPages: null,
+      requestedMaxPages: maxPages,
+      rawRecordCount: 0,
+      filteredRecordCount: 0,
       error: detail || `http_${arrivalsRes.status}`,
     };
   }
@@ -507,12 +552,30 @@ async function fetchArrivalsForAirport(icao, apiKey, start, end, { type, maxPage
   try {
     body = await arrivalsRes.json();
   } catch {
-    return { ok: false, arrivals: null, hasMore: false, error: 'json_parse' };
+    return {
+      ok: false,
+      arrivals: null,
+      hasMore: false,
+      numPages: null,
+      requestedMaxPages: maxPages,
+      rawRecordCount: 0,
+      filteredRecordCount: 0,
+      error: 'json_parse',
+    };
   }
 
   const rawArrivals = body?.arrivals;
   if (!Array.isArray(rawArrivals)) {
-    return { ok: false, arrivals: null, hasMore: false, error: 'invalid_arrivals_array' };
+    return {
+      ok: false,
+      arrivals: null,
+      hasMore: false,
+      numPages: null,
+      requestedMaxPages: maxPages,
+      rawRecordCount: 0,
+      filteredRecordCount: 0,
+      error: 'invalid_arrivals_array',
+    };
   }
 
   const expectedType = type;
@@ -523,8 +586,21 @@ async function fetchArrivalsForAirport(icao, apiKey, start, end, { type, maxPage
     );
   }
 
+  const numPages =
+    typeof body?.num_pages === 'number' && Number.isFinite(body.num_pages) && body.num_pages >= 1
+      ? body.num_pages
+      : null;
   const hasMore = Boolean(body?.links?.next);
-  return { ok: true, arrivals: filtered, hasMore, error: null };
+  return {
+    ok: true,
+    arrivals: filtered,
+    hasMore,
+    numPages,
+    requestedMaxPages: maxPages,
+    rawRecordCount: rawArrivals.length,
+    filteredRecordCount: filtered.length,
+    error: null,
+  };
 }
 
 async function processDestination(dest, apiKey, start, end, totalApiCalls, fetchStats) {
@@ -535,6 +611,13 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls, fetch
   let anyGaOk = false;
   let anyAirlineOk = false;
   let airlineHasMore = false;
+  const gaPagination = {
+    pageLimit: GA_MAX_PAGES,
+    pagesReturned: 0,
+    rawRecordCount: 0,
+    hasMoreRemaining: false,
+    truncated: false,
+  };
 
   console.log(`[fetch-all-arrivals] Destination start: ${dest.id} (${dest.name})`);
 
@@ -548,9 +631,25 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls, fetch
       if (gaRes.ok) {
         anyGaOk = true;
         gaCombined = gaCombined.concat(gaRes.arrivals);
-        if (gaRes.hasMore) fetchStats.gaHasMore += 1;
+        gaPagination.rawRecordCount += gaRes.rawRecordCount;
+        if (gaRes.numPages != null) {
+          gaPagination.pagesReturned += gaRes.numPages;
+        } else if (gaRes.rawRecordCount > 0) {
+          gaPagination.pagesReturned += 1;
+        }
+        if (gaRes.hasMore) {
+          gaPagination.hasMoreRemaining = true;
+          gaPagination.truncated = true;
+          fetchStats.gaHasMore += 1;
+        }
+        console.log(
+          `[fetch-all-arrivals] GA ${icao} (${dest.id}): page_limit=${GA_MAX_PAGES} pages_returned=${gaRes.numPages ?? 'unknown'} raw_records=${gaRes.rawRecordCount} filtered_ga=${gaRes.filteredRecordCount} has_more=${gaRes.hasMore} truncated=${gaRes.hasMore}`,
+        );
       } else {
         errors.push({ icao, type: 'General_Aviation', error: gaRes.error });
+        console.warn(
+          `[fetch-all-arrivals] GA ${icao} (${dest.id}) failed: ${gaRes.error}`,
+        );
       }
     } catch (err) {
       console.error(`[fetch-all-arrivals] GA fetch threw: ${dest.id} ${icao}`, err);
@@ -587,6 +686,14 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls, fetch
     }
   }
 
+  const gaBeforeDedup = gaCombined.length;
+  gaCombined = dedupeFlightsByFaId(gaCombined);
+  if (gaCombined.length !== gaBeforeDedup) {
+    console.log(
+      `[fetch-all-arrivals] Deduped GA arrivals for ${dest.id}: before=${gaBeforeDedup} after=${gaCombined.length}`,
+    );
+  }
+
   const destOk = anyGaOk;
   const gaMetrics = analyzeGaArrivals(gaCombined);
   const airline_context_count = anyAirlineOk ? airlineCombined.length : 0;
@@ -594,6 +701,14 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls, fetch
 
   const weighted_private_signal_24h = destOk ? gaMetrics.weighted_private_signal_24h : 0;
   const raw_ga_arrivals_24h = destOk ? gaMetrics.raw_ga_arrivals_24h : 0;
+  const arrival_count_truncated = destOk && gaPagination.truncated;
+  const arrival_count_minimum = arrival_count_truncated ? raw_ga_arrivals_24h : null;
+
+  if (destOk) {
+    console.log(
+      `[fetch-all-arrivals] GA summary ${dest.id}: page_limit=${gaPagination.pageLimit} pages_returned=${gaPagination.pagesReturned} raw_records=${gaPagination.rawRecordCount} filtered_ga=${raw_ga_arrivals_24h} has_more=${gaPagination.hasMoreRemaining} truncated=${arrival_count_truncated}`,
+    );
+  }
 
   const result = {
     id: dest.id,
@@ -616,6 +731,10 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls, fetch
     excluded_arrivals_24h: destOk ? gaMetrics.excluded_arrivals_24h : 0,
     turboprop_arrivals_24h: destOk ? gaMetrics.turboprop_arrivals_24h : 0,
     unknown_ga_arrivals_24h: destOk ? gaMetrics.unknown_ga_arrivals_24h : 0,
+    arrival_count_truncated,
+    arrival_count_page_limit: gaPagination.pageLimit,
+    arrival_count_pages_returned: gaPagination.pagesReturned,
+    arrival_count_minimum,
     airline_context_count,
     airline_has_more: airlineHasMore,
     ...backdrop,
@@ -640,7 +759,7 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls, fetch
 
   const errTag = result.errors.length ? ` errors=${result.errors.length}` : '';
   console.log(
-    `[fetch-all-arrivals] Destination done: ${dest.id} ok=${destOk} weighted_signal=${weighted_private_signal_24h} raw_ga=${raw_ga_arrivals_24h} airline=${airline_context_count}${errTag}`,
+    `[fetch-all-arrivals] Destination done: ${dest.id} ok=${destOk} weighted_signal=${weighted_private_signal_24h} raw_ga=${raw_ga_arrivals_24h} airline=${airline_context_count} truncated=${arrival_count_truncated}${errTag}`,
   );
 
   return result;
@@ -915,6 +1034,10 @@ export default async function handler(req, res) {
             arrivals_count: d.arrivals_count,
             general_aviation_count: d.general_aviation_count,
             commercial_count: d.commercial_count,
+            arrival_count_truncated: d.arrival_count_truncated,
+            arrival_count_page_limit: d.arrival_count_page_limit,
+            arrival_count_pages_returned: d.arrival_count_pages_returned,
+            arrival_count_minimum: d.arrival_count_minimum,
           }));
           const historyRecord = {
             history_version: HISTORY_VERSION,

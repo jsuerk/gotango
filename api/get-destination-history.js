@@ -48,6 +48,15 @@ function safeNum(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function safeNullableNum(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function safeTruncatedFlag(v) {
+  return v === true;
+}
+
 function normalizePoint(row, fallbackDate) {
   const date = row.date || calendarDateUtc(row.saved_at) || fallbackDate;
   if (!date) return null;
@@ -61,6 +70,10 @@ function normalizePoint(row, fallbackDate) {
     signal_score: safeNum(row.signal_score),
     status: row.status != null ? String(row.status) : 'data_building',
     status_label: statusLabel(row.status),
+    arrival_count_truncated: safeTruncatedFlag(row.arrival_count_truncated),
+    arrival_count_page_limit: safeNullableNum(row.arrival_count_page_limit),
+    arrival_count_pages_returned: safeNullableNum(row.arrival_count_pages_returned),
+    arrival_count_minimum: safeNullableNum(row.arrival_count_minimum),
     _saved_at: row.saved_at || null,
   };
 }

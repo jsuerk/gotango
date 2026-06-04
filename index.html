@@ -7000,10 +7000,14 @@
     const pulseEl = document.querySelector('[data-modal-section="pulse"]');
     if (!indexEl && !trajectoryEl && !pulseEl) return;
 
+    const historyCtx = _prepareArrivalHistoryContext(dest, points);
     const n = points.length;
-    const currentArrivals = _quietMarketPrivateArrivals24h(dest);
-    const arrivalHistoryUsable = _isUsableArrivalHistory(points, currentArrivals);
-    const historyOpts = { arrivalHistoryUsable };
+    const historyOpts = {
+      arrivalHistoryUsable: historyCtx.arrivalHistoryUsable,
+      chartablePoints: historyCtx.chartablePoints,
+      currentTruncated: historyCtx.currentTruncated,
+      legacyFlat45: historyCtx.legacyFlat45,
+    };
 
     if (indexEl) {
       indexEl.innerHTML = renderModalIndexSection(dest, points, n, historyOpts);
@@ -7029,6 +7033,103 @@
     if (!p || typeof p !== 'object') return null;
     const n = Number(p.private_arrivals_24h ?? p.raw_ga_arrivals_24h);
     return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+
+  function _detectLegacyFlat45Ceiling(points, currentArrivals) {
+    if (!Array.isArray(points) || points.length === 0) return false;
+
+    const seenDates = new Set();
+    const validPoints = [];
+
+    for (const p of points) {
+      const dateIso = _parseHistoryDateIso(p && p.date);
+      const arrivals = _historyPointArrivals(p);
+      if (!dateIso || arrivals == null) return false;
+      if (seenDates.has(dateIso)) return false;
+      seenDates.add(dateIso);
+      validPoints.push({ date: dateIso, arrivals, point: p });
+    }
+
+    if (validPoints.length < 5) return false;
+
+    const arrivals = validPoints.map((pt) => pt.arrivals);
+    const sortedDates = validPoints.map((pt) => pt.date).sort();
+    const spansMultipleDays = sortedDates[0] !== sortedDates[sortedDates.length - 1];
+    const allIdentical = arrivals.every((v) => v === arrivals[0]);
+    const flatValue = arrivals[0];
+    const current = Number(currentArrivals);
+    const currentMatches =
+      Number.isFinite(current) && Math.round(current) === Math.round(flatValue);
+    const hasExactProof = validPoints.every(
+      (pt) => pt.point && pt.point.arrival_count_truncated === false,
+    );
+
+    return (
+      !hasExactProof &&
+      allIdentical &&
+      flatValue === 45 &&
+      currentMatches &&
+      flatValue > 3 &&
+      spansMultipleDays
+    );
+  }
+
+  function _enrichHistoryPointsWithDest(points, dest) {
+    if (!Array.isArray(points)) return [];
+    const today = _utcTodayIso();
+    return points.map((p) => {
+      if (!p || typeof p !== 'object') return p;
+      if (p.date !== today || !dest) return p;
+      const merged = { ...p };
+      if (dest.arrival_count_truncated != null) {
+        merged.arrival_count_truncated = !!dest.arrival_count_truncated;
+      }
+      if (dest.arrival_count_page_limit != null) {
+        merged.arrival_count_page_limit = dest.arrival_count_page_limit;
+      }
+      if (dest.arrival_count_pages_returned != null) {
+        merged.arrival_count_pages_returned = dest.arrival_count_pages_returned;
+      }
+      if (dest.arrival_count_minimum != null) {
+        merged.arrival_count_minimum = dest.arrival_count_minimum;
+      }
+      return merged;
+    });
+  }
+
+  function _isHistoryPointTruncated(p, legacyFlat45) {
+    if (!p || typeof p !== 'object') return false;
+    if (p.arrival_count_truncated === true) return true;
+    if (p.arrival_count_truncated === false) return false;
+    if (legacyFlat45) {
+      const arrivals = _historyPointArrivals(p);
+      return arrivals === 45;
+    }
+    return false;
+  }
+
+  function _filterChartableArrivalPoints(points, { legacyFlat45 = false } = {}) {
+    if (!Array.isArray(points)) return [];
+    return points.filter((p) => !_isHistoryPointTruncated(p, legacyFlat45));
+  }
+
+  function _prepareArrivalHistoryContext(dest, points) {
+    const currentArrivals = _quietMarketPrivateArrivals24h(dest);
+    const enrichedPoints = _enrichHistoryPointsWithDest(points, dest);
+    const legacyFlat45 = _detectLegacyFlat45Ceiling(enrichedPoints, currentArrivals);
+    const chartablePoints = _filterChartableArrivalPoints(enrichedPoints, { legacyFlat45 });
+    const currentTruncated = !!(dest && dest.arrival_count_truncated);
+    const baseUsable = _isUsableArrivalHistory(enrichedPoints, currentArrivals);
+    const arrivalHistoryUsable = baseUsable && chartablePoints.length >= 2;
+
+    return {
+      currentArrivals,
+      enrichedPoints,
+      chartablePoints,
+      legacyFlat45,
+      currentTruncated,
+      arrivalHistoryUsable,
+    };
   }
 
   function _isUsableArrivalHistory(points, currentArrivals) {
@@ -7184,7 +7285,10 @@
       let privateVsAvg = NaN;
       let privateVsAvgPct = NaN;
       if (historyUsable) {
-        const privateHist = windowPts
+        const chartablePts = Array.isArray(options.chartablePoints)
+          ? options.chartablePoints
+          : scorePoints;
+        const privateHist = chartablePts
           .map((p) => _safeNum(p && p.private_arrivals_24h))
           .filter((v) => Number.isFinite(v) && v >= 0);
         avgPrivate7 = privateHist.length >= 2
@@ -7666,10 +7770,14 @@
     `;
   }
 
-  function renderModalTrajectoryHistoryBuilding(count, currentArrivals) {
+  function renderModalTrajectoryHistoryBuilding(count, currentArrivals, { truncated = false } = {}) {
     const todayLine = currentArrivals > 0
       ? `${currentArrivals} private ${currentArrivals === 1 ? 'arrival' : 'arrivals'} today. `
       : '';
+    const title = truncated ? 'Collection range capped' : 'Arrival history building';
+    const body = truncated
+      ? 'Private-arrival activity exceeded the current collection range. A more complete trajectory will appear as uncapped history accumulates.'
+      : `A reliable multi-day trajectory will appear as daily history accumulates.${count > 0 ? ` ${count} ${count === 1 ? 'day' : 'days'} collected so far.` : ''}`;
     return `
       <div class="d-section-head">
         <span class="d-section-label">30-day trajectory</span>
@@ -7678,8 +7786,8 @@
       <div class="d-trajectory-placeholder">
         <div class="d-placeholder-msg">
           <div class="d-placeholder-icon">GT</div>
-          <div class="d-placeholder-title">Arrival history building</div>
-          <div class="d-placeholder-text">${todayLine}A reliable multi-day trajectory will appear as daily history accumulates.${count > 0 ? ` ${count} ${count === 1 ? 'day' : 'days'} collected so far.` : ''}</div>
+          <div class="d-placeholder-title">${title}</div>
+          <div class="d-placeholder-text">${todayLine}${body}</div>
         </div>
       </div>
     `;
@@ -7690,24 +7798,32 @@
     const historyUsable = options.arrivalHistoryUsable !== undefined
       ? !!options.arrivalHistoryUsable
       : _isUsableArrivalHistory(points, currentArrivals);
+    const currentTruncated = !!options.currentTruncated;
+    const chartablePoints = Array.isArray(options.chartablePoints) ? options.chartablePoints : points;
 
     if (!historyUsable && count >= 3) {
-      return renderModalTrajectoryHistoryBuilding(count, currentArrivals);
+      return renderModalTrajectoryHistoryBuilding(count, currentArrivals, {
+        truncated: currentTruncated || !!options.legacyFlat45,
+      });
     }
 
-    const series = points.map((p) => _safeNum(p.private_arrivals_24h));
-    const dates = points.map((p) => p.date || '');
+    const series = chartablePoints.map((p) => _safeNum(p.private_arrivals_24h));
+    const dates = chartablePoints.map((p) => p.date || '');
     const gradId = 'areaGradHist' + String(Date.now() % 100000);
+    const truncationNote = currentTruncated
+      ? `<div class="d-trend-building"><div class="d-trend-building-sub">Private-arrival activity exceeded the current collection range. A more complete trajectory will appear as uncapped history accumulates.</div></div>`
+      : '';
 
     if (count >= 7) {
       return `
         <div class="d-section-head">
           <span class="d-section-label">30-day trajectory</span>
-          <span class="d-section-meta">Daily private arrivals · Last ${count} days</span>
+          <span class="d-section-meta">Daily private arrivals · Last ${chartablePoints.length} days</span>
         </div>
         <div class="d-history-chart-wrap">
           ${buildHistorySparkline(series, dates, { preview: false, gradId })}
         </div>
+        ${truncationNote}
       `;
     }
 
@@ -7722,8 +7838,9 @@
         </div>
         <div class="d-trend-building">
           Trend building
-          <div class="d-trend-building-sub">${count} ${count === 1 ? 'day' : 'days'} collected · full chart unlocks at 7 days</div>
+          <div class="d-trend-building-sub">${chartablePoints.length} ${chartablePoints.length === 1 ? 'day' : 'days'} charted · full chart unlocks at 7 days</div>
         </div>
+        ${truncationNote}
       `;
     }
 
@@ -7747,6 +7864,8 @@
     const historyUsable = options.arrivalHistoryUsable !== undefined
       ? !!options.arrivalHistoryUsable
       : _isUsableArrivalHistory(points, current);
+    const currentTruncated = !!options.currentTruncated;
+    const chartablePoints = Array.isArray(options.chartablePoints) ? options.chartablePoints : points;
 
     if (count < 7) {
       return `
@@ -7766,6 +7885,12 @@
     }
 
     if (!historyUsable) {
+      const pulseSub = currentTruncated || options.legacyFlat45
+        ? 'Private-arrival activity exceeded the current collection range. A more complete trajectory will appear as uncapped history accumulates.'
+        : '7-day arrival averages will appear once enough reliable daily history is collected.';
+      const pulseTitle = currentTruncated || options.legacyFlat45
+        ? 'Collection range capped'
+        : 'Arrival history building';
       return `
         <div class="d-section-head">
           <span class="d-section-label">The pulse</span>
@@ -7779,13 +7904,13 @@
           </div>
         </div>
         <div class="d-trend-building">
-          Arrival history building
-          <div class="d-trend-building-sub">7-day arrival averages will appear once enough reliable daily history is collected.</div>
+          ${pulseTitle}
+          <div class="d-trend-building-sub">${pulseSub}</div>
         </div>
       `;
     }
 
-    const windowPts = points.slice(-7);
+    const windowPts = chartablePoints.slice(-7);
     const arrivals = windowPts.map((p) => _safeNum(p.private_arrivals_24h));
     const avg7 = arrivals.reduce((s, v) => s + v, 0) / arrivals.length;
     const peak = Math.max(...arrivals);
