@@ -7001,15 +7001,74 @@
     if (!indexEl && !trajectoryEl && !pulseEl) return;
 
     const n = points.length;
+    const currentArrivals = _quietMarketPrivateArrivals24h(dest);
+    const arrivalHistoryUsable = _isUsableArrivalHistory(points, currentArrivals);
+    const historyOpts = { arrivalHistoryUsable };
+
     if (indexEl) {
-      indexEl.innerHTML = renderModalIndexSection(dest, points, n);
+      indexEl.innerHTML = renderModalIndexSection(dest, points, n, historyOpts);
     }
     if (trajectoryEl) {
-      trajectoryEl.innerHTML = renderModalTrajectorySection(points, n);
+      trajectoryEl.innerHTML = renderModalTrajectorySection(dest, points, n, historyOpts);
     }
     if (pulseEl) {
-      pulseEl.innerHTML = renderModalPulseSection(dest, points, n);
+      pulseEl.innerHTML = renderModalPulseSection(dest, points, n, historyOpts);
     }
+  }
+
+  function _parseHistoryDateIso(dateStr) {
+    if (dateStr == null || dateStr === '') return null;
+    const s = String(dateStr).trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    const d = new Date(`${s}T12:00:00.000Z`);
+    if (Number.isNaN(d.getTime())) return null;
+    return s;
+  }
+
+  function _historyPointArrivals(p) {
+    if (!p || typeof p !== 'object') return null;
+    const n = Number(p.private_arrivals_24h ?? p.raw_ga_arrivals_24h);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+
+  function _isUsableArrivalHistory(points, currentArrivals) {
+    if (!Array.isArray(points) || points.length === 0) return false;
+
+    const seenDates = new Set();
+    const validPoints = [];
+
+    for (const p of points) {
+      const dateIso = _parseHistoryDateIso(p && p.date);
+      const arrivals = _historyPointArrivals(p);
+      if (!dateIso || arrivals == null) return false;
+      if (seenDates.has(dateIso)) return false;
+      seenDates.add(dateIso);
+      validPoints.push({ date: dateIso, arrivals });
+    }
+
+    if (validPoints.length < 2) return false;
+
+    const arrivals = validPoints.map((pt) => pt.arrivals);
+    const sortedDates = validPoints.map((pt) => pt.date).sort();
+    const spansMultipleDays = sortedDates[0] !== sortedDates[sortedDates.length - 1];
+
+    const allIdentical = arrivals.every((v) => v === arrivals[0]);
+    const flatValue = arrivals[0];
+    const current = Number(currentArrivals);
+    const currentMatches =
+      Number.isFinite(current) && Math.round(current) === Math.round(flatValue);
+
+    if (
+      validPoints.length >= 5 &&
+      allIdentical &&
+      currentMatches &&
+      flatValue > 3 &&
+      spansMultipleDays
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   function _utcTodayIso() {
@@ -7081,7 +7140,7 @@
     return '';
   }
 
-  function buildSignalRead(dest, scorePoints) {
+  function buildSignalRead(dest, scorePoints, options = {}) {
     const name = _signalReadDestName(dest);
     const buildingMsg =
       `The Index read is still building for ${name}. A clearer weekly pattern will appear as more daily scores come in.`;
@@ -7114,22 +7173,30 @@
       const topConcentration = _signalReadTopOriginConcentration(origins);
 
       const latestPoint = windowPts[windowPts.length - 1] || null;
-      const privateToday = _safeNum(
-        (latestPoint && latestPoint.private_arrivals_24h) ??
-        (dest && (dest.private_arrivals_24h ?? dest.raw_ga_arrivals_24h)),
+      const privateToday = _quietMarketPrivateArrivals24h(dest) || _safeNum(
+        latestPoint && latestPoint.private_arrivals_24h,
       );
-      const privateHist = windowPts
-        .map((p) => _safeNum(p && p.private_arrivals_24h))
-        .filter((v) => Number.isFinite(v) && v >= 0);
-      const avgPrivate7 = privateHist.length >= 2
-        ? privateHist.reduce((s, v) => s + v, 0) / privateHist.length
-        : NaN;
-      const privateVsAvg = Number.isFinite(privateToday) && Number.isFinite(avgPrivate7) && avgPrivate7 > 0
-        ? privateToday - avgPrivate7
-        : NaN;
-      const privateVsAvgPct = Number.isFinite(privateVsAvg) && avgPrivate7 > 0
-        ? privateVsAvg / avgPrivate7
-        : NaN;
+      const historyUsable = options.arrivalHistoryUsable !== undefined
+        ? !!options.arrivalHistoryUsable
+        : _isUsableArrivalHistory(scorePoints, privateToday);
+
+      let avgPrivate7 = NaN;
+      let privateVsAvg = NaN;
+      let privateVsAvgPct = NaN;
+      if (historyUsable) {
+        const privateHist = windowPts
+          .map((p) => _safeNum(p && p.private_arrivals_24h))
+          .filter((v) => Number.isFinite(v) && v >= 0);
+        avgPrivate7 = privateHist.length >= 2
+          ? privateHist.reduce((s, v) => s + v, 0) / privateHist.length
+          : NaN;
+        privateVsAvg = Number.isFinite(privateToday) && Number.isFinite(avgPrivate7) && avgPrivate7 > 0
+          ? privateToday - avgPrivate7
+          : NaN;
+        privateVsAvgPct = Number.isFinite(privateVsAvg) && avgPrivate7 > 0
+          ? privateVsAvg / avgPrivate7
+          : NaN;
+      }
 
       const confidence = String((dest && dest.signal_confidence) || '').toLowerCase();
       const signalDepthCapApplied = !!(dest && dest.signal_depth_cap_applied);
@@ -7166,21 +7233,26 @@
         signalDepthCapApplied ||
         (aboveAvg && (privateLight || originsNarrow || (Number.isFinite(privateVsAvg) && privateVsAvg < 0)));
 
-      const arrivalsUp = Number.isFinite(privateVsAvg) && privateVsAvg > 0;
-      const arrivalsDown = Number.isFinite(privateVsAvg) && privateVsAvg < 0;
+      const arrivalsUp = historyUsable && Number.isFinite(privateVsAvg) && privateVsAvg > 0;
+      const arrivalsDown = historyUsable && Number.isFinite(privateVsAvg) && privateVsAvg < 0;
       const arrivalsNearAvg =
+        historyUsable &&
         Number.isFinite(privateVsAvgPct) && Math.abs(privateVsAvgPct) <= 0.12;
       const arrivalsSupported =
-        arrivalsUp ||
-        (Number.isFinite(privateToday) &&
-          Number.isFinite(avgPrivate7) &&
-          privateToday >= avgPrivate7);
+        historyUsable && (
+          arrivalsUp ||
+          (Number.isFinite(privateToday) &&
+            Number.isFinite(avgPrivate7) &&
+            privateToday >= avgPrivate7)
+        );
       const arrivalsSoft =
-        arrivalsDown ||
-        (Number.isFinite(privateToday) &&
-          Number.isFinite(avgPrivate7) &&
-          avgPrivate7 > 0 &&
-          privateToday < avgPrivate7 * 0.9);
+        historyUsable && (
+          arrivalsDown ||
+          (Number.isFinite(privateToday) &&
+            Number.isFinite(avgPrivate7) &&
+            avgPrivate7 > 0 &&
+            privateToday < avgPrivate7 * 0.9)
+        );
 
       const indexCooling =
         belowAvg ||
@@ -7223,9 +7295,20 @@
           `${name} is cooling across both the Index and private-arrival activity, suggesting the market has softened from its recent pace.`;
         detailHints.mentionsPrivatePace = true;
       } else if (
+        !historyUsable &&
         pulledBackFromHigh &&
         indexBelowAvg &&
-        arrivalsSupported
+        Number.isFinite(privateToday) &&
+        privateToday > 0
+      ) {
+        primary =
+          `Today's private-arrival count is meaningful, but recent arrival-history context is still building. The Index is below its 7-day score average, so this reads as cooling from recent momentum rather than a confirmed arrival-volume slowdown.`;
+        detailHints.mentionsPrivatePace = true;
+      } else if (
+        pulledBackFromHigh &&
+        indexBelowAvg &&
+        arrivalsSupported &&
+        historyUsable
       ) {
         primary = `${name} is still active by private-arrival count`;
         if (arrivalsUp) {
@@ -7323,8 +7406,8 @@
     }
   }
 
-  function renderSignalReadBlock(dest, scorePoints) {
-    const text = buildSignalRead(dest, scorePoints);
+  function renderSignalReadBlock(dest, scorePoints, options = {}) {
+    const text = buildSignalRead(dest, scorePoints, options);
     if (!text) return '';
     return `
       <div class="signal-read" aria-label="Signal read">
@@ -7421,10 +7504,10 @@
     `;
   }
 
-  function renderModalIndexSection(dest, points, count) {
+  function renderModalIndexSection(dest, points, count, options = {}) {
     const scorePts = _indexScorePoints(points);
     const n = scorePts.length;
-    const signalReadHtml = renderSignalReadBlock(dest, points);
+    const signalReadHtml = renderSignalReadBlock(dest, points, options);
 
     if (n < 2) {
       return `
@@ -7507,14 +7590,21 @@
     const padBottom = 30;
     const chartW = w - padLeft - padRight;
     const chartH = h - padTop - padBottom;
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const mid = Math.round((min + max) / 2);
-    const range = max - min || 1;
+    const rawMin = Math.min(...values);
+    const rawMax = Math.max(...values);
+    let domainMin = rawMin;
+    let domainMax = rawMax;
+    if (rawMax === rawMin) {
+      const pad = rawMin > 0 ? Math.max(1, Math.round(rawMin * 0.15)) : 1;
+      domainMin = Math.max(0, rawMin - pad);
+      domainMax = rawMax + pad;
+    }
+    const range = domainMax - domainMin || 1;
+    const valueToY = (v) => padTop + chartH * (1 - (v - domainMin) / range);
     const xStep = chartW / (values.length - 1);
     const pts = values.map((v, i) => {
       const x = padLeft + i * xStep;
-      const y = padTop + chartH * (1 - (v - min) / range);
+      const y = valueToY(v);
       return { x, y, v, date: dates && dates[i] ? dates[i] : '' };
     });
     const linePath = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
@@ -7530,9 +7620,12 @@
     const latestLabel = latestVal === 1 ? '1 arrival' : `${latestVal} arrivals`;
     const labelY = Math.max(padTop + 8, lastPt.y - 12);
     const chartClass = preview ? 'd-history-sparkline d-history-sparkline--preview' : 'd-history-sparkline';
-    const yMinY = padTop + chartH;
-    const yMidY = padTop + chartH / 2;
-    const yMaxY = padTop;
+    const yMinY = valueToY(domainMin);
+    const yMidY = valueToY((domainMin + domainMax) / 2);
+    const yMaxY = valueToY(domainMax);
+    const labelMax = Math.round(domainMax);
+    const labelMid = Math.round((domainMin + domainMax) / 2);
+    const labelMin = Math.round(domainMin);
     const pointMarkers = pts.map((p, i) => {
       const isLast = i === pts.length - 1;
       const r = isLast ? 4.5 : 2.5;
@@ -7559,9 +7652,9 @@
         <line x1="${padLeft}" y1="${yMaxY.toFixed(1)}" x2="${(padLeft + chartW).toFixed(1)}" y2="${yMaxY.toFixed(1)}" stroke="#252C37" stroke-dasharray="2 3"/>
         <line x1="${padLeft}" y1="${yMidY.toFixed(1)}" x2="${(padLeft + chartW).toFixed(1)}" y2="${yMidY.toFixed(1)}" stroke="#252C37" stroke-dasharray="2 3"/>
         <line x1="${padLeft}" y1="${yMinY.toFixed(1)}" x2="${(padLeft + chartW).toFixed(1)}" y2="${yMinY.toFixed(1)}" stroke="#313945"/>
-        <text style="${mono}; font-size: 9px; fill: #A8A293;" x="${padLeft - 4}" y="${yMaxY.toFixed(1)}" text-anchor="end" dominant-baseline="middle">${max}</text>
-        <text style="${mono}; font-size: 9px; fill: #A8A293;" x="${padLeft - 4}" y="${yMidY.toFixed(1)}" text-anchor="end" dominant-baseline="middle">${mid}</text>
-        <text style="${mono}; font-size: 9px; fill: #A8A293;" x="${padLeft - 4}" y="${yMinY.toFixed(1)}" text-anchor="end" dominant-baseline="middle">${min}</text>
+        <text style="${mono}; font-size: 9px; fill: #A8A293;" x="${padLeft - 4}" y="${yMaxY.toFixed(1)}" text-anchor="end" dominant-baseline="middle">${labelMax}</text>
+        ${labelMid !== labelMax && labelMid !== labelMin ? `<text style="${mono}; font-size: 9px; fill: #A8A293;" x="${padLeft - 4}" y="${yMidY.toFixed(1)}" text-anchor="end" dominant-baseline="middle">${labelMid}</text>` : ''}
+        <text style="${mono}; font-size: 9px; fill: #A8A293;" x="${padLeft - 4}" y="${yMinY.toFixed(1)}" text-anchor="end" dominant-baseline="middle">${labelMin}</text>
         <path d="${areaPath}" fill="url(#${gradId})"/>
         <path d="${linePath}" fill="none" stroke="#E8A317" stroke-width="1.8" stroke-linejoin="round"/>
         ${pointMarkers}
@@ -7573,7 +7666,35 @@
     `;
   }
 
-  function renderModalTrajectorySection(points, count) {
+  function renderModalTrajectoryHistoryBuilding(count, currentArrivals) {
+    const todayLine = currentArrivals > 0
+      ? `${currentArrivals} private ${currentArrivals === 1 ? 'arrival' : 'arrivals'} today. `
+      : '';
+    return `
+      <div class="d-section-head">
+        <span class="d-section-label">30-day trajectory</span>
+        <span class="d-section-meta">Daily private arrivals</span>
+      </div>
+      <div class="d-trajectory-placeholder">
+        <div class="d-placeholder-msg">
+          <div class="d-placeholder-icon">GT</div>
+          <div class="d-placeholder-title">Arrival history building</div>
+          <div class="d-placeholder-text">${todayLine}A reliable multi-day trajectory will appear as daily history accumulates.${count > 0 ? ` ${count} ${count === 1 ? 'day' : 'days'} collected so far.` : ''}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderModalTrajectorySection(dest, points, count, options = {}) {
+    const currentArrivals = _quietMarketPrivateArrivals24h(dest);
+    const historyUsable = options.arrivalHistoryUsable !== undefined
+      ? !!options.arrivalHistoryUsable
+      : _isUsableArrivalHistory(points, currentArrivals);
+
+    if (!historyUsable && count >= 3) {
+      return renderModalTrajectoryHistoryBuilding(count, currentArrivals);
+    }
+
     const series = points.map((p) => _safeNum(p.private_arrivals_24h));
     const dates = points.map((p) => p.date || '');
     const gradId = 'areaGradHist' + String(Date.now() % 100000);
@@ -7621,7 +7742,12 @@
     `;
   }
 
-  function renderModalPulseSection(dest, points, count) {
+  function renderModalPulseSection(dest, points, count, options = {}) {
+    const current = _quietMarketPrivateArrivals24h(dest);
+    const historyUsable = options.arrivalHistoryUsable !== undefined
+      ? !!options.arrivalHistoryUsable
+      : _isUsableArrivalHistory(points, current);
+
     if (count < 7) {
       return `
         <div class="d-section-head">
@@ -7639,11 +7765,30 @@
       `;
     }
 
+    if (!historyUsable) {
+      return `
+        <div class="d-section-head">
+          <span class="d-section-label">The pulse</span>
+          <span class="d-section-meta">Daily summary</span>
+        </div>
+        <div class="d-pulse-metrics">
+          <div class="d-pulse-metric">
+            <div class="d-pulse-metric-label">Private arrivals today</div>
+            <div class="d-pulse-metric-value">${current}</div>
+            <div class="d-pulse-metric-sub">Last 24 hours</div>
+          </div>
+        </div>
+        <div class="d-trend-building">
+          Arrival history building
+          <div class="d-trend-building-sub">7-day arrival averages will appear once enough reliable daily history is collected.</div>
+        </div>
+      `;
+    }
+
     const windowPts = points.slice(-7);
     const arrivals = windowPts.map((p) => _safeNum(p.private_arrivals_24h));
     const avg7 = arrivals.reduce((s, v) => s + v, 0) / arrivals.length;
     const peak = Math.max(...arrivals);
-    const current = _quietMarketPrivateArrivals24h(dest);
     let vsPct = null;
     let vsClass = '';
     let vsLabel = '—';
