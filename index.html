@@ -4647,36 +4647,102 @@
     return `${months[d.getUTCMonth()]} ${d.getUTCDate()}`;
   }
 
+  function _firstFiniteNumber(candidates) {
+    for (let i = 0; i < candidates.length; i += 1) {
+      const n = Number(candidates[i]);
+      if (Number.isFinite(n)) return n;
+    }
+    return null;
+  }
+
+  function _extractWowMovement(dest) {
+    const displayPct = _parsePercentChange(dest.display_wow_change);
+    if (displayPct != null) {
+      return { pct: displayPct, raw: dest.display_wow_change, window: 'wow' };
+    }
+    const pct = _firstFiniteNumber([
+      dest.wow_change_pct,
+      dest.wow_delta,
+      dest.week_over_week,
+      dest.private_arrivals_wow_pct,
+      dest.movement && dest.movement.wow,
+    ]);
+    if (pct != null) return { pct, raw: `${pct}%`, window: 'wow' };
+    return null;
+  }
+
+  function _extractDodMovement(dest) {
+    const displayPct = _parsePercentChange(dest.display_dod_change);
+    if (displayPct != null) {
+      return { pct: displayPct, raw: dest.display_dod_change, window: 'dod' };
+    }
+    const pct = _firstFiniteNumber([
+      dest.dod_change_pct,
+      dest.dod_delta,
+      dest.private_arrivals_dod_pct,
+      dest.movement && dest.movement.dod,
+    ]);
+    if (pct != null) return { pct, raw: `${pct}%`, window: 'dod' };
+    return null;
+  }
+
+  function _extractVsAvgMovement(dest) {
+    const direct = _firstFiniteNumber([
+      dest.score_delta_vs_avg,
+      dest.delta_vs_avg,
+      dest.signal_score_vs_avg,
+      dest.score_delta_7d,
+    ]);
+    if (direct != null && Math.abs(direct) >= 1) {
+      return { delta: direct };
+    }
+    const latest = Number(dest.latest_signal_score ?? dest.signal_score);
+    const avg = Number(dest.index_7d_avg);
+    if (Number.isFinite(latest) && Number.isFinite(avg)) {
+      const vsAvg = latest - avg;
+      if (Math.abs(vsAvg) >= 1) return { delta: vsAvg };
+    }
+    return null;
+  }
+
+  function _formatVsAvgMovement(delta) {
+    const rounded = Math.round(delta);
+    const sign = rounded > 0 ? '+' : (rounded < 0 ? '−' : '');
+    return `${sign}${Math.abs(rounded)} vs avg`;
+  }
+
   function _resolveCardMovement(dest, direction) {
-    const wowVal = _parsePercentChange(dest.display_wow_change);
-    const dodVal = _parsePercentChange(dest.display_dod_change);
+    const d = _destWithMoversContext(dest);
     let movementText = null;
     let signedVal = null;
 
-    if (direction === 'positive') {
-      if (wowVal != null && wowVal > 0) {
-        movementText = normalizeMovementLabel(dest.display_wow_change, 'wow');
-        signedVal = wowVal;
-      } else if (dodVal != null && dodVal > 0) {
-        movementText = normalizeMovementLabel(dest.display_dod_change, 'dod');
-        signedVal = dodVal;
-      }
-    } else if (direction === 'negative') {
-      if (wowVal != null && wowVal < 0) {
-        movementText = normalizeMovementLabel(dest.display_wow_change, 'wow');
-        signedVal = wowVal;
-      } else if (dodVal != null && dodVal < 0) {
-        movementText = normalizeMovementLabel(dest.display_dod_change, 'dod');
-        signedVal = dodVal;
-      }
+    const wow = _extractWowMovement(d);
+    if (wow) {
+      movementText = normalizeMovementLabel(wow.raw, 'wow');
+      signedVal = wow.pct;
     } else {
-      if (wowVal != null) {
-        movementText = normalizeMovementLabel(dest.display_wow_change, 'wow');
-        signedVal = wowVal;
-      } else if (dodVal != null) {
-        movementText = normalizeMovementLabel(dest.display_dod_change, 'dod');
-        signedVal = dodVal;
+      const dod = _extractDodMovement(d);
+      if (dod) {
+        movementText = normalizeMovementLabel(dod.raw, 'dod');
+        signedVal = dod.pct;
+      } else {
+        const vsAvg = _extractVsAvgMovement(d);
+        if (vsAvg) {
+          movementText = _formatVsAvgMovement(vsAvg.delta);
+          signedVal = vsAvg.delta;
+        } else {
+          const sectionHint = direction === 'positive' ? 'heating' : (direction === 'negative' ? 'cooling' : null);
+          const badge = getPublicSignalBadge(d, { sectionHint });
+          if (badge && badge.label) {
+            movementText = badge.label;
+          }
+        }
       }
+    }
+
+    if (movementText === 'Trend building') {
+      movementText = null;
+      signedVal = null;
     }
 
     return { movementText, signedVal };
@@ -4737,21 +4803,8 @@
     return col;
   }
 
-  function _getNowCardStatusBadgeMeta(dest, sectionHint) {
-    const status = String(dest.status || '').toLowerCase();
-    if (status === 'heating' || status === 'warming') return MOVERS_BADGE_META.rising;
-    if (status === 'cooling' || status === 'softening' || status === 'off_season') return MOVERS_BADGE_META.cooling;
-    if (status === 'steady' || status === 'active') return MOVERS_BADGE_META.steady;
-    if (status === 'quiet' || status === 'data_building' || status === 'baseline_building' || status === 'baseline-building') {
-      return MOVERS_BADGE_META.quiet;
-    }
-    if (sectionHint === 'heating') return MOVERS_BADGE_META.rising;
-    if (sectionHint === 'cooling') return MOVERS_BADGE_META.cooling;
-    return MOVERS_BADGE_META.steady;
-  }
-
   function _buildDestStatusBadge(dest, sectionHint) {
-    const meta = _getNowCardStatusBadgeMeta(dest, sectionHint);
+    const meta = getPublicSignalBadge(dest, { sectionHint });
     const badge = document.createElement('span');
     badge.className = `mover-badge ${meta.className}`;
     badge.textContent = meta.label;
@@ -5198,12 +5251,57 @@
     return Number.isFinite(n) ? Math.round(n) : 0;
   }
 
+  const MOVER_REASON_ABBREV_RES = [
+    /\bSt\./gi, /\bMt\./gi, /\bFt\./gi, /\bDr\./gi, /\bMr\./gi, /\bMrs\./gi, /\bMs\./gi,
+    /\bU\.S\./gi, /\bU\.K\./gi, /\bvs\./gi, /\be\.g\./gi, /\bi\.e\./gi,
+  ];
+
+  function _moverReasonAbbrevPeriodIndexes(text) {
+    const indexes = new Set();
+    MOVER_REASON_ABBREV_RES.forEach((pattern) => {
+      const re = new RegExp(pattern.source, 'gi');
+      let match;
+      while ((match = re.exec(text)) !== null) {
+        for (let i = match.index; i < match.index + match[0].length; i++) {
+          if (text[i] === '.') indexes.add(i);
+        }
+      }
+    });
+    return indexes;
+  }
+
+  function _moverReasonFirstSentence(text, minLen) {
+    const minFragment = minLen || 12;
+    const abbrevPeriods = _moverReasonAbbrevPeriodIndexes(text);
+    let start = 0;
+
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      const isBoundary = ch === '!' || ch === '?' || (ch === '.' && !abbrevPeriods.has(i));
+      if (!isBoundary) continue;
+
+      const next = text[i + 1];
+      if (i !== text.length - 1 && next && !/\s/.test(next)) continue;
+
+      const sentence = text.slice(start, i + 1).trim();
+      if (sentence.length >= minFragment || i >= text.length - 1) {
+        return sentence;
+      }
+      start = i + 1;
+      while (start < text.length && /\s/.test(text[start])) start++;
+      if (start >= text.length) return sentence;
+      i = start - 1;
+    }
+
+    return text.slice(start).trim();
+  }
+
   function _shortenMoverReason(text, maxLen) {
     if (!text) return '';
     let s = String(text).trim().replace(/\s+/g, ' ');
-    const sentenceMatch = s.match(/^[^.!?]+(?:[.!?](?=\s|$)|[.!?]$)?/);
-    if (sentenceMatch && sentenceMatch[0].length < s.length) {
-      s = sentenceMatch[0].trim();
+    const firstSentence = _moverReasonFirstSentence(s, 12);
+    if (firstSentence && firstSentence.length < s.length) {
+      s = firstSentence;
     }
     if (s.length > maxLen) {
       s = s.slice(0, maxLen - 1).trim() + '…';
@@ -5315,6 +5413,81 @@
     const latest = Number(dest.latest_signal_score ?? dest.signal_score ?? 0);
     if (weeklyIndex >= 40 || latest >= 50) return 'steady';
     return 'quiet';
+  }
+
+  const PUBLIC_BADGE_VIBE_CLASS = {
+    top: 'build',
+    rising: 'surge',
+    cooling: 'cool',
+    steady: 'steady',
+    quiet: 'steady',
+  };
+
+  function _hasMoversWeeklyContext(dest) {
+    const days = Number(dest.index_days_count);
+    return Number.isFinite(days) && days >= 2;
+  }
+
+  function _destWithMoversContext(dest) {
+    if (!dest) return dest;
+    const summaries = _modalMoversIndexData && _modalMoversIndexData.ok && _modalMoversIndexData.summaries
+      ? _modalMoversIndexData.summaries
+      : null;
+    if (!summaries) return dest;
+    const summary = summaries[dest.id];
+    if (!summary) return dest;
+    return {
+      ...dest,
+      index_7d_avg: summary.index_7d_avg,
+      index_7d_high: summary.index_7d_high,
+      index_7d_low: summary.index_7d_low,
+      latest_signal_score: summary.latest_signal_score ?? dest.signal_score,
+      index_days_count: summary.index_days_count ?? 0,
+      latest_date: summary.latest_date,
+      score_points_7d: summary.score_points_7d || [],
+      first_signal_score: summary.first_signal_score,
+      score_delta_7d: summary.score_delta_7d,
+    };
+  }
+
+  function _resolvePublicBadgeKeyFromStatus(dest, sectionHint) {
+    const status = String(dest.status || '').toLowerCase();
+    if (status === 'heating' || status === 'warming' || status === 'rising' || status === 'surging') return 'rising';
+    if (status === 'cooling' || status === 'softening' || status === 'off_season') return 'cooling';
+    if (status === 'steady' || status === 'active') return 'steady';
+    if (status === 'quiet' || status === 'data_building' || status === 'baseline_building' || status === 'baseline-building') {
+      return 'quiet';
+    }
+    if (sectionHint === 'heating') return 'rising';
+    if (sectionHint === 'cooling') return 'cooling';
+    return null;
+  }
+
+  function getPublicSignalBadge(dest, options) {
+    const d = _destWithMoversContext(dest);
+    const section = options && options.section;
+    const sectionHint = options && options.sectionHint;
+    let badgeKey;
+
+    if (_hasMoversWeeklyContext(d)) {
+      badgeKey = getMoverBadgeKey(d, section || 'active');
+    } else {
+      badgeKey = _resolvePublicBadgeKeyFromStatus(d, sectionHint);
+      if (!badgeKey) {
+        const weeklyIndex = getMoversWeeklyScore(d);
+        const latest = Number(d.latest_signal_score ?? d.signal_score ?? 0);
+        badgeKey = (weeklyIndex >= 40 || latest >= 50) ? 'steady' : 'quiet';
+      }
+    }
+
+    const meta = MOVERS_BADGE_META[badgeKey] || MOVERS_BADGE_META.steady;
+    return {
+      label: meta.label,
+      className: meta.className,
+      badgeKey,
+      vibeClass: PUBLIC_BADGE_VIBE_CLASS[badgeKey] || 'steady',
+      sparkColor: meta.sparkColor,
+    };
   }
 
   function getMoverStory(dest, section) {
@@ -5526,7 +5699,7 @@
     const destId = String(dest.id || '');
     const icao = _destIcao(dest);
     const story = getMoverStory(dest, section);
-    const badgeMeta = MOVERS_BADGE_META[story.badge] || MOVERS_BADGE_META.quiet;
+    const badgeMeta = getPublicSignalBadge(dest, { section });
     const points = getMoversScorePoints(dest);
     const days = Number(dest.index_days_count);
     const hasWeekly = Number.isFinite(days) && days >= 2;
@@ -6712,6 +6885,7 @@
 
   let _modalCurrentDestId = null;
   let _modalArrivalsData = null;
+  let _modalMoversIndexData = null;
   let _modalHistoryRequestId = 0;
 
   function openDestinationModal(destinationId) {
@@ -7670,8 +7844,7 @@
     return String(pick.type).trim();
   }
 
-  function renderModalHero(dest, tier) {
-    const tierLabel = _tierLabel(tier);
+  function renderModalHero(dest, badge) {
     const coords = _formatCoords(dest.lat, dest.lng);
     const icaoStr = Array.isArray(dest.icao) ? dest.icao.join(' · ') : (dest.icao || '');
     const region = _escapeHtml(dest.region || '');
@@ -7683,7 +7856,7 @@
     const destId = _escapeHtml(dest.id || '');
     return `
       <div class="d-hero">
-        <span class="d-vibe ${tier}">${_escapeHtml(tierLabel)}</span>
+        <span class="d-vibe ${badge.vibeClass}">${_escapeHtml(badge.label)}</span>
         <div class="dest-modal__title-row">
           <h2 id="dest-modal-title" class="d-name">${_escapeHtml(dest.name || '')}</h2>
           <button type="button" class="dest-modal__share" data-dest-share="${destId}" aria-label="Share destination brief">
@@ -8299,10 +8472,10 @@
 
   function renderDestinationCard(dest, allDestinations) {
     if (!dest) return '<div class="dest-modal__body"><p>Destination not found.</p></div>';
-    const tier = _computeTier(dest, allDestinations);
+    const badge = getPublicSignalBadge(dest);
 
     return [
-      renderModalHero(dest, tier),
+      renderModalHero(dest, badge),
       renderEditorial(dest),
       renderModalStats(dest),
       renderIndexPlaceholder(),
@@ -8324,6 +8497,7 @@
       loadMoversIndex(),
     ]);
     _modalArrivalsData = arrivalsData;
+    _modalMoversIndexData = moversIndexData;
     updateStats(arrivalsData);
     updateTodaysPick(arrivalsData);
     renderHeatingUp(arrivalsData);
