@@ -4712,6 +4712,74 @@
     return `${sign}${Math.abs(rounded)} vs avg`;
   }
 
+  function _shiftCalendarDateUtc(dateStr, deltaDays) {
+    const d = new Date(`${dateStr}T12:00:00.000Z`);
+    d.setUTCDate(d.getUTCDate() + deltaDays);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function _calendarDaysBefore(dateStr, todayStr) {
+    const a = new Date(`${dateStr}T12:00:00.000Z`).getTime();
+    const b = new Date(`${todayStr}T12:00:00.000Z`).getTime();
+    return Math.round((b - a) / (24 * 60 * 60 * 1000));
+  }
+
+  function _dedupeIndexScorePointsByDate(points) {
+    const valid = _indexScorePoints(points);
+    const byDate = new Map();
+    for (const p of valid) {
+      byDate.set(p.date, p);
+    }
+    return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  function _findWeekAgoScorePoint(points, todayIso) {
+    if (!Array.isArray(points) || !points.length || !todayIso) return null;
+    const weekTarget = _shiftCalendarDateUtc(todayIso, -7);
+    const exact = points.find((p) => p.date === weekTarget);
+    if (exact) return exact;
+
+    let best = null;
+    let bestDist = Infinity;
+    for (const p of points) {
+      const daysBack = _calendarDaysBefore(p.date, todayIso);
+      if (daysBack >= 6 && daysBack <= 8) {
+        const dist = Math.abs(daysBack - 7);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = p;
+        }
+      }
+    }
+    return best;
+  }
+
+  function _getSignalScoreWoWPoints(dest) {
+    const todayScore = Number(dest && dest.signal_score);
+    if (!Number.isFinite(todayScore)) return null;
+
+    const enriched = _destWithMoversContext(dest);
+    const pts = _dedupeIndexScorePointsByDate(getMoversScorePoints(enriched));
+    if (!pts.length) return null;
+
+    const weekAgoPoint = _findWeekAgoScorePoint(pts, _utcTodayIso());
+    if (!weekAgoPoint) return null;
+
+    const weekAgoScore = Number(weekAgoPoint.signal_score);
+    if (!Number.isFinite(weekAgoScore)) return null;
+
+    const delta = Math.round(todayScore - weekAgoScore);
+    return Number.isFinite(delta) ? delta : null;
+  }
+
+  function _formatSignalScorePointChange(value) {
+    if (value == null || !Number.isFinite(value)) return null;
+    const rounded = Math.round(value);
+    if (rounded === 0) return '0 pts WoW';
+    const sign = rounded > 0 ? '+' : '−';
+    return `${sign}${Math.abs(rounded)} pts WoW`;
+  }
+
   function _resolveCardMovement(dest, direction) {
     const d = _destWithMoversContext(dest);
     let movementText = null;
@@ -4794,7 +4862,9 @@
     scoreLbl.textContent = 'GoTango Score';
 
     const trend = document.createElement('div');
-    const { movementText, signedVal } = _resolveCardMovement(dest, direction);
+    const wowPts = _getSignalScoreWoWPoints(dest);
+    const movementText = _formatSignalScorePointChange(wowPts);
+    const signedVal = wowPts;
     trend.textContent = movementText || 'Trend building';
     _applyDestTrendClasses(trend, movementText, signedVal);
 
