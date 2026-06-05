@@ -6,6 +6,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['MWCR'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Caribbean banking hub with calm waters, reef diving, and a polished waterfront dining scene.',
+    why_watch: 'Offshore finance and resort traffic can mix premium transatlantic jets with short Caribbean repositioning legs.',
+    review_profile: 'transfer_risk',
   },
   {
     id: 'las-vegas',
@@ -14,6 +17,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['KHND'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Desert entertainment capital where private flyers stage for shows, conventions, and high-stakes weekends.',
+    why_watch: 'Henderson Executive draws heavy same-market repositioning that can mask true long-haul private demand.',
+    review_profile: 'local_loop_risk',
   },
   {
     id: 'vail-beaver-creek',
@@ -22,6 +28,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['KEGE'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Alpine village skiing with upscale lodges, summer hiking, and a walkable mountain-town core.',
+    why_watch: 'Eagle County traffic often includes Denver and Front Range shuttles alongside true destination ski-week arrivals.',
+    review_profile: 'local_loop_risk',
   },
   {
     id: 'telluride',
@@ -30,6 +39,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['KTEX'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Remote box canyon resort with challenging terrain, festival culture, and dramatic San Juan scenery.',
+    why_watch: 'A single high-elevation field with limited commercial overlap makes GA arrivals a relatively clean demand read.',
+    review_profile: 'standard',
   },
   {
     id: 'big-sky-bozeman',
@@ -38,6 +50,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['KBZN'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Yellowstone gateway pairing ranch-country charm with Big Sky\'s expansive slopes and summer trails.',
+    why_watch: 'Bozeman Yellowstone International mixes resort-bound jets with Montana repositioning and training traffic.',
+    review_profile: 'local_loop_risk',
   },
   {
     id: 'lake-tahoe-truckee',
@@ -46,6 +61,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['KTRK'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Sierra lake destination for skiing, boating, and cabin retreats within reach of Bay Area wealth.',
+    why_watch: 'Truckee-Tahoe sees frequent Bay Area and Reno loops that can inflate apparent destination volume.',
+    review_profile: 'local_loop_risk',
   },
   {
     id: 'carmel-monterey',
@@ -54,6 +72,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['KMRY'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Coastal California escape with Pebble Beach golf, aquarium visits, and art-gallery village strolls.',
+    why_watch: 'Monterey Peninsula leisure traffic tends to arrive from distinct coastal and transcontinental origins.',
+    review_profile: 'standard',
   },
   {
     id: 'key-west',
@@ -62,6 +83,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['KEYW'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Southernmost island town with reef snorkeling, sunset sails, and a laid-back Old Town rhythm.',
+    why_watch: 'End-of-the-road Keys leisure draws identifiable Florida and East Coast private flyers on long weekends.',
+    review_profile: 'standard',
   },
   {
     id: 'bar-harbor-acadia',
@@ -70,6 +94,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['KBHB'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Acadia National Park gateway with coastal hiking, lobster harbors, and crisp New England summers.',
+    why_watch: 'Seasonal park and cruise-adjacent demand produces a readable summer private-travel pulse.',
+    review_profile: 'standard',
   },
   {
     id: 'newport-rhode-island',
@@ -78,6 +105,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['KUUU'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Gilded Age mansions, sailing regattas, and a compact harbor town on Narragansett Bay.',
+    why_watch: 'Northeast yacht-week and summer-home traffic often includes short Boston and Providence repositioning hops.',
+    review_profile: 'local_loop_risk',
   },
   {
     id: 'split-hvar',
@@ -86,6 +116,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['LDSP'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Adriatic base for island hopping, Roman heritage, and summer yacht-season nightlife.',
+    why_watch: 'Split airport funnels Dalmatian coast leisure with identifiable Mediterranean and Central European origins.',
+    review_profile: 'standard',
   },
   {
     id: 'dubrovnik',
@@ -94,6 +127,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['LDDU'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Walled Adriatic city with cruise port access, coastal drives, and Game of Thrones-era appeal.',
+    why_watch: 'Scheduled airline volume and cruise-ship logistics can blur pure private-leisure arrival patterns.',
+    review_profile: 'mixed_operations_risk',
   },
   {
     id: 'crete-chania',
@@ -102,6 +138,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['LGSA'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Western Crete gateway to Venetian harbors, gorge hikes, and relaxed island beach towns.',
+    why_watch: 'Crete\'s busy western field mixes charter, scheduled, and private traffic on a single apron footprint.',
+    review_profile: 'mixed_operations_risk',
   },
   {
     id: 'paros',
@@ -110,6 +149,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['LGPA'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Cycladic island with whitewashed villages, beach clubs, and easy ferry links across the Aegean.',
+    why_watch: 'A smaller island field may return thin GA samples that need several observation days to interpret.',
+    review_profile: 'coverage_watch',
   },
   {
     id: 'corfu',
@@ -118,6 +160,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['LGKR'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Ionian island blending Venetian old town charm with resort beaches and olive-country drives.',
+    why_watch: 'Corfu International handles tour charters and scheduled service alongside summer villa arrivals.',
+    review_profile: 'mixed_operations_risk',
   },
   {
     id: 'menorca',
@@ -126,6 +171,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['LEMH'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Quieter Balearic island of coves, coastal paths, and low-key Mediterranean summer escapes.',
+    why_watch: 'Menorca\'s measured tourism pace yields a steadier private-arrival baseline than busier Mallorca hubs.',
+    review_profile: 'standard',
   },
   {
     id: 'corsica-figari',
@@ -134,6 +182,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['LFKF'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Southern Corsica access to hill towns, rugged beaches, and Bonifacio\'s cliffside harbor.',
+    why_watch: 'Figari-Sud Corse funnels French and Italian Riviera private flyers into a distinct island market.',
+    review_profile: 'standard',
   },
   {
     id: 'puglia-brindisi',
@@ -142,6 +193,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['LIBR'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Heel-of-Italy gateway to trulli towns, Adriatic coastlines, and slow-food countryside stays.',
+    why_watch: 'Brindisi Salento arrivals can signal growing interest in Puglia beyond crowded Amalfi routes.',
+    review_profile: 'standard',
   },
   {
     id: 'queenstown',
@@ -150,6 +204,9 @@ export const SHADOW_DESTINATIONS = [
     icao: ['NZQN'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Adventure capital framed by Remarkables peaks, vineyard valleys, and year-round outdoor thrills.',
+    why_watch: 'Domestic Auckland and Christchurch shuttles frequently overlap with true international ski-holiday arrivals.',
+    review_profile: 'local_loop_risk',
   },
   {
     id: 'langkawi',
@@ -158,5 +215,8 @@ export const SHADOW_DESTINATIONS = [
     icao: ['WMKL'],
     batch: 1,
     tracking_mode: 'shadow',
+    short_description: 'Duty-free archipelago of mangrove tours, beach resorts, and cable-car mountain views.',
+    why_watch: 'A regional leisure field with modest GA volume may need extended screening before trends emerge.',
+    review_profile: 'coverage_watch',
   },
 ];

@@ -3,6 +3,72 @@ import { kv } from '@vercel/kv';
 import { SHADOW_DESTINATIONS } from '../shadow-destinations.config.js';
 
 const SHADOW_IDS = new Set(SHADOW_DESTINATIONS.map((d) => d.id));
+const SHADOW_CONFIG_BY_ID = new Map(SHADOW_DESTINATIONS.map((d) => [d.id, d]));
+
+function editorialFieldsFromConfig(config) {
+  if (!config) return {};
+  return {
+    short_description: config.short_description ?? null,
+    why_watch: config.why_watch ?? null,
+    review_profile: config.review_profile ?? null,
+  };
+}
+
+function historySummaryFromPoints(history) {
+  const dates = new Set();
+  if (Array.isArray(history)) {
+    for (const point of history) {
+      const raw =
+        point && typeof point === 'object' && point.snapshot_date
+          ? String(point.snapshot_date)
+          : point && typeof point === 'object' && point.date
+            ? String(point.date)
+            : null;
+      if (raw && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        dates.add(raw);
+      }
+    }
+  }
+  const history_dates = [...dates].sort((a, b) => b.localeCompare(a)).slice(0, 7);
+  return {
+    history_days_collected: history_dates.length,
+    history_dates,
+  };
+}
+
+function enrichDestinationRecord(record, history) {
+  if (!record || typeof record !== 'object') return record;
+  const config = SHADOW_CONFIG_BY_ID.get(record.id);
+  return {
+    ...record,
+    ...editorialFieldsFromConfig(config),
+    ...historySummaryFromPoints(history),
+  };
+}
+
+async function fetchHistoryForDestination(id) {
+  const history = await kv.lrange(`gotango:shadow:history:${id}`, 0, 6);
+  return Array.isArray(history) ? history.slice(0, 7) : [];
+}
+
+async function enrichLatestDestinations(latest) {
+  if (!latest || typeof latest !== 'object' || !Array.isArray(latest.destinations)) {
+    return latest;
+  }
+
+  const histories = await Promise.all(
+    latest.destinations.map((dest) =>
+      dest?.id ? fetchHistoryForDestination(dest.id) : Promise.resolve([]),
+    ),
+  );
+
+  return {
+    ...latest,
+    destinations: latest.destinations.map((dest, index) =>
+      enrichDestinationRecord(dest, histories[index]),
+    ),
+  };
+}
 
 function hasQuerySecret(req) {
   const q = req.query || {};
@@ -79,24 +145,26 @@ export default async function handler(req, res) {
         kv.lrange('gotango:shadow:runs', 0, 29),
       ]);
 
+      const enrichedLatest = await enrichLatestDestinations(latest);
+
       return res.status(200).json({
         ok: true,
         meta: meta ?? null,
-        latest: latest ?? null,
+        latest: enrichedLatest ?? null,
         runs: Array.isArray(runs) ? runs.slice(0, 30) : [],
       });
     }
 
     const [diagnostics, history] = await Promise.all([
       kv.get(`gotango:shadow:diagnostics:${idResult.id}`),
-      kv.lrange(`gotango:shadow:history:${idResult.id}`, 0, 6),
+      fetchHistoryForDestination(idResult.id),
     ]);
 
     return res.status(200).json({
       ok: true,
       id: idResult.id,
-      diagnostics: diagnostics ?? null,
-      history: Array.isArray(history) ? history.slice(0, 7) : [],
+      diagnostics: enrichDestinationRecord(diagnostics, history),
+      history,
     });
   } catch (err) {
     console.error('[get-shadow-diagnostics] read failed:', err);

@@ -188,6 +188,67 @@ function countUnknownOrigins(arrivals) {
   return n;
 }
 
+function normalizeOriginIcao(flight) {
+  const code = flight?.origin?.code_icao;
+  if (!code || !String(code).trim()) return null;
+  return String(code).trim().toUpperCase();
+}
+
+function normalizedDestinationIcaos(icaos) {
+  return new Set(
+    (Array.isArray(icaos) ? icaos : [])
+      .map((icao) => String(icao).trim().toUpperCase())
+      .filter(Boolean),
+  );
+}
+
+function selfOriginDiagnostics(uniqueArrivals, destinationIcaos) {
+  const destSet = normalizedDestinationIcaos(destinationIcaos);
+  let selfOriginCount = 0;
+  const externalOriginSet = new Set();
+
+  for (const f of uniqueArrivals) {
+    const originIcao = normalizeOriginIcao(f);
+    if (!originIcao) continue;
+    if (destSet.has(originIcao)) {
+      selfOriginCount += 1;
+    } else {
+      externalOriginSet.add(originIcao);
+    }
+  }
+
+  const uniqueGa = uniqueArrivals.length;
+  return {
+    self_origin_count: selfOriginCount,
+    self_origin_share:
+      uniqueGa > 0 ? Math.round((selfOriginCount / uniqueGa) * 1000) / 1000 : 0,
+    external_ga_arrivals: uniqueGa - selfOriginCount,
+    external_distinct_origins: externalOriginSet.size,
+  };
+}
+
+function aircraftBucketCountsFromArrivals(arrivals) {
+  let premium_private_count = 0;
+  let turboprop_count = 0;
+  let light_ga_count = 0;
+  let unknown_aircraft_bucket_count = 0;
+
+  for (const f of arrivals) {
+    const bucket = classifyAircraftBucket(f?.aircraft_type);
+    if (bucket === 'premium_private') premium_private_count += 1;
+    else if (bucket === 'turboprop') turboprop_count += 1;
+    else if (bucket === 'light_ga') light_ga_count += 1;
+    else unknown_aircraft_bucket_count += 1;
+  }
+
+  return {
+    premium_private_count,
+    turboprop_count,
+    light_ga_count,
+    unknown_aircraft_bucket_count,
+  };
+}
+
 /** Distinct aircraft type strings (not tail/registration identifiers). */
 function countDistinctAircraftTypes(arrivals) {
   const s = new Set();
@@ -414,7 +475,20 @@ function emptyAircraftDiagnostics() {
     aircraft_identity_known_count: 0,
     aircraft_identity_coverage: 0,
     unknown_aircraft_type_count: 0,
+    premium_private_count: 0,
+    turboprop_count: 0,
+    light_ga_count: 0,
+    unknown_aircraft_bucket_count: 0,
     aircraft_mix: [],
+  };
+}
+
+function emptySelfOriginDiagnostics() {
+  return {
+    self_origin_count: 0,
+    self_origin_share: 0,
+    external_ga_arrivals: 0,
+    external_distinct_origins: 0,
   };
 }
 
@@ -438,6 +512,7 @@ function buildSkippedDiagnostic(dest, windowStart, windowEnd, pageLimit, reason)
     truncated: false,
     ...emptyAircraftDiagnostics(),
     ...emptyOriginDiagnostics(),
+    ...emptySelfOriginDiagnostics(),
     repeated_tail_route_count: 0,
     repeated_tail_route_share: 0,
     recent_arrivals: [],
@@ -469,6 +544,7 @@ function buildFailedDiagnostic(dest, windowStart, windowEnd, pageLimit, errors) 
     truncated: false,
     ...emptyAircraftDiagnostics(),
     ...emptyOriginDiagnostics(),
+    ...emptySelfOriginDiagnostics(),
     repeated_tail_route_count: 0,
     repeated_tail_route_share: 0,
     recent_arrivals: [],
@@ -550,6 +626,7 @@ async function processShadowDestination(dest, apiKey, start, end, pageLimit, har
   const uniqueArrivals = dedupeFlights(gaCombined);
   const tailStats = repeatedTailRouteStats(uniqueArrivals);
   const aircraftIdentity = aircraftIdentityFromArrivals(uniqueArrivals);
+  const bucketCounts = aircraftBucketCountsFromArrivals(uniqueArrivals);
   const fetchedAt = new Date().toISOString();
 
   const diag = {
@@ -571,7 +648,9 @@ async function processShadowDestination(dest, apiKey, start, end, pageLimit, har
     distinct_aircraft: countDistinctAircraftTypes(uniqueArrivals),
     ...aircraftIdentity,
     ...originDiagnosticsFromArrivals(uniqueArrivals),
+    ...selfOriginDiagnostics(uniqueArrivals, icaos),
     unknown_aircraft_type_count: countUnknownAircraftTypes(uniqueArrivals),
+    ...bucketCounts,
     repeated_tail_route_count: tailStats.repeated_tail_route_count,
     repeated_tail_route_share: tailStats.repeated_tail_route_share,
     aircraft_mix: aircraftMixFromArrivals(uniqueArrivals, 8),
@@ -693,7 +772,6 @@ async function saveShadowResults(summary, diagnostics) {
 
   const runEntry = compactRunSummary(summary);
 
-  await kv.set('gotango:shadow:latest', summary);
   await kv.set('gotango:shadow:meta', meta);
   await kv.lpush('gotango:shadow:runs', runEntry);
   await kv.ltrim('gotango:shadow:runs', 0, 29);
@@ -701,24 +779,35 @@ async function saveShadowResults(summary, diagnostics) {
 
   for (const diag of diagnostics) {
     const point = compactHistoryPoint(diag);
-    const newest = await kv.lindex(`gotango:shadow:history:${diag.id}`, 0);
-    const newestSnapshotDate =
-      newest && typeof newest === 'object' && newest.snapshot_date
-        ? String(newest.snapshot_date)
-        : newest && typeof newest === 'object' && newest.date
-          ? String(newest.date)
-          : null;
+    try {
+      const newest = await kv.lindex(`gotango:shadow:history:${diag.id}`, 0);
+      const newestSnapshotDate =
+        newest && typeof newest === 'object' && newest.snapshot_date
+          ? String(newest.snapshot_date)
+          : newest && typeof newest === 'object' && newest.date
+            ? String(newest.date)
+            : null;
 
-    if (newestSnapshotDate && newestSnapshotDate === point.snapshot_date) {
-      diag.history_action = 'same_day_skipped';
-    } else {
-      await kv.lpush(`gotango:shadow:history:${diag.id}`, point);
-      await kv.ltrim(`gotango:shadow:history:${diag.id}`, 0, 6);
-      diag.history_action = 'appended';
+      if (newestSnapshotDate && newestSnapshotDate === point.snapshot_date) {
+        diag.history_action = 'same_day_skipped';
+      } else {
+        await kv.lpush(`gotango:shadow:history:${diag.id}`, point);
+        await kv.ltrim(`gotango:shadow:history:${diag.id}`, 0, 6);
+        diag.history_action = 'appended';
+      }
+    } catch (historyErr) {
+      console.error(
+        `[fetch-shadow-arrivals] history write failed for ${diag.id}:`,
+        historyErr,
+      );
+      diag.history_action = 'history_write_failed';
     }
 
     await kv.set(`gotango:shadow:diagnostics:${diag.id}`, diag);
   }
+
+  summary.destinations = diagnostics;
+  await kv.set('gotango:shadow:latest', summary);
 }
 
 export default async function handler(req, res) {
