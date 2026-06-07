@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0A0D11">
+<title>GoTango Shadow Lab — Internal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,400;9..144,0,600;9..144,0,700&family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0D11;
+    --bg-2: #11151B;
+    --surface: #161B23;
+    --surface-2: #1E242E;
+    --border: #252C37;
+    --border-light: #313945;
+    --text: #F5F1E8;
+    --text-dim: #A8A293;
+    --text-faint: #6B6557;
+    --amber: #E8A317;
+    --amber-bright: #F4B52A;
+    --amber-soft: #C28A1A;
+    --signal-up: #7FB069;
+    --teal: #5EAAA8;
+    --coral: #E58C5E;
+    --mono: 'Geist Mono', ui-monospace, monospace;
+    --sans: 'Geist', system-ui, sans-serif;
+    --serif: 'Fraunces', Georgia, serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  .page {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 1.25rem 1rem 3rem;
+  }
+
+  /* Login */
+  .login-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+
+  .login-panel {
+    width: 100%;
+    max-width: 400px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2rem 1.75rem;
+  }
+
+  .login-brand {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .login-title {
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.35rem;
+  }
+
+  .login-sub {
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    margin-bottom: 1.5rem;
+  }
+
+  .field-label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 0.4rem;
+  }
+
+  .field-input {
+    width: 100%;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.88rem;
+    padding: 0.65rem 0.75rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .field-input:focus { border-color: var(--amber-soft); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 0.65rem 1.1rem;
+    transition: background 0.15s, opacity 0.15s;
+  }
+
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .btn-primary {
+    background: var(--amber);
+    color: var(--bg);
+    font-weight: 600;
+    width: 100%;
+    margin-top: 1rem;
+  }
+
+  .btn-primary:hover:not(:disabled) { background: var(--amber-bright); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--amber);
+    border: 1px solid var(--amber-soft);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: rgba(232, 163, 23, 0.08);
+  }
+
+  .login-error {
+    margin-top: 0.85rem;
+    font-size: 0.84rem;
+    color: var(--coral);
+    min-height: 1.25rem;
+  }
+
+  /* Header */
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .header-kicker {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 0.35rem;
+  }
+
+  .header-title {
+    font-family: var(--serif);
+    font-size: clamp(1.4rem, 1.1rem + 1vw, 1.85rem);
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.2rem;
+  }
+
+  .header-sub {
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    margin-bottom: 0.85rem;
+  }
+
+  .header-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    border: 1px solid var(--border-light);
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+  }
+
+  .disclaimer {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber-soft);
+    border-radius: 4px;
+    padding: 0.85rem 1rem;
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    margin-bottom: 1.5rem;
+    line-height: 1.55;
+  }
+
+  /* Run summary */
+  .run-summary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .run-summary-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.65rem 1rem;
+  }
+
+  .summary-item-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 0.15rem;
+  }
+
+  .summary-item-value {
+    font-family: var(--mono);
+    font-size: 0.92rem;
+    color: var(--text);
+  }
+
+  .summary-item-value.accent { color: var(--amber); }
+  .summary-item-value.ok { color: var(--signal-up); }
+  .summary-item-value.warn { color: var(--coral); }
+  .summary-item-value.neutral { color: var(--teal); }
+
+  .status-bar {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-bottom: 1rem;
+    min-height: 1.1rem;
+  }
+
+  .status-bar.error { color: var(--coral); }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .filter-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    flex: 1;
+  }
+
+  .filter-btn {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    background: var(--surface);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.35rem 0.55rem;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .filter-btn:hover { border-color: var(--border-light); color: var(--text); }
+  .filter-btn.active {
+    background: rgba(232, 163, 23, 0.12);
+    border-color: var(--amber-soft);
+    color: var(--amber);
+  }
+
+  .sort-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .sort-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    padding: 0.35rem 0.5rem;
+    outline: none;
+  }
+
+  .result-count {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--text-faint);
+    margin-bottom: 1rem;
+  }
+
+  /* Cards */
+  .cards { display: flex; flex-direction: column; gap: 0.75rem; }
+
+  .dest-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+
+  .dest-card:hover { border-color: var(--border-light); }
+  .dest-card.expanded { border-color: var(--amber-soft); }
+
+  .dest-card-head {
+    padding: 1rem 1.1rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .dest-card-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .dest-name {
+    font-family: var(--serif);
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .dest-meta-line {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--text-faint);
+    margin-top: 0.1rem;
+  }
+
+  .badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.18rem 0.45rem;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+
+  .badge-screen-collected { color: var(--signal-up); background: rgba(127,176,105,0.1); border-color: rgba(127,176,105,0.3); }
+  .badge-screen-volume { color: var(--amber); background: rgba(232,163,23,0.1); border-color: rgba(232,163,23,0.3); }
+  .badge-screen-low { color: var(--coral); background: rgba(229,140,94,0.1); border-color: rgba(229,140,94,0.3); }
+  .badge-screen-failed { color: var(--coral); background: rgba(224,120,86,0.12); border-color: rgba(224,120,86,0.35); }
+  .badge-screen-default { color: var(--teal); background: rgba(94,170,168,0.1); border-color: rgba(94,170,168,0.3); }
+
+  .badge-profile { color: var(--text-dim); background: var(--bg-2); border-color: var(--border); }
+
+  .dest-desc {
+    font-size: 0.86rem;
+    color: var(--text-dim);
+    margin: 0.5rem 0 0.35rem;
+    line-height: 1.5;
+  }
+
+  .dest-watch {
+    font-size: 0.82rem;
+    color: var(--text-faint);
+    font-style: italic;
+    margin-bottom: 0.65rem;
+    line-height: 1.45;
+  }
+
+  .history-pill {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--teal);
+    background: rgba(94,170,168,0.08);
+    border: 1px solid rgba(94,170,168,0.25);
+    padding: 0.15rem 0.45rem;
+    border-radius: 3px;
+    margin-bottom: 0.65rem;
+  }
+
+  .stat-section-label {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 0.65rem 0 0.35rem;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.45rem 0.75rem;
+  }
+
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .stat-value {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--text);
+  }
+
+  .warnings {
+    margin-top: 0.65rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .warning-item {
+    font-size: 0.78rem;
+    color: var(--coral);
+    padding-left: 0.65rem;
+    border-left: 2px solid rgba(229,140,94,0.45);
+    line-height: 1.4;
+  }
+
+  .expand-hint {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text-faint);
+    margin-top: 0.55rem;
+  }
+
+  .dest-card-detail {
+    display: none;
+    border-top: 1px solid var(--border);
+    padding: 0.85rem 1.1rem 1.1rem;
+    background: var(--bg-2);
+  }
+
+  .dest-card.expanded .dest-card-detail { display: block; }
+
+  .detail-block { margin-bottom: 0.85rem; }
+  .detail-block:last-child { margin-bottom: 0; }
+
+  .detail-title {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber-soft);
+    margin-bottom: 0.35rem;
+  }
+
+  .detail-list {
+    list-style: none;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--text-dim);
+  }
+
+  .detail-list li {
+    padding: 0.2rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-list li:last-child { border-bottom: none; }
+
+  .detail-empty {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--text-faint);
+    font-style: italic;
+  }
+
+  .detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+  }
+
+  .detail-table th {
+    text-align: left;
+    color: var(--text-faint);
+    font-weight: 500;
+    padding: 0.25rem 0.5rem 0.25rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-table td {
+    color: var(--text-dim);
+    padding: 0.25rem 0.5rem 0.25rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-table tr:last-child td,
+  .detail-table tr:last-child th { border-bottom: none; }
+
+  .error-json {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--coral);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: 2.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.82rem;
+    color: var(--text-faint);
+    line-height: 1.55;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--text-faint);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+  }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 600px) {
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .controls { flex-direction: column; align-items: stretch; }
+    .sort-wrap { justify-content: space-between; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loginView" class="login-wrap">
+  <div class="login-panel">
+    <div class="login-brand">GoTango Internal</div>
+    <h1 class="login-title">Shadow Lab</h1>
+    <p class="login-sub">Enter your shadow fetch secret to view diagnostics. Read-only access.</p>
+    <form id="loginForm" autocomplete="off">
+      <label class="field-label" for="secretInput">Shadow fetch secret</label>
+      <input class="field-input" id="secretInput" type="password" spellcheck="false" autocomplete="off" required>
+      <button class="btn btn-primary" id="loginBtn" type="submit">Authenticate</button>
+    </form>
+    <div class="login-error" id="loginError" aria-live="polite"></div>
+  </div>
+</div>
+
+<div id="appView" class="page hidden">
+  <header class="header">
+    <div class="header-kicker">GT · SHADOW LAB</div>
+    <h1 class="header-title">Candidate destination intelligence</h1>
+    <p class="header-sub">Internal review only</p>
+    <span class="header-tag">Read-only diagnostics</span>
+  </header>
+
+  <p class="disclaimer">General Aviation records include more than private jets. Shadow Lab separates external arrivals, local movements, transfer activity, and incomplete aircraft data before a destination becomes eligible for GoTango.</p>
+
+  <section class="run-summary" aria-labelledby="runSummaryLabel">
+    <div class="run-summary-head">
+      <span class="section-label" id="runSummaryLabel">Run summary</span>
+      <button class="btn btn-secondary" id="refreshBtn" type="button">Refresh diagnostics</button>
+    </div>
+    <div class="summary-grid" id="summaryGrid"></div>
+  </section>
+
+  <div class="status-bar" id="statusBar" aria-live="polite"></div>
+
+  <div class="controls">
+    <div class="filter-group" id="filterGroup" role="group" aria-label="Destination filters"></div>
+    <div class="sort-wrap">
+      <label class="field-label" for="sortSelect" style="margin:0">Sort</label>
+      <select class="sort-select" id="sortSelect">
+        <option value="name">Destination name</option>
+        <option value="external_ga_arrivals">External GA arrivals</option>
+        <option value="total_ga_records">Total GA records</option>
+        <option value="self_origin_share">Self-origin share</option>
+        <option value="pages_consumed">Pages consumed</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="result-count" id="resultCount"></div>
+  <div class="cards" id="cardsContainer"></div>
+
+  <footer class="footer">
+    Shadow Lab is an internal evaluation tool. Nothing shown here affects the public GoTango Index, rankings, destination cards, or traveler-facing editorial.
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var DIAGNOSTICS_URL = '/api/get-shadow-diagnostics';
+
+  var authSecret = null;
+  var diagnosticsData = null;
+  var activeFilter = 'all';
+  var sortKey = 'name';
+  var expandedIds = Object.create(null);
+
+  var loginView = document.getElementById('loginView');
+  var appView = document.getElementById('appView');
+  var loginForm = document.getElementById('loginForm');
+  var secretInput = document.getElementById('secretInput');
+  var loginBtn = document.getElementById('loginBtn');
+  var loginError = document.getElementById('loginError');
+  var refreshBtn = document.getElementById('refreshBtn');
+  var summaryGrid = document.getElementById('summaryGrid');
+  var statusBar = document.getElementById('statusBar');
+  var filterGroup = document.getElementById('filterGroup');
+  var sortSelect = document.getElementById('sortSelect');
+  var resultCount = document.getElementById('resultCount');
+  var cardsContainer = document.getElementById('cardsContainer');
+
+  var FILTERS = [
+    { id: 'all', label: 'All' },
+    { id: 'collected', label: 'Collected' },
+    { id: 'needs_volume_test', label: 'Needs volume test' },
+    { id: 'low_activity', label: 'Low activity' },
+    { id: 'fetch_failed', label: 'Fetch failed' },
+    { id: 'local_loop_risk', label: 'Local-loop risk' },
+    { id: 'transfer_risk', label: 'Transfer risk' },
+    { id: 'mixed_operations_risk', label: 'Mixed-operations risk' },
+    { id: 'coverage_watch', label: 'Coverage watch' }
+  ];
+
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null && text !== '') node.textContent = String(text);
+    return node;
+  }
+
+  function safeNum(value) {
+    if (value == null) return null;
+    var n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function fmtNum(value) {
+    var n = safeNum(value);
+    return n == null ? '—' : String(n);
+  }
+
+  function fmtPct(value) {
+    var n = safeNum(value);
+    if (n == null) return '—';
+    return (n * 100).toFixed(1) + '%';
+  }
+
+  function fmtBool(value) {
+    if (value === true) return 'Yes';
+    if (value === false) return 'No';
+    return '—';
+  }
+
+  function fmtDate(iso) {
+    if (!iso || typeof iso !== 'string') return '—';
+    var d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleString(undefined, {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  function fmtDuration(ms) {
+    var n = safeNum(ms);
+    if (n == null) return '—';
+    if (n < 1000) return n + ' ms';
+    return (n / 1000).toFixed(1) + ' s';
+  }
+
+  function fmtIcao(icao) {
+    if (!Array.isArray(icao) || icao.length === 0) return '—';
+    return icao.map(function (c) { return String(c); }).join(', ');
+  }
+
+  function fmtLabel(raw) {
+    if (!raw || typeof raw !== 'string') return '—';
+    return raw.replace(/_/g, ' ');
+  }
+
+  function screeningBadgeClass(result) {
+    switch (result) {
+      case 'collected': return 'badge-screen-collected';
+      case 'needs_targeted_volume_test': return 'badge-screen-volume';
+      case 'insufficient_activity': return 'badge-screen-low';
+      case 'fetch_failed': return 'badge-screen-failed';
+      default: return 'badge-screen-default';
+    }
+  }
+
+  function matchesFilter(dest, filterId) {
+    if (!dest || typeof dest !== 'object') return false;
+    if (filterId === 'all') return true;
+    var screening = dest.screening_result;
+    var profile = dest.review_profile;
+    switch (filterId) {
+      case 'collected': return screening === 'collected';
+      case 'needs_volume_test': return screening === 'needs_targeted_volume_test';
+      case 'low_activity': return screening === 'insufficient_activity';
+      case 'fetch_failed': return screening === 'fetch_failed';
+      case 'local_loop_risk': return profile === 'local_loop_risk';
+      case 'transfer_risk': return profile === 'transfer_risk';
+      case 'mixed_operations_risk': return profile === 'mixed_operations_risk';
+      case 'coverage_watch': return profile === 'coverage_watch';
+      default: return true;
+    }
+  }
+
+  function sortValue(dest, key) {
+    switch (key) {
+      case 'external_ga_arrivals': return safeNum(dest.external_ga_arrivals) ?? -1;
+      case 'total_ga_records': return safeNum(dest.unique_ga_arrivals) ?? -1;
+      case 'self_origin_share': return safeNum(dest.self_origin_share) ?? -1;
+      case 'pages_consumed': return safeNum(dest.pages_returned) ?? -1;
+      case 'name':
+      default:
+        return (dest.name && typeof dest.name === 'string') ? dest.name.toLowerCase() : '';
+    }
+  }
+
+  function reviewWarnings(dest) {
+    var notes = [];
+    if (dest.truncated === true) {
+      notes.push('Volume exceeded the three-page screening range.');
+    }
+    var selfShare = safeNum(dest.self_origin_share);
+    if (selfShare != null && selfShare >= 0.30) {
+      notes.push('Local or same-airport activity may materially inflate the raw GA count.');
+    }
+    var tailShare = safeNum(dest.repeated_tail_route_share);
+    if (tailShare != null && tailShare >= 0.25) {
+      notes.push('Repeated aircraft and route patterns require closer review.');
+    }
+    var identityCov = safeNum(dest.aircraft_identity_coverage);
+    if (identityCov != null && identityCov < 0.50) {
+      notes.push('Aircraft identity coverage is limited.');
+    }
+    var external = safeNum(dest.external_ga_arrivals);
+    if (external === 0) {
+      notes.push('No external GA arrivals were identified in this collection window.');
+    }
+    var historyDays = safeNum(dest.history_days_collected);
+    if (historyDays != null && historyDays < 7) {
+      notes.push('Continue collecting before making a graduation decision.');
+    }
+    return notes;
+  }
+
+  function authErrorMessage(status) {
+    if (status === 403) return 'Authentication failed. Check your secret and try again.';
+    if (status === 503) return 'Diagnostics service is unavailable.';
+    if (status === 401) return 'Authentication failed. Check your secret and try again.';
+    return 'Could not load diagnostics. Try again.';
+  }
+
+  async function fetchDiagnostics(secret) {
+    var res = await fetch(DIAGNOSTICS_URL, {
+      method: 'GET',
+      headers: { Authorization: 'Bearer ' + secret },
+      cache: 'no-store'
+    });
+
+    var body = null;
+    try {
+      body = await res.json();
+    } catch (_) {
+      throw { type: 'parse', status: res.status };
+    }
+
+    if (!res.ok || !body || body.ok !== true) {
+      throw { type: 'http', status: res.status };
+    }
+
+    return body;
+  }
+
+  function pickSummaryFields(data) {
+    var meta = data && data.meta && typeof data.meta === 'object' ? data.meta : {};
+    var latest = data && data.latest && typeof data.latest === 'object' ? data.latest : {};
+
+    var pagesConsumed = safeNum(meta.pages_consumed);
+    if (pagesConsumed == null) pagesConsumed = safeNum(latest.actual_pages_consumed);
+
+    var pageBudget = safeNum(meta.page_budget);
+    if (pageBudget == null) pageBudget = safeNum(latest.page_budget);
+
+    var pagesRemaining = safeNum(latest.page_budget_remaining);
+    if (pagesRemaining == null && pageBudget != null && pagesConsumed != null) {
+      pagesRemaining = pageBudget - pagesConsumed;
+    }
+
+    return {
+      saved_at: meta.saved_at || latest.saved_at || null,
+      active_batch: meta.active_batch ?? latest.active_batch ?? null,
+      completed: meta.successful_count ?? latest.destination_count_completed ?? null,
+      failed: meta.failed_count ?? latest.destination_count_failed ?? null,
+      skipped: meta.skipped_count ?? latest.destination_count_skipped ?? null,
+      pages_consumed: pagesConsumed,
+      page_budget: pageBudget,
+      pages_remaining: pagesRemaining,
+      truncated: latest.truncated_destination_count ?? null,
+      runtime_ms: meta.duration_ms ?? latest.duration_ms ?? null
+    };
+  }
+
+  function getDestinations(data) {
+    if (!data || !data.latest || !Array.isArray(data.latest.destinations)) return [];
+    return data.latest.destinations.filter(function (d) { return d && typeof d === 'object'; });
+  }
+
+  function renderSummaryItem(label, value, valueClass) {
+    var wrap = el('div');
+    wrap.appendChild(el('div', 'summary-item-label', label));
+    var val = el('div', 'summary-item-value' + (valueClass ? ' ' + valueClass : ''), value);
+    wrap.appendChild(val);
+    return wrap;
+  }
+
+  function renderSummary(data) {
+    summaryGrid.textContent = '';
+    var s = pickSummaryFields(data);
+
+    summaryGrid.appendChild(renderSummaryItem('Saved time', fmtDate(s.saved_at)));
+    summaryGrid.appendChild(renderSummaryItem('Active batch', fmtNum(s.active_batch), 'accent'));
+    summaryGrid.appendChild(renderSummaryItem('Completed destinations', fmtNum(s.completed), 'ok'));
+    summaryGrid.appendChild(renderSummaryItem('Failed destinations', fmtNum(s.failed), s.failed > 0 ? 'warn' : ''));
+    summaryGrid.appendChild(renderSummaryItem('Skipped destinations', fmtNum(s.skipped)));
+    summaryGrid.appendChild(renderSummaryItem('Pages consumed', fmtNum(s.pages_consumed), 'accent'));
+    summaryGrid.appendChild(renderSummaryItem('Page budget', fmtNum(s.page_budget)));
+    summaryGrid.appendChild(renderSummaryItem('Pages remaining', fmtNum(s.pages_remaining), 'neutral'));
+    summaryGrid.appendChild(renderSummaryItem('Truncated destinations', fmtNum(s.truncated), s.truncated > 0 ? 'warn' : ''));
+    summaryGrid.appendChild(renderSummaryItem('Runtime', fmtDuration(s.runtime_ms)));
+  }
+
+  function renderStatGrid(items) {
+    var grid = el('div', 'stat-grid');
+    items.forEach(function (item) {
+      var cell = el('div');
+      cell.appendChild(el('div', 'stat-label', item.label));
+      cell.appendChild(el('div', 'stat-value', item.value));
+      grid.appendChild(cell);
+    });
+    return grid;
+  }
+
+  function renderWarnings(notes) {
+    if (!notes.length) return null;
+    var wrap = el('div', 'warnings');
+    notes.forEach(function (note) {
+      wrap.appendChild(el('div', 'warning-item', note));
+    });
+    return wrap;
+  }
+
+  function renderOriginList(origins) {
+    if (!Array.isArray(origins) || origins.length === 0) {
+      return el('p', 'detail-empty', 'No origin data.');
+    }
+    var ul = el('ul', 'detail-list');
+    origins.forEach(function (o) {
+      if (!o || typeof o !== 'object') return;
+      var code = o.code != null ? String(o.code) : '—';
+      var name = o.name != null ? String(o.name) : '';
+      var count = fmtNum(o.count);
+      var text = code + (name ? ' · ' + name : '') + ' (' + count + ')';
+      ul.appendChild(el('li', null, text));
+    });
+    if (!ul.childNodes.length) {
+      return el('p', 'detail-empty', 'No origin data.');
+    }
+    return ul;
+  }
+
+  function renderAircraftMix(mix) {
+    if (!Array.isArray(mix) || mix.length === 0) {
+      return el('p', 'detail-empty', 'No aircraft mix data.');
+    }
+    var table = el('table', 'detail-table');
+    var thead = el('thead');
+    var headRow = el('tr');
+    ['Type', 'Bucket', 'Count'].forEach(function (h) {
+      headRow.appendChild(el('th', null, h));
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+    var tbody = el('tbody');
+    mix.forEach(function (item) {
+      if (!item || typeof item !== 'object') return;
+      var row = el('tr');
+      row.appendChild(el('td', null, item.type != null ? String(item.type) : '—'));
+      row.appendChild(el('td', null, fmtLabel(item.bucket)));
+      row.appendChild(el('td', null, fmtNum(item.count)));
+      tbody.appendChild(row);
+    });
+    if (!tbody.childNodes.length) {
+      return el('p', 'detail-empty', 'No aircraft mix data.');
+    }
+    table.appendChild(tbody);
+    return table;
+  }
+
+  function renderRecentArrivals(arrivals) {
+    if (!Array.isArray(arrivals) || arrivals.length === 0) {
+      return el('p', 'detail-empty', 'No recent arrivals.');
+    }
+    var table = el('table', 'detail-table');
+    var thead = el('thead');
+    var headRow = el('tr');
+    ['Time', 'Callsign', 'Aircraft', 'Origin'].forEach(function (h) {
+      headRow.appendChild(el('th', null, h));
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+    var tbody = el('tbody');
+    arrivals.forEach(function (a) {
+      if (!a || typeof a !== 'object') return;
+      var row = el('tr');
+      row.appendChild(el('td', null, a.arrival_time != null ? String(a.arrival_time) : '—'));
+      row.appendChild(el('td', null, a.callsign != null ? String(a.callsign) : '—'));
+      row.appendChild(el('td', null, a.aircraft_type != null ? String(a.aircraft_type) : '—'));
+      var origin = a.origin_icao != null ? String(a.origin_icao) : '';
+      if (a.origin_name) origin += (origin ? ' · ' : '') + String(a.origin_name);
+      row.appendChild(el('td', null, origin || '—'));
+      tbody.appendChild(row);
+    });
+    if (!tbody.childNodes.length) {
+      return el('p', 'detail-empty', 'No recent arrivals.');
+    }
+    table.appendChild(tbody);
+    return table;
+  }
+
+  function renderHistoryDates(dates) {
+    if (!Array.isArray(dates) || dates.length === 0) {
+      return el('p', 'detail-empty', 'No history dates recorded.');
+    }
+    var ul = el('ul', 'detail-list');
+    dates.forEach(function (d) {
+      if (d != null) ul.appendChild(el('li', null, String(d)));
+    });
+    return ul;
+  }
+
+  function renderErrors(errors) {
+    if (!Array.isArray(errors) || errors.length === 0) {
+      return el('p', 'detail-empty', 'No errors.');
+    }
+    var wrap = el('div');
+    errors.forEach(function (err) {
+      var line;
+      if (err && typeof err === 'object') {
+        var parts = [];
+        if (err.icao) parts.push(String(err.icao));
+        if (err.type) parts.push(String(err.type));
+        if (err.error) parts.push(String(err.error));
+        line = parts.length ? parts.join(' · ') : JSON.stringify(err);
+      } else {
+        line = String(err);
+      }
+      var p = el('div', 'error-json', line);
+      wrap.appendChild(p);
+    });
+    return wrap;
+  }
+
+  function renderNotesList(notes) {
+    if (!notes.length) {
+      return el('p', 'detail-empty', 'No screening notes.');
+    }
+    var ul = el('ul', 'detail-list');
+    notes.forEach(function (n) {
+      ul.appendChild(el('li', null, n));
+    });
+    return ul;
+  }
+
+  function renderDetailBlock(title, content) {
+    var block = el('div', 'detail-block');
+    block.appendChild(el('div', 'detail-title', title));
+    block.appendChild(content);
+    return block;
+  }
+
+  function renderCard(dest) {
+    var id = dest.id != null ? String(dest.id) : '';
+    var card = el('div', 'dest-card' + (expandedIds[id] ? ' expanded' : ''));
+    card.dataset.id = id;
+
+    var head = el('div', 'dest-card-head');
+    head.addEventListener('click', function () {
+      if (!id) return;
+      if (expandedIds[id]) delete expandedIds[id];
+      else expandedIds[id] = true;
+      renderCards();
+    });
+
+    var top = el('div', 'dest-card-top');
+    var titleBlock = el('div');
+    titleBlock.appendChild(el('div', 'dest-name', dest.name || 'Unnamed destination'));
+    var metaLine = (dest.region ? String(dest.region) : '—') + ' · ' + fmtIcao(dest.icao);
+    titleBlock.appendChild(el('div', 'dest-meta-line', metaLine));
+    top.appendChild(titleBlock);
+
+    var badges = el('div', 'badge-row');
+    var screenBadge = el('span', 'badge ' + screeningBadgeClass(dest.screening_result), fmtLabel(dest.screening_result));
+    badges.appendChild(screenBadge);
+    if (dest.review_profile) {
+      badges.appendChild(el('span', 'badge badge-profile', fmtLabel(dest.review_profile)));
+    }
+    top.appendChild(badges);
+    head.appendChild(top);
+
+    if (dest.short_description) {
+      head.appendChild(el('p', 'dest-desc', String(dest.short_description)));
+    }
+    if (dest.why_watch) {
+      head.appendChild(el('p', 'dest-watch', String(dest.why_watch)));
+    }
+
+    var historyDays = safeNum(dest.history_days_collected);
+    head.appendChild(el('span', 'history-pill', fmtNum(historyDays) + ' / 7 history days'));
+
+    head.appendChild(el('div', 'stat-section-label', 'Primary statistics'));
+    head.appendChild(renderStatGrid([
+      { label: 'Total GA records', value: fmtNum(dest.unique_ga_arrivals) },
+      { label: 'External GA arrivals', value: fmtNum(dest.external_ga_arrivals) },
+      { label: 'Self-origin movements', value: fmtNum(dest.self_origin_count) },
+      { label: 'Self-origin share', value: fmtPct(dest.self_origin_share) },
+      { label: 'Distinct external origins', value: fmtNum(dest.external_distinct_origins) },
+      { label: 'Pages returned', value: fmtNum(dest.pages_returned) },
+      { label: 'Truncated', value: fmtBool(dest.truncated) }
+    ]));
+
+    head.appendChild(el('div', 'stat-section-label', 'Aircraft summary'));
+    head.appendChild(renderStatGrid([
+      { label: 'Premium / private', value: fmtNum(dest.premium_private_count) },
+      { label: 'Turboprop', value: fmtNum(dest.turboprop_count) },
+      { label: 'Light GA', value: fmtNum(dest.light_ga_count) },
+      { label: 'Unknown classification', value: fmtNum(dest.unknown_aircraft_bucket_count) },
+      { label: 'Aircraft identity coverage', value: fmtPct(dest.aircraft_identity_coverage) }
+    ]));
+
+    head.appendChild(el('div', 'stat-section-label', 'Quality summary'));
+    head.appendChild(renderStatGrid([
+      { label: 'Top-origin share', value: fmtPct(dest.top_origin_share) },
+      { label: 'Repeated-tail-route share', value: fmtPct(dest.repeated_tail_route_share) },
+      { label: 'Unknown-origin share', value: fmtPct(dest.unknown_origin_share) }
+    ]));
+
+    var warnings = reviewWarnings(dest);
+    var warnEl = renderWarnings(warnings);
+    if (warnEl) head.appendChild(warnEl);
+
+    head.appendChild(el('div', 'expand-hint', expandedIds[id] ? 'Click to collapse detail ▲' : 'Click to expand detail ▼'));
+    card.appendChild(head);
+
+    var detail = el('div', 'dest-card-detail');
+    detail.appendChild(renderDetailBlock('Top origins', renderOriginList(dest.top_origins)));
+    detail.appendChild(renderDetailBlock('Aircraft mix', renderAircraftMix(dest.aircraft_mix)));
+    detail.appendChild(renderDetailBlock('Recent arrivals', renderRecentArrivals(dest.recent_arrivals)));
+    detail.appendChild(renderDetailBlock('History dates', renderHistoryDates(dest.history_dates)));
+    detail.appendChild(renderDetailBlock('Errors', renderErrors(dest.errors)));
+    detail.appendChild(renderDetailBlock('Screening notes', renderNotesList(warnings)));
+    detail.appendChild(renderDetailBlock('History action', el('p', 'detail-empty', dest.history_action != null ? String(dest.history_action) : '—')));
+    card.appendChild(detail);
+
+    return card;
+  }
+
+  function renderCards() {
+    cardsContainer.textContent = '';
+    var destinations = getDestinations(diagnosticsData);
+    var filtered = destinations.filter(function (d) { return matchesFilter(d, activeFilter); });
+
+    filtered.sort(function (a, b) {
+      var av = sortValue(a, sortKey);
+      var bv = sortValue(b, sortKey);
+      if (sortKey === 'name') {
+        if (av < bv) return -1;
+        if (av > bv) return 1;
+        return 0;
+      }
+      return bv - av;
+    });
+
+    resultCount.textContent = filtered.length + ' of ' + destinations.length + ' destinations';
+
+    if (filtered.length === 0) {
+      cardsContainer.appendChild(el('div', 'empty-state', destinations.length === 0
+        ? 'No destination diagnostics available yet.'
+        : 'No destinations match the selected filter.'));
+      return;
+    }
+
+    filtered.forEach(function (dest) {
+      cardsContainer.appendChild(renderCard(dest));
+    });
+  }
+
+  function renderFilters() {
+    filterGroup.textContent = '';
+    FILTERS.forEach(function (f) {
+      var btn = el('button', 'filter-btn' + (activeFilter === f.id ? ' active' : ''), f.label);
+      btn.type = 'button';
+      btn.dataset.filter = f.id;
+      btn.addEventListener('click', function () {
+        activeFilter = f.id;
+        renderFilters();
+        renderCards();
+      });
+      filterGroup.appendChild(btn);
+    });
+  }
+
+  function showApp() {
+    loginView.classList.add('hidden');
+    appView.classList.remove('hidden');
+    renderFilters();
+    renderSummary(diagnosticsData);
+    renderCards();
+    statusBar.textContent = 'Diagnostics loaded.';
+    statusBar.classList.remove('error');
+  }
+
+  function showLoginError(msg) {
+    loginError.textContent = msg;
+  }
+
+  async function authenticate(secret) {
+    loginBtn.disabled = true;
+    refreshBtn.disabled = true;
+    showLoginError('');
+    statusBar.textContent = 'Loading diagnostics…';
+
+    try {
+      var data = await fetchDiagnostics(secret);
+      authSecret = secret;
+      diagnosticsData = data;
+      showApp();
+    } catch (err) {
+      var msg = authErrorMessage(err && err.status);
+      if (loginView.classList.contains('hidden')) {
+        statusBar.textContent = msg;
+        statusBar.classList.add('error');
+        if (err && (err.status === 403 || err.status === 401)) {
+          authSecret = null;
+          diagnosticsData = null;
+          appView.classList.add('hidden');
+          loginView.classList.remove('hidden');
+          showLoginError(msg);
+          secretInput.value = '';
+        }
+      } else {
+        showLoginError(msg);
+        secretInput.value = '';
+        secretInput.focus();
+      }
+    } finally {
+      loginBtn.disabled = false;
+      refreshBtn.disabled = false;
+    }
+  }
+
+  loginForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var secret = secretInput.value.trim();
+    if (!secret) {
+      showLoginError('Enter a secret to continue.');
+      return;
+    }
+    authenticate(secret);
+  });
+
+  refreshBtn.addEventListener('click', function () {
+    if (!authSecret) return;
+    statusBar.textContent = 'Refreshing…';
+    statusBar.classList.remove('error');
+    authenticate(authSecret);
+  });
+
+  sortSelect.addEventListener('change', function () {
+    sortKey = sortSelect.value;
+    renderCards();
+  });
+
+  renderFilters();
+})();
+</script>
+</body>
+</html>
