@@ -1311,6 +1311,110 @@
   }
   .mover-trend-tag.up { color: var(--signal-up); }
   .mover-trend-tag.down { color: var(--signal-down); }
+  #tab-movers .mover-side-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    flex-shrink: 0;
+    gap: 6px;
+    min-width: 48px;
+    max-width: 100%;
+  }
+  #tab-movers .mover-card-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    position: relative;
+    max-width: 100%;
+  }
+  #tab-movers .mover-action-trigger {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(232, 163, 23, 0.55);
+    background: var(--surface-2);
+    color: var(--amber);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(232, 163, 23, 0.1);
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    flex-shrink: 0;
+    padding: 0;
+  }
+  #tab-movers .mover-action-trigger:hover {
+    border-color: var(--amber);
+    box-shadow: 0 0 14px rgba(232, 163, 23, 0.2);
+  }
+  #tab-movers .mover-action-trigger:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  #tab-movers .mover-action-trigger[aria-expanded="true"] {
+    border-color: var(--amber);
+    background: rgba(232, 163, 23, 0.08);
+    box-shadow: 0 0 16px rgba(232, 163, 23, 0.22);
+  }
+  #tab-movers .mover-action-trigger-icon {
+    font-family: 'Geist Mono', monospace;
+    font-size: 17px;
+    line-height: 1;
+    font-weight: 400;
+    margin-top: -1px;
+  }
+  #tab-movers .mover-action-menu {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    margin-top: 2px;
+    min-width: 0;
+    max-width: min(100%, 220px);
+  }
+  #tab-movers .mover-action-menu.is-open {
+    display: flex;
+  }
+  @media (min-width: 360px) {
+    #tab-movers .mover-action-menu.is-open {
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+  }
+  #tab-movers .mover-action-btn {
+    font-family: 'Geist Mono', monospace;
+    font-size: var(--fs-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 7px 10px;
+    min-height: 34px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    cursor: pointer;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+  #tab-movers .mover-action-btn:hover:not(:disabled) {
+    border-color: rgba(232, 163, 23, 0.35);
+    color: var(--amber);
+  }
+  #tab-movers .mover-action-btn:disabled {
+    opacity: 0.78;
+    cursor: default;
+    color: var(--text-dim);
+  }
+  #tab-movers .mover-action-btn:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 1px;
+  }
   .mover-chart-row {
     display: flex;
     align-items: center;
@@ -4241,6 +4345,27 @@
     #tab-movers .mover-head {
       gap: 10px;
     }
+    #tab-movers .mover-side-col {
+      gap: 5px;
+      min-width: 44px;
+    }
+    #tab-movers .mover-action-trigger {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      min-height: 32px;
+    }
+    #tab-movers .mover-action-menu {
+      max-width: 100%;
+    }
+    #tab-movers .mover-action-menu.is-open {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    #tab-movers .mover-action-btn {
+      width: 100%;
+      text-align: center;
+    }
     #tab-movers .section-head {
       padding-left: 16px;
       padding-right: 16px;
@@ -6330,8 +6455,9 @@
     return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
   }
 
-  function renderMoverRow(dest, rank, section) {
+  function renderMoverRow(dest, rank, section, options = {}) {
     const destId = String(dest.id || '');
+    const destName = String(dest.name || 'destination');
     const icao = _destIcao(dest);
     const story = getMoverStory(dest, section);
     const badgeMeta = getPublicSignalBadge(dest, { section });
@@ -6367,7 +6493,7 @@
 
     const nameEl = document.createElement('div');
     nameEl.className = 'mover-name card-destination-name';
-    nameEl.textContent = String(dest.name || '');
+    nameEl.textContent = destName;
     titleBlock.appendChild(nameEl);
 
     const metaRow = document.createElement('div');
@@ -6416,8 +6542,64 @@
       today.appendChild(tagEl);
     }
 
+    let headRight = today;
+    if (options.showActions && destId) {
+      const sideCol = document.createElement('div');
+      sideCol.className = 'mover-side-col';
+      sideCol.appendChild(today);
+
+      const actionsWrap = document.createElement('div');
+      actionsWrap.className = 'mover-card-actions';
+      actionsWrap.setAttribute('data-mover-card-action', '');
+
+      const menuId = `mover-action-menu-${destId}`;
+
+      const trigger = document.createElement('button');
+      trigger.type = 'button';
+      trigger.className = 'mover-action-trigger';
+      trigger.setAttribute('data-mover-action-trigger', destId);
+      trigger.setAttribute('aria-expanded', 'false');
+      trigger.setAttribute('aria-controls', menuId);
+      trigger.setAttribute('aria-label', `Open actions for ${destName}`);
+
+      const plusIcon = document.createElement('span');
+      plusIcon.className = 'mover-action-trigger-icon';
+      plusIcon.setAttribute('aria-hidden', 'true');
+      plusIcon.textContent = '+';
+      trigger.appendChild(plusIcon);
+
+      const menu = document.createElement('div');
+      menu.className = 'mover-action-menu';
+      menu.id = menuId;
+      menu.setAttribute('role', 'group');
+      menu.setAttribute('aria-label', `Actions for ${destName}`);
+      menu.hidden = true;
+
+      const watchBtn = document.createElement('button');
+      watchBtn.type = 'button';
+      watchBtn.className = 'mover-action-btn mover-action-btn--watch';
+      watchBtn.setAttribute('data-mover-action', 'watch');
+      watchBtn.setAttribute('data-destination-id', destId);
+      _applyMoverWatchActionState(watchBtn, destId);
+
+      const shareBtn = document.createElement('button');
+      shareBtn.type = 'button';
+      shareBtn.className = 'mover-action-btn mover-action-btn--share';
+      shareBtn.setAttribute('data-mover-action', 'share');
+      shareBtn.setAttribute('data-destination-id', destId);
+      shareBtn.textContent = 'Share';
+      shareBtn.setAttribute('aria-label', `Share ${destName}`);
+
+      menu.appendChild(watchBtn);
+      menu.appendChild(shareBtn);
+      actionsWrap.appendChild(trigger);
+      actionsWrap.appendChild(menu);
+      sideCol.appendChild(actionsWrap);
+      headRight = sideCol;
+    }
+
     head.appendChild(info);
-    head.appendChild(today);
+    head.appendChild(headRight);
 
     const chartRow = document.createElement('div');
     chartRow.className = 'mover-chart-row';
@@ -6523,7 +6705,7 @@
       group.className = 'movers-group';
 
       list.forEach((dest, i) => {
-        group.appendChild(renderMoverRow(dest, i + 1, sectionKey));
+        group.appendChild(renderMoverRow(dest, i + 1, sectionKey, { showActions: true }));
       });
 
       indexEl.appendChild(group);
@@ -6532,6 +6714,123 @@
     if (sectionCount === 0) {
       indexEl.innerHTML = '<p class="movers-loading">No destinations available in the index yet.</p>';
     }
+  }
+
+  // ============ MOVERS CARD ACTIONS ============
+  let _openMoverActionMenuId = null;
+  let _moverActionDelegationBound = false;
+
+  function closeMoverActionMenus() {
+    document.querySelectorAll('#tab-movers .mover-action-menu.is-open').forEach((menu) => {
+      menu.classList.remove('is-open');
+      menu.hidden = true;
+    });
+    document.querySelectorAll('#tab-movers .mover-action-trigger[aria-expanded="true"]').forEach((btn) => {
+      btn.setAttribute('aria-expanded', 'false');
+    });
+    _openMoverActionMenuId = null;
+  }
+
+  function _getMoverWatchActionState(destId) {
+    if (!_watchStorageAvailable) {
+      return { label: 'UNAVAILABLE', disabled: true };
+    }
+    if (isDestinationWatched(destId)) {
+      return { label: 'IN LIST', disabled: true };
+    }
+    if (getWatchlistIds().length >= WATCHLIST_MAX) {
+      return { label: 'LIST FULL', disabled: true };
+    }
+    return { label: 'ADD TO LIST', disabled: false };
+  }
+
+  function _applyMoverWatchActionState(btn, destId) {
+    if (!btn) return;
+    const state = _getMoverWatchActionState(destId);
+    const dest = _getPublicDestinationByIdMap().get(destId);
+    const name = dest && dest.name ? String(dest.name) : 'destination';
+    btn.textContent = state.label;
+    btn.disabled = state.disabled;
+    btn.setAttribute('aria-disabled', state.disabled ? 'true' : 'false');
+    btn.setAttribute(
+      'aria-label',
+      state.disabled ? `${state.label} — ${name}` : `Add ${name} to Watch list`,
+    );
+  }
+
+  function toggleMoverActionMenu(destId) {
+    if (!destId) return;
+    const menu = document.getElementById(`mover-action-menu-${destId}`);
+    const trigger = document.querySelector(`#tab-movers [data-mover-action-trigger="${destId}"]`);
+    if (!menu || !trigger) return;
+
+    const isOpen = _openMoverActionMenuId === destId;
+    closeMoverActionMenus();
+    if (!isOpen) {
+      const watchBtn = menu.querySelector('[data-mover-action="watch"]');
+      _applyMoverWatchActionState(watchBtn, destId);
+      menu.classList.add('is-open');
+      menu.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      _openMoverActionMenuId = destId;
+    }
+  }
+
+  function attachMoverActionDelegation() {
+    if (_moverActionDelegationBound) return;
+    _moverActionDelegationBound = true;
+
+    document.addEventListener('click', (e) => {
+      const trigger = e.target.closest('[data-mover-action-trigger]');
+      if (trigger) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleMoverActionMenu(trigger.getAttribute('data-mover-action-trigger'));
+        return;
+      }
+
+      const actionBtn = e.target.closest('#tab-movers [data-mover-action]');
+      if (actionBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const action = actionBtn.getAttribute('data-mover-action');
+        const destId = actionBtn.getAttribute('data-destination-id');
+        if (action === 'watch' && destId && !actionBtn.disabled) {
+          const added = addToWatchlist(destId);
+          if (added) {
+            actionBtn.textContent = 'ADDED';
+            actionBtn.disabled = true;
+            actionBtn.setAttribute('aria-disabled', 'true');
+            refreshWatchUI();
+            setTimeout(closeMoverActionMenus, 250);
+          } else {
+            _applyMoverWatchActionState(actionBtn, destId);
+            if (actionBtn.textContent === 'LIST FULL') {
+              setTimeout(closeMoverActionMenus, 400);
+            }
+          }
+        } else if (action === 'share' && destId) {
+          const dest = _getPublicDestinationByIdMap().get(destId);
+          if (dest) {
+            shareDestinationBrief(dest).then((ok) => {
+              if (ok) closeMoverActionMenus();
+            });
+          }
+        }
+        return;
+      }
+
+      if (_openMoverActionMenuId && !e.target.closest('[data-mover-card-action]')) {
+        closeMoverActionMenus();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && _openMoverActionMenuId && !_modalCurrentDestId) {
+        e.preventDefault();
+        closeMoverActionMenus();
+      }
+    });
   }
 
   // ============ WATCH LIST (browser-local) ============
@@ -7145,6 +7444,7 @@
 
   function switchToTab(tabId) {
     if (!tabId) return;
+    closeMoverActionMenus();
     if (document.getElementById('tab-about-index').classList.contains('active') && location.hash === '#about-gotango-index') {
       const url = new URL(window.location.href);
       url.hash = '';
@@ -8138,6 +8438,7 @@
 
   function openDestinationModal(destinationId) {
     if (!destinationId) return;
+    closeMoverActionMenus();
 
     // Find the destination in the cached data
     const data = _modalArrivalsData;
@@ -9298,6 +9599,7 @@
     // Use event delegation on document so handlers work for dynamically rendered cards
     document.addEventListener('click', (e) => {
       if (e.target.closest('[data-watch-action="remove"]')) return;
+      if (e.target.closest('[data-mover-card-action]')) return;
       const card = e.target.closest('[data-destination-id]');
       if (card) {
         const destId = card.getAttribute('data-destination-id');
@@ -9309,6 +9611,8 @@
 
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
+      if (e.target.closest('[data-mover-card-action]')) return;
+      if (e.target.closest('button, a, input, select, textarea')) return;
       const card = e.target.closest('[data-destination-id][tabindex="0"]');
       if (!card || !card.getAttribute('role')) return;
       const destId = card.getAttribute('data-destination-id');
@@ -9340,7 +9644,7 @@
   }
 
   async function shareDestinationBrief(dest) {
-    if (!dest || !dest.id) return;
+    if (!dest || !dest.id) return false;
     const shareUrl = buildDestinationShareUrl(dest.id);
     const title = `${dest.name} on Go Tango`;
     const text = `See ${dest.name}'s private-travel signal, GoTango Score, arrivals, and weekly momentum.`;
@@ -9348,9 +9652,9 @@
     if (typeof navigator.share === 'function') {
       try {
         await navigator.share({ title, text, url: shareUrl });
-        return;
+        return true;
       } catch (err) {
-        if (err && err.name === 'AbortError') return;
+        if (err && err.name === 'AbortError') return false;
       }
     }
 
@@ -9358,13 +9662,14 @@
       if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
         await navigator.clipboard.writeText(shareUrl);
         showDestModalShareStatus('Link copied');
-        return;
+        return true;
       }
     } catch (err) {
       console.warn('[share] clipboard failed:', err);
     }
 
     showDestModalShareStatus('Could not copy link');
+    return false;
   }
 
   function attachModalShareHandler() {
@@ -9467,6 +9772,15 @@
     return String(pick.type).trim();
   }
 
+  function _formatTopTypeDisplay(rawType) {
+    if (rawType == null) return 'N/A';
+    if (typeof rawType === 'number' && !Number.isFinite(rawType)) return 'N/A';
+    const str = String(rawType).trim();
+    if (!str || str.toUpperCase() === 'UNKNOWN' || str.toUpperCase() === 'NAN') return 'N/A';
+    if (str.startsWith('[object ') && str.endsWith(']')) return 'N/A';
+    return str;
+  }
+
   function renderModalHero(dest, badge) {
     const coords = _formatCoords(dest.lat, dest.lng);
     const icaoStr = Array.isArray(dest.icao) ? dest.icao.join(' · ') : (dest.icao || '');
@@ -9523,8 +9837,9 @@
     movementHeading = '24h movement';
   }
     const topAircraft = _topAircraftType(dest);
-    const topAircraftStr = topAircraft || '—';
-    const topAircraftSub = topAircraft ? 'Most common type' : 'No data';
+    const topAircraftDisplay = _formatTopTypeDisplay(topAircraft);
+    const topAircraftStr = topAircraftDisplay;
+    const topAircraftSub = topAircraftDisplay === 'N/A' ? 'No data' : 'Most common type';
     const commercialLabel = dest.commercial_backdrop_label
       ? formatCommercialBackdropLabel(dest.commercial_backdrop_label)
       : '';
@@ -10236,6 +10551,7 @@
     renderMoversIndex(arrivalsData, moversIndexData);
     renderWorldMap(arrivalsData);
     attachWatchDelegation();
+    attachMoverActionDelegation();
     _watchCanUseStorage();
     getWatchlistIds();
     _updateWatchStorageError();
