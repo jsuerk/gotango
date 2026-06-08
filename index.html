@@ -1391,6 +1391,313 @@
     margin: 0 auto;
   }
 
+  /* ===== WATCH LIST (scoped) ===== */
+  #tab-watch .watch-hero {
+    padding-bottom: 8px;
+  }
+  #tab-watch .watch-hero-count {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-top: 14px;
+  }
+  #tab-watch .watch-hero-note {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 8px;
+    letter-spacing: 0.02em;
+  }
+  #tab-watch .watch-storage-error {
+    margin: 0 20px 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-dim);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  #tab-watch .watch-list-body {
+    padding: 0 20px 28px;
+  }
+  #tab-watch .watch-empty {
+    padding: 48px 20px 32px;
+    text-align: center;
+  }
+  #tab-watch .watch-empty-title {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+  #tab-watch .watch-empty-desc {
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.55;
+    max-width: 280px;
+    margin: 0 auto 20px;
+  }
+  #tab-watch .watch-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  #tab-watch .watch-card-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  #tab-watch .watch-card-wrap .movers-group,
+  #tab-watch .watch-cards .movers-group {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  #tab-watch .watch-card-slot .mover-row {
+    border-radius: 0;
+  }
+  #tab-watch .watch-card-slot .mover-row:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: -2px;
+  }
+  #tab-watch .mover-title-block .card-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    margin-top: 4px;
+    min-width: 0;
+    max-width: 100%;
+  }
+  #tab-watch .watch-remove-btn {
+    align-self: flex-end;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  #tab-watch .watch-remove-btn:hover {
+    color: var(--text);
+    border-color: var(--text-faint);
+    background: var(--surface-2);
+  }
+  #tab-watch .watch-remove-btn:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  #tab-watch .watch-card-fallback {
+    cursor: pointer;
+  }
+  #tab-watch .watch-card-fallback--static {
+    cursor: default;
+  }
+  #tab-watch .watch-card-fallback .watch-fallback-status {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.4;
+    margin-top: 4px;
+  }
+  #tab-watch .watch-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 4px;
+    border-top: 1px solid var(--border);
+  }
+  #tab-watch .watch-footer-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  #tab-watch .watch-btn {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  #tab-watch .watch-btn:hover {
+    background: var(--surface-2);
+    border-color: var(--text-faint);
+  }
+  #tab-watch .watch-btn:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  #tab-watch .watch-btn--primary {
+    border-color: rgba(232, 163, 23, 0.45);
+    color: var(--amber);
+    background: rgba(232, 163, 23, 0.08);
+  }
+  #tab-watch .watch-btn--ghost {
+    background: transparent;
+    color: var(--text-dim);
+  }
+  #tab-watch .watch-btn--danger {
+    color: var(--text-faint);
+    background: transparent;
+    border-color: transparent;
+    padding-left: 0;
+  }
+  #tab-watch .watch-clear-confirm {
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+  #tab-watch .watch-clear-confirm p {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    margin: 0 0 12px;
+  }
+  #tab-watch .watch-clear-confirm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .watch-modal-control-wrap {
+    padding: 0;
+  }
+  .watch-modal-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    box-sizing: border-box;
+  }
+  .watch-modal-control:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  .watch-modal-control--add {
+    border: 1px dashed rgba(107, 101, 87, 0.55);
+  }
+  .watch-modal-control--add:hover {
+    background: var(--surface-2);
+    border-color: rgba(107, 101, 87, 0.75);
+  }
+  .watch-modal-control--on {
+    border: 1px solid rgba(232, 163, 23, 0.65);
+    background: rgba(232, 163, 23, 0.07);
+    box-shadow: 0 0 24px rgba(232, 163, 23, 0.06);
+  }
+  .watch-modal-control--on:hover {
+    background: rgba(232, 163, 23, 0.11);
+  }
+  .watch-modal-control--full {
+    border: 1px dashed rgba(107, 101, 87, 0.45);
+    background: var(--surface);
+    cursor: default;
+    flex-wrap: wrap;
+  }
+  .watch-modal-control__icon-wrap {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(232, 163, 23, 0.12);
+    color: rgba(232, 163, 23, 0.55);
+  }
+  .watch-modal-control--on .watch-modal-control__icon-wrap {
+    background: rgba(232, 163, 23, 0.22);
+    color: var(--amber);
+    box-shadow: 0 0 12px rgba(232, 163, 23, 0.18);
+  }
+  .watch-modal-control__icon {
+    width: 14px;
+    height: 14px;
+  }
+  .watch-modal-control__text {
+    flex: 1;
+    min-width: 0;
+  }
+  .watch-modal-control__title {
+    display: block;
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    margin-bottom: 2px;
+  }
+  .watch-modal-control__sub {
+    display: block;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+  .watch-modal-control__action {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    line-height: 1.2;
+    gap: 2px;
+  }
+  .watch-modal-control--on .watch-modal-control__action {
+    color: var(--amber);
+  }
+  .watch-modal-control__action-icon {
+    font-size: 14px;
+    line-height: 1;
+  }
+  .watch-modal-control__manage {
+    width: 100%;
+    margin-top: 10px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber);
+    background: transparent;
+    border: 1px solid rgba(232, 163, 23, 0.35);
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  .watch-modal-control__manage:hover {
+    background: rgba(232, 163, 23, 0.08);
+  }
+  .watch-modal-control__manage:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+
   /* ===== BRIEF ARTICLE ===== */
   .brief-article {
     padding: 0 20px 20px;
@@ -3946,6 +4253,32 @@
     #tab-now .cooling-list .mover-badge {
       margin-left: 0;
     }
+    #tab-watch .watch-list-body {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    #tab-watch .watch-empty {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    #tab-watch .watch-storage-error {
+      margin-left: 16px;
+      margin-right: 16px;
+    }
+    #tab-watch .mover-row {
+      padding: 14px;
+      gap: 10px 12px;
+    }
+    #tab-watch .mover-head {
+      gap: 10px;
+    }
+    .watch-modal-control {
+      padding: 12px 14px;
+      gap: 10px;
+    }
+    .watch-modal-control__title {
+      font-size: 15px;
+    }
   }
 
 </style>
@@ -4248,18 +4581,17 @@
 
   </div>
 
-  <!-- ============ WATCHLIST TAB ============ -->
+  <!-- ============ WATCH TAB ============ -->
   <div class="tab-content" id="tab-watch">
-    <section class="hero">
-      <div class="hero-kicker">Watchlist</div>
-      <h1 class="hero-headline">Track <em>your</em><br>destinations.</h1>
-      <p class="hero-sub">Save any destination to get push alerts when arrivals shift more than 25% week-over-week, or when major events drive unusual activity.</p>
+    <section class="hero watch-hero">
+      <div class="hero-kicker">WATCH</div>
+      <h1 class="hero-headline">Your saved <em>destinations.</em></h1>
+      <p class="hero-sub">Your saved destinations on this browser.</p>
+      <p class="watch-hero-count" id="watch-hero-count" aria-live="polite">0 / 3</p>
+      <p class="watch-hero-note">Saved on this browser only.</p>
     </section>
-    <div class="empty-state">
-      <div class="empty-mark">GT</div>
-      <div class="empty-title">No destinations saved</div>
-      <div class="empty-desc">Tap any destination card to add it to your watchlist. The free plan tracks up to 3. Go Tango Pro unlocks unlimited destinations with hourly alerts.</div>
-    </div>
+    <div id="watch-storage-error" class="watch-storage-error" hidden role="alert"></div>
+    <div id="watch-list-root"></div>
   </div>
 
   <!-- ============ BRIEF TAB ============ -->
@@ -6202,8 +6534,631 @@
     }
   }
 
+  // ============ WATCH LIST (browser-local) ============
+  const WATCHLIST_STORAGE_KEY = 'gotango.watchlist.v1';
+  const WATCHLIST_MAX = 3;
+  let _watchManageMode = false;
+  let _watchStorageAvailable = true;
+  let _watchDelegationBound = false;
+  let _watchClearConfirmVisible = false;
+
+  function _watchCanUseStorage() {
+    try {
+      const probe = '__gotango_watch_probe__';
+      localStorage.setItem(probe, '1');
+      localStorage.removeItem(probe);
+      _watchStorageAvailable = true;
+      return true;
+    } catch (_) {
+      _watchStorageAvailable = false;
+      return false;
+    }
+  }
+
+  function _getKnownPublicDestinationIdSet() {
+    const payload = getArrivalsPayload(_modalArrivalsData);
+    if (!payload || !Array.isArray(payload.destinations)) return null;
+    const ids = payload.destinations
+      .filter((d) => d && typeof d.id === 'string' && d.id)
+      .map((d) => d.id);
+    return new Set(ids);
+  }
+
+  function _getUsablePublicDestinationIdSet() {
+    const payload = getArrivalsPayload(_modalArrivalsData);
+    if (!payload || !Array.isArray(payload.destinations)) return null;
+    const ids = payload.destinations
+      .filter((d) => d && d.ok === true && typeof d.id === 'string' && d.id)
+      .map((d) => d.id);
+    return new Set(ids);
+  }
+
+  function _getPublicDestinationByIdMap() {
+    const payload = getArrivalsPayload(_modalArrivalsData);
+    if (!payload || !Array.isArray(payload.destinations)) return new Map();
+    const map = new Map();
+    for (const d of payload.destinations) {
+      if (d && typeof d.id === 'string' && d.id) map.set(d.id, d);
+    }
+    return map;
+  }
+
+  function _dedupeWatchlistIds(rawIds) {
+    const seen = new Set();
+    const deduped = [];
+    if (!Array.isArray(rawIds)) return deduped;
+    for (const item of rawIds) {
+      if (typeof item !== 'string' || !item.trim()) continue;
+      const id = item.trim();
+      if (seen.has(id)) continue;
+      seen.add(id);
+      deduped.push(id);
+      if (deduped.length >= WATCHLIST_MAX) break;
+    }
+    return deduped;
+  }
+
+  function _readWatchlistRaw() {
+    if (!_watchCanUseStorage()) return [];
+    try {
+      const raw = localStorage.getItem(WATCHLIST_STORAGE_KEY);
+      if (raw == null || raw === '') return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function _normalizeWatchlistIds(rawIds, validIdSet) {
+    const seen = new Set();
+    const normalized = [];
+    if (!Array.isArray(rawIds)) return normalized;
+    for (const item of rawIds) {
+      if (typeof item !== 'string' || !item.trim()) continue;
+      const id = item.trim();
+      if (seen.has(id)) continue;
+      if (!validIdSet.has(id)) continue;
+      seen.add(id);
+      normalized.push(id);
+      if (normalized.length >= WATCHLIST_MAX) break;
+    }
+    return normalized;
+  }
+
+  function getWatchlistIds() {
+    const raw = _readWatchlistRaw();
+    const validIds = _getKnownPublicDestinationIdSet();
+    if (validIds === null) return _dedupeWatchlistIds(raw);
+
+    const normalized = _normalizeWatchlistIds(raw, validIds);
+    if (_watchStorageAvailable) {
+      try {
+        const storedNorm = _normalizeWatchlistIds(_readWatchlistRaw(), validIds);
+        if (JSON.stringify(storedNorm) !== JSON.stringify(normalized)) {
+          writeWatchlistIds(normalized, { skipRefresh: true });
+        }
+      } catch (_) { /* no-op */ }
+    }
+    return normalized;
+  }
+
+  function writeWatchlistIds(ids, options = {}) {
+    const validIds = _getKnownPublicDestinationIdSet();
+    const normalized = validIds === null
+      ? _dedupeWatchlistIds(ids)
+      : _normalizeWatchlistIds(ids, validIds);
+    if (!_watchCanUseStorage()) {
+      _updateWatchStorageError();
+      return normalized;
+    }
+    try {
+      if (normalized.length === 0) {
+        localStorage.removeItem(WATCHLIST_STORAGE_KEY);
+      } else {
+        localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(normalized));
+      }
+      _updateWatchStorageError();
+    } catch (_) {
+      _watchStorageAvailable = false;
+      _updateWatchStorageError();
+    }
+    if (!options.skipRefresh) refreshWatchUI();
+    return normalized;
+  }
+
+  function isDestinationWatched(destinationId) {
+    if (!destinationId) return false;
+    return getWatchlistIds().includes(destinationId);
+  }
+
+  function addToWatchlist(destinationId) {
+    const validIds = _getUsablePublicDestinationIdSet();
+    if (!destinationId || !validIds || !validIds.has(destinationId)) return false;
+    const ids = getWatchlistIds();
+    if (ids.includes(destinationId)) return true;
+    if (ids.length >= WATCHLIST_MAX) return false;
+    writeWatchlistIds([...ids, destinationId]);
+    return true;
+  }
+
+  function removeFromWatchlist(destinationId) {
+    if (!destinationId) return;
+    const ids = getWatchlistIds().filter((id) => id !== destinationId);
+    writeWatchlistIds(ids);
+    if (ids.length === 0) _watchManageMode = false;
+  }
+
+  function clearWatchlist() {
+    writeWatchlistIds([]);
+    _watchManageMode = false;
+    _watchClearConfirmVisible = false;
+  }
+
+  function _updateWatchStorageError() {
+    const el = document.getElementById('watch-storage-error');
+    if (!el) return;
+    if (!_watchStorageAvailable) {
+      el.textContent = 'Browser storage is unavailable. Your Watch list cannot be saved on this device.';
+      el.hidden = false;
+    } else {
+      el.textContent = '';
+      el.hidden = true;
+    }
+  }
+
+  function _getWatchEnrichedDestMap() {
+    const payload = getArrivalsPayload(_modalArrivalsData);
+    if (!payload || !Array.isArray(payload.destinations)) return new Map();
+    const enriched = enrichDestinationsForMovers(
+      payload.destinations.filter((d) => d && d.ok === true),
+      _modalMoversIndexData,
+    );
+    return new Map(enriched.map((d) => [d.id, d]));
+  }
+
+  function _resolveWatchDestinations() {
+    const ids = getWatchlistIds();
+    const rawById = _getPublicDestinationByIdMap();
+    const enrichedById = _getWatchEnrichedDestMap();
+    return ids.map((id) => ({
+      id,
+      raw: rawById.get(id) || null,
+      dest: enrichedById.get(id) || null,
+      usable: enrichedById.has(id),
+    }));
+  }
+
+  function _renderWatchFallbackRow(entry, rank) {
+    const record = entry.raw || { id: entry.id, name: entry.id };
+    const destId = String(entry.id || '');
+    const name = String(record.name || entry.id || 'Destination');
+    const icao = _destIcao(record);
+    const canOpenModal = !!entry.raw;
+
+    const row = document.createElement('div');
+    row.className = canOpenModal
+      ? 'mover-row watch-card-fallback'
+      : 'mover-row watch-card-fallback watch-card-fallback--static';
+    row.setAttribute('data-destination-id', destId);
+    if (canOpenModal) {
+      row.setAttribute('role', 'button');
+      row.setAttribute('tabindex', '0');
+    }
+    row.setAttribute(
+      'aria-label',
+      `${name}${icao ? `, ${icao}` : ''}, Data temporarily unavailable`,
+    );
+
+    const rankEl = document.createElement('span');
+    rankEl.className = 'mover-rank';
+    rankEl.textContent = String(rank).padStart(2, '0');
+
+    const body = document.createElement('div');
+    body.className = 'mover-body';
+
+    const head = document.createElement('div');
+    head.className = 'mover-head';
+
+    const info = document.createElement('div');
+    info.className = 'mover-info';
+
+    const titleBlock = document.createElement('div');
+    titleBlock.className = 'mover-title-block card-title-block';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'mover-name card-destination-name';
+    nameEl.textContent = name;
+    titleBlock.appendChild(nameEl);
+
+    if (icao) {
+      const metaRow = document.createElement('div');
+      metaRow.className = 'card-meta-row';
+      const codeEl = document.createElement('span');
+      codeEl.className = 'mover-icao card-airport-code';
+      codeEl.textContent = icao;
+      metaRow.appendChild(codeEl);
+      titleBlock.appendChild(metaRow);
+    }
+
+    const statusEl = document.createElement('div');
+    statusEl.className = 'watch-fallback-status';
+    statusEl.textContent = 'Data temporarily unavailable';
+
+    info.appendChild(titleBlock);
+    info.appendChild(statusEl);
+    head.appendChild(info);
+    body.appendChild(head);
+
+    row.appendChild(rankEl);
+    row.appendChild(body);
+    return row;
+  }
+
+  function _inferWatchSection(dest) {
+    if (isMoverMeaningfullyRising(dest)) return 'rising';
+    if (isMoverClearlyCooling(dest)) return 'cooling';
+    const weeklyIndex = getMoversWeeklyScore(dest);
+    const latest = Number(dest.latest_signal_score ?? dest.signal_score ?? 0);
+    if (weeklyIndex >= 40 || latest >= 50) return 'active';
+    return 'quiet';
+  }
+
+  function _watchDiamondIconSvg() {
+    return '<svg class="watch-modal-control__icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.2 4.5 4.9 1-3.6 3.4.9 4.9L12 14.2 7.6 16.3l.9-4.9L4.9 8l4.9-1L12 2.5z"/></svg>';
+  }
+
+  function renderModalWatchControl(dest) {
+    if (!dest || !dest.id) return '';
+    const destId = _escapeHtml(dest.id);
+    const destName = _escapeHtml(dest.name || 'this destination');
+    const watched = isDestinationWatched(dest.id);
+    const ids = getWatchlistIds();
+    const atCapacity = ids.length >= WATCHLIST_MAX;
+    const storageBlocked = !_watchStorageAvailable;
+
+    if (storageBlocked) {
+      return `
+        <div class="d-section watch-modal-control-wrap" data-modal-section="watch-control">
+          <div class="watch-modal-control watch-modal-control--full" aria-disabled="true">
+            <span class="watch-modal-control__icon-wrap">${_watchDiamondIconSvg()}</span>
+            <span class="watch-modal-control__text">
+              <span class="watch-modal-control__title">Watch unavailable</span>
+              <span class="watch-modal-control__sub">Browser storage is unavailable on this device.</span>
+            </span>
+          </div>
+        </div>
+      `;
+    }
+
+    if (watched) {
+      return `
+        <div class="d-section watch-modal-control-wrap" data-modal-section="watch-control">
+          <button type="button" class="watch-modal-control watch-modal-control--on" data-watch-action="toggle" data-destination-id="${destId}" aria-pressed="true" aria-label="Stop watching ${destName}">
+            <span class="watch-modal-control__icon-wrap">${_watchDiamondIconSvg()}</span>
+            <span class="watch-modal-control__text">
+              <span class="watch-modal-control__title">Watching ${destName}</span>
+              <span class="watch-modal-control__sub">Saved to your Watch list.</span>
+            </span>
+            <span class="watch-modal-control__action" aria-hidden="true">
+              <span class="watch-modal-control__action-icon">✓</span>
+              <span>ON</span>
+            </span>
+          </button>
+        </div>
+      `;
+    }
+
+    if (atCapacity) {
+      return `
+        <div class="d-section watch-modal-control-wrap" data-modal-section="watch-control">
+          <div class="watch-modal-control watch-modal-control--full">
+            <span class="watch-modal-control__icon-wrap">${_watchDiamondIconSvg()}</span>
+            <span class="watch-modal-control__text">
+              <span class="watch-modal-control__title">Watch list full</span>
+              <span class="watch-modal-control__sub">Remove a destination before adding ${destName}.</span>
+            </span>
+            <span class="watch-modal-control__action" aria-hidden="true">
+              <span class="watch-modal-control__action-icon">${WATCHLIST_MAX} / ${WATCHLIST_MAX}</span>
+              <span>FULL</span>
+            </span>
+          </div>
+          <button type="button" class="watch-modal-control__manage" data-watch-action="goto-watch">Manage Watch list</button>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="d-section watch-modal-control-wrap" data-modal-section="watch-control">
+        <button type="button" class="watch-modal-control watch-modal-control--add" data-watch-action="toggle" data-destination-id="${destId}" aria-pressed="false" aria-label="Watch ${destName}">
+          <span class="watch-modal-control__icon-wrap">${_watchDiamondIconSvg()}</span>
+          <span class="watch-modal-control__text">
+            <span class="watch-modal-control__title">Watch ${destName}</span>
+            <span class="watch-modal-control__sub">Save this destination to your Watch list.</span>
+          </span>
+          <span class="watch-modal-control__action" aria-hidden="true">
+            <span class="watch-modal-control__action-icon">+</span>
+            <span>ADD</span>
+          </span>
+        </button>
+      </div>
+    `;
+  }
+
+  function refreshModalWatchControl() {
+    const modal = document.getElementById('destination-modal');
+    if (!modal || modal.style.display === 'none' || modal.getAttribute('aria-hidden') === 'true') return;
+    const dest = _lookupModalDest();
+    if (!dest) return;
+    const sectionEl = document.querySelector('[data-modal-section="watch-control"]');
+    if (!sectionEl) return;
+    const wrap = sectionEl.closest('.watch-modal-control-wrap') || sectionEl;
+    const temp = document.createElement('div');
+    temp.innerHTML = renderModalWatchControl(dest);
+    const next = temp.firstElementChild;
+    if (next && wrap.parentNode) {
+      wrap.parentNode.replaceChild(next, wrap);
+    }
+  }
+
+  function _updateWatchHeroCount(count) {
+    const el = document.getElementById('watch-hero-count');
+    if (el) el.textContent = `${count} / ${WATCHLIST_MAX}`;
+  }
+
+  function renderWatchTab() {
+    const root = document.getElementById('watch-list-root');
+    if (!root) return;
+
+    _updateWatchStorageError();
+    const watchEntries = _resolveWatchDestinations();
+    const count = watchEntries.length;
+    _updateWatchHeroCount(count);
+
+    if (count === 0) {
+      _watchManageMode = false;
+      _watchClearConfirmVisible = false;
+      root.innerHTML = `
+        <div class="watch-empty">
+          <div class="watch-empty-title">No destinations watched yet.</div>
+          <div class="watch-empty-desc">Open a destination and tap Add to save it here.</div>
+          <button type="button" class="watch-btn watch-btn--primary" data-watch-action="browse">Browse destinations</button>
+        </div>
+      `;
+      return;
+    }
+
+    const cardsEl = document.createElement('div');
+    cardsEl.className = 'watch-list-body';
+
+    const list = document.createElement('div');
+    list.className = 'watch-cards';
+    list.setAttribute('role', 'list');
+
+    watchEntries.forEach((entry, index) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'watch-card-wrap';
+      wrap.setAttribute('role', 'listitem');
+
+      const slot = document.createElement('div');
+      slot.className = 'watch-card-slot';
+
+      const group = document.createElement('div');
+      group.className = 'movers-group';
+
+      const displayName = String(
+        (entry.dest && entry.dest.name) ||
+        (entry.raw && entry.raw.name) ||
+        entry.id ||
+        'Destination',
+      );
+
+      if (entry.usable && entry.dest) {
+        const dest = entry.dest;
+        const section = _inferWatchSection(dest);
+        const row = renderMoverRow(dest, index + 1, section);
+        const badgeMeta = getPublicSignalBadge(dest, { section });
+        const todayScore = Number(dest.latest_signal_score ?? dest.signal_score ?? 0);
+        const todayDisplay = Number.isFinite(todayScore) && todayScore > 0
+          ? String(Math.round(todayScore))
+          : '—';
+        const icao = _destIcao(dest);
+        row.setAttribute(
+          'aria-label',
+          `${dest.name || 'Destination'}${icao ? `, ${icao}` : ''}, ${badgeMeta.label}, score ${todayDisplay}`,
+        );
+        group.appendChild(row);
+      } else {
+        group.appendChild(_renderWatchFallbackRow(entry, index + 1));
+      }
+
+      slot.appendChild(group);
+      wrap.appendChild(slot);
+
+      if (_watchManageMode) {
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'watch-remove-btn';
+        removeBtn.setAttribute('data-watch-action', 'remove');
+        removeBtn.setAttribute('data-destination-id', String(entry.id || ''));
+        removeBtn.setAttribute('aria-label', `Remove ${displayName} from Watch`);
+        removeBtn.textContent = 'Remove';
+        wrap.appendChild(removeBtn);
+      }
+
+      list.appendChild(wrap);
+    });
+
+    cardsEl.appendChild(list);
+
+    const footer = document.createElement('div');
+    footer.className = 'watch-footer';
+
+    const primaryLabel = count >= WATCHLIST_MAX ? 'Replace a destination' : 'Browse destinations';
+    const primaryBtn = document.createElement('button');
+    primaryBtn.type = 'button';
+    primaryBtn.className = 'watch-btn watch-btn--primary';
+    primaryBtn.setAttribute('data-watch-action', 'browse');
+    primaryBtn.textContent = primaryLabel;
+
+    const secondaryBtn = document.createElement('button');
+    secondaryBtn.type = 'button';
+    secondaryBtn.className = 'watch-btn watch-btn--ghost';
+    if (_watchManageMode) {
+      secondaryBtn.setAttribute('data-watch-action', 'done');
+      secondaryBtn.textContent = 'Done';
+    } else {
+      secondaryBtn.setAttribute('data-watch-action', 'manage');
+      secondaryBtn.textContent = 'Manage list';
+    }
+
+    const row = document.createElement('div');
+    row.className = 'watch-footer-row';
+    row.appendChild(primaryBtn);
+    row.appendChild(secondaryBtn);
+    footer.appendChild(row);
+
+    if (_watchClearConfirmVisible) {
+      const confirm = document.createElement('div');
+      confirm.className = 'watch-clear-confirm';
+      confirm.innerHTML = `
+        <p>Remove all destinations from your Watch list?</p>
+        <div class="watch-clear-confirm-actions">
+          <button type="button" class="watch-btn watch-btn--ghost" data-watch-action="clear-cancel">Cancel</button>
+          <button type="button" class="watch-btn watch-btn--primary" data-watch-action="clear-confirm">Remove all</button>
+        </div>
+      `;
+      footer.appendChild(confirm);
+    } else {
+      const clearBtn = document.createElement('button');
+      clearBtn.type = 'button';
+      clearBtn.className = 'watch-btn watch-btn--danger';
+      clearBtn.setAttribute('data-watch-action', 'clear');
+      clearBtn.textContent = 'Clear all';
+      footer.appendChild(clearBtn);
+    }
+
+    cardsEl.appendChild(footer);
+    root.innerHTML = '';
+    root.appendChild(cardsEl);
+  }
+
+  function refreshWatchUI() {
+    const watchTab = document.getElementById('tab-watch');
+    if (watchTab && watchTab.classList.contains('active')) {
+      renderWatchTab();
+    } else {
+      _updateWatchHeroCount(getWatchlistIds().length);
+    }
+    refreshModalWatchControl();
+  }
+
+  function attachWatchDelegation() {
+    if (_watchDelegationBound) return;
+    _watchDelegationBound = true;
+
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-watch-action]');
+      if (!target) return;
+
+      const action = target.getAttribute('data-watch-action');
+      if (action === 'toggle') {
+        e.preventDefault();
+        const id = target.getAttribute('data-destination-id');
+        if (!id || !_watchStorageAvailable) return;
+        if (isDestinationWatched(id)) {
+          removeFromWatchlist(id);
+        } else {
+          const added = addToWatchlist(id);
+          if (!added && getWatchlistIds().length >= WATCHLIST_MAX) {
+            refreshModalWatchControl();
+          }
+        }
+        return;
+      }
+
+      if (action === 'remove') {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = target.getAttribute('data-destination-id');
+        if (id) removeFromWatchlist(id);
+        return;
+      }
+
+      if (action === 'manage') {
+        e.preventDefault();
+        _watchManageMode = true;
+        renderWatchTab();
+        return;
+      }
+
+      if (action === 'done') {
+        e.preventDefault();
+        _watchManageMode = false;
+        renderWatchTab();
+        return;
+      }
+
+      if (action === 'browse') {
+        e.preventDefault();
+        _watchManageMode = false;
+        switchToTab('tab-movers');
+        return;
+      }
+
+      if (action === 'goto-watch') {
+        e.preventDefault();
+        switchToTab('tab-watch');
+        return;
+      }
+
+      if (action === 'clear') {
+        e.preventDefault();
+        _watchClearConfirmVisible = true;
+        renderWatchTab();
+        return;
+      }
+
+      if (action === 'clear-cancel') {
+        e.preventDefault();
+        _watchClearConfirmVisible = false;
+        renderWatchTab();
+        return;
+      }
+
+      if (action === 'clear-confirm') {
+        e.preventDefault();
+        clearWatchlist();
+        return;
+      }
+    });
+  }
+
+  window.addEventListener('storage', (e) => {
+    if (e.key === WATCHLIST_STORAGE_KEY) {
+      refreshWatchUI();
+    }
+  });
+
   // ============ TABS ============
   let tabBeforeAbout = 'tab-now';
+
+  function switchToTab(tabId) {
+    if (!tabId) return;
+    if (document.getElementById('tab-about-index').classList.contains('active') && location.hash === '#about-gotango-index') {
+      const url = new URL(window.location.href);
+      url.hash = '';
+      history.replaceState({}, '', url);
+    }
+    document.querySelectorAll('.nav-btn').forEach((b) => {
+      b.classList.toggle('active', b.dataset.tab === tabId);
+    });
+    document.querySelectorAll('.tab-content').forEach((t) => t.classList.remove('active'));
+    const tabEl = document.getElementById(tabId);
+    if (tabEl) tabEl.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (tabId === 'tab-watch') renderWatchTab();
+  }
 
   function syncNavForTab(tabId) {
     document.querySelectorAll('.nav-btn').forEach(b => {
@@ -6268,17 +7223,7 @@
 
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const target = btn.dataset.tab;
-      if (document.getElementById('tab-about-index').classList.contains('active') && location.hash === '#about-gotango-index') {
-        const url = new URL(window.location.href);
-        url.hash = '';
-        history.replaceState({}, '', url);
-      }
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-      document.getElementById(target).classList.add('active');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      switchToTab(btn.dataset.tab);
     });
   });
 
@@ -8352,6 +9297,7 @@
 
     // Use event delegation on document so handlers work for dynamically rendered cards
     document.addEventListener('click', (e) => {
+      if (e.target.closest('[data-watch-action="remove"]')) return;
       const card = e.target.closest('[data-destination-id]');
       if (card) {
         const destId = card.getAttribute('data-destination-id');
@@ -9262,6 +10208,7 @@
       renderModalHero(dest, badge),
       renderEditorial(dest),
       renderModalStats(dest),
+      renderModalWatchControl(dest),
       renderIndexPlaceholder(),
       renderModalPeers(dest, allDestinations),
       renderTrajectoryPlaceholder(),
@@ -9288,6 +10235,11 @@
     renderCoolingDown(arrivalsData);
     renderMoversIndex(arrivalsData, moversIndexData);
     renderWorldMap(arrivalsData);
+    attachWatchDelegation();
+    _watchCanUseStorage();
+    getWatchlistIds();
+    _updateWatchStorageError();
+    refreshWatchUI();
     attachModalCloseHandlers();
     attachModalExpandHandlers();
     attachModalShareHandler();
