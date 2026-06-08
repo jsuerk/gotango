@@ -3013,6 +3013,238 @@
   color: var(--amber, #E8A317);
 }
 
+/* === Aircraft mix chart (modal) === */
+.d-mix-bar-wrap {
+  margin-bottom: 18px;
+}
+
+.d-mix-bar {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-2, #1E242E);
+  gap: 2px;
+  padding: 0;
+}
+
+.d-mix-seg {
+  flex: 0 0 auto;
+  min-width: 4px;
+  height: 100%;
+  border-radius: 2px;
+}
+
+.d-mix-seg--jet { background: var(--amber, #E8A317); }
+.d-mix-seg--turboprop { background: var(--teal, #5EAAA8); }
+.d-mix-seg--ga { background: var(--amber-soft, #C28A1A); }
+.d-mix-seg--unknown { background: var(--text-faint, #6B6557); }
+
+.d-mix-cats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+  margin-bottom: 14px;
+}
+
+@media (min-width: 420px) {
+  .d-mix-cats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.d-mix-cat-pct {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--text, #F5F1E8);
+  letter-spacing: -0.02em;
+}
+
+.d-mix-cat-key {
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.d-mix-cat-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.d-mix-cat-dot--jet { background: var(--amber, #E8A317); box-shadow: 0 0 6px rgba(232, 163, 23, 0.45); }
+.d-mix-cat-dot--turboprop { background: var(--teal, #5EAAA8); box-shadow: 0 0 6px rgba(94, 170, 168, 0.45); }
+.d-mix-cat-dot--ga { background: var(--amber-soft, #C28A1A); box-shadow: 0 0 6px rgba(194, 138, 26, 0.35); }
+.d-mix-cat-dot--unknown { background: var(--text-faint, #6B6557); }
+
+.d-mix-cat-label {
+  font-family: 'Geist Mono', monospace;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint, #6B6557);
+  margin-top: 4px;
+  line-height: 1.3;
+}
+
+.d-mix-interp,
+.d-mix-lead-type {
+  font-family: 'Geist Mono', monospace;
+  font-size: var(--fs-label);
+  line-height: 1.5;
+  color: var(--text-dim, #A8A293);
+  margin: 0;
+}
+
+.d-mix-lead-type {
+  margin-top: 6px;
+  color: var(--text-faint, #6B6557);
+}
+
+/* === How it stacks up (modal peers) === */
+.d-stacks-summary {
+  font-family: 'Geist Mono', monospace;
+  font-size: var(--fs-label);
+  line-height: 1.55;
+  color: var(--text-dim, #A8A293);
+  margin: 0 0 16px;
+}
+
+.d-stacks-summary strong {
+  font-weight: 500;
+  color: var(--text, #F5F1E8);
+}
+
+.d-stacks-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.d-stack-row {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: default;
+}
+
+.d-stack-row--peer {
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.d-stack-row--peer:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.d-stack-row--peer:focus-visible {
+  outline: 2px solid var(--amber, #E8A317);
+  outline-offset: 2px;
+}
+
+.d-stack-row--current {
+  background: rgba(232, 163, 23, 0.06);
+  border-color: rgba(232, 163, 23, 0.35);
+}
+
+.d-stack-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.d-stack-dot--up { background: var(--signal-up, #7FB069); box-shadow: 0 0 8px rgba(127, 176, 105, 0.5); }
+.d-stack-dot--steady { background: var(--teal, #5EAAA8); box-shadow: 0 0 8px rgba(94, 170, 168, 0.45); }
+.d-stack-dot--down { background: var(--signal-down, #E07856); box-shadow: 0 0 8px rgba(224, 120, 86, 0.45); }
+.d-stack-dot--quiet { background: var(--text-faint, #6B6557); }
+
+.d-stack-main {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, auto) 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.d-stack-name {
+  font-family: 'Fraunces', serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text, #F5F1E8);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d-stack-row--current .d-stack-name {
+  color: var(--amber, #E8A317);
+}
+
+.d-stack-track {
+  height: 5px;
+  background: var(--surface-2, #1E242E);
+  border-radius: 999px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.d-stack-bar {
+  height: 100%;
+  border-radius: 999px;
+  min-width: 2px;
+}
+
+.d-stack-bar--up { background: var(--signal-up, #7FB069); }
+.d-stack-bar--steady { background: var(--teal, #5EAAA8); }
+.d-stack-bar--down { background: var(--signal-down, #E07856); }
+.d-stack-bar--quiet { background: var(--text-faint, #6B6557); }
+
+.d-stack-score {
+  font-family: 'Geist Mono', monospace;
+  font-size: var(--fs-label);
+  font-weight: 500;
+  color: var(--text, #F5F1E8);
+  min-width: 28px;
+  text-align: right;
+}
+
+.d-stacks-median {
+  font-family: 'Geist Mono', monospace;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.06em;
+  color: var(--text-faint, #6B6557);
+  margin: 14px 0 0;
+  line-height: 1.5;
+}
+
+@media (max-width: 420px) {
+  .d-stack-main {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .d-stack-name {
+    white-space: normal;
+  }
+}
+
 /* === Recent flights feed === */
 .d-feed {
   display: flex;
@@ -8714,74 +8946,95 @@
   `;
   }
 
-  function renderModalAircraftRow(a, hiddenAttr) {
-    const type = a.type ? String(a.type).trim() : 'Unknown';
-    const isGa = a.is_ga === true;
-    const classLabel = type === 'UNKNOWN' ? 'Type not reported' : (isGa ? 'Private aviation' : 'Commercial');
-    const classClass = type === 'UNKNOWN' ? '' : (isGa ? 'ga' : 'com');
-    return `
-      <div class="d-craft"${hiddenAttr}>
-        <div>
-          <div class="d-craft-name">${_escapeHtml(type)}</div>
-          <div class="d-craft-class ${classClass}">${_escapeHtml(classLabel)}</div>
-        </div>
-        <div class="d-craft-count">${_safeNum(a.count)}</div>
-      </div>
-    `;
+  const AIRCRAFT_MIX_BUCKETS = [
+    { key: 'jet', field: 'premium_private_arrivals_24h', label: 'Private jet', leadLabel: 'private jet', segClass: 'd-mix-seg--jet', dotClass: 'd-mix-cat-dot--jet' },
+    { key: 'turboprop', field: 'turboprop_arrivals_24h', label: 'Turboprop', leadLabel: 'turboprop', segClass: 'd-mix-seg--turboprop', dotClass: 'd-mix-cat-dot--turboprop' },
+    { key: 'ga', field: 'light_ga_arrivals_24h', label: 'Light GA', leadLabel: 'light GA', segClass: 'd-mix-seg--ga', dotClass: 'd-mix-cat-dot--ga' },
+    { key: 'unknown', field: 'unknown_ga_arrivals_24h', label: 'Other / unknown', leadLabel: 'other / unknown', segClass: 'd-mix-seg--unknown', dotClass: 'd-mix-cat-dot--unknown' },
+  ];
+
+  function _aircraftMixBucketCounts(dest) {
+    return AIRCRAFT_MIX_BUCKETS.map((bucket) => ({
+      ...bucket,
+      count: Math.max(0, _safeNum(dest[bucket.field])),
+    })).filter((bucket) => bucket.count > 0);
+  }
+
+  function _aircraftMixLeadSentence(buckets, total) {
+    if (!buckets.length || total <= 0) return '';
+    const maxCount = Math.max(...buckets.map((b) => b.count));
+    const leaders = buckets.filter((b) => b.count === maxCount);
+    if (leaders.length === 1) {
+      const label = leaders[0].leadLabel;
+      if (leaders[0].key === 'unknown') {
+        return 'Other and unknown aircraft lead today\u2019s reported mix.';
+      }
+      return `${label.charAt(0).toUpperCase()}${label.slice(1)} activity leads today\u2019s reported mix.`;
+    }
+    if (leaders.length === 2) {
+      return `Today\u2019s reported aircraft mix is evenly split between ${leaders[0].leadLabel} and ${leaders[1].leadLabel}.`;
+    }
+    const names = leaders.map((b) => b.leadLabel);
+    const last = names.pop();
+    return `Today\u2019s reported aircraft mix is evenly split between ${names.join(', ')} and ${last}.`;
+  }
+
+  function _aircraftMixLeadingType(dest) {
+    const type = _topAircraftType(dest);
+    if (!type || type === 'UNKNOWN') return '';
+    return `${type} leads the reported types.`;
   }
 
   function renderModalAircraft(dest) {
-    const aircraft = Array.isArray(dest.top_aircraft) ? dest.top_aircraft : [];
+    const buckets = _aircraftMixBucketCounts(dest);
+    const total = buckets.reduce((sum, bucket) => sum + bucket.count, 0);
 
-    if (aircraft.length === 0) {
+    if (total <= 0) {
       return `
       <div class="d-section">
         <div class="d-section-head">
           <span class="d-section-label">Private aircraft mix</span>
-          <span class="d-section-meta">Aircraft mix</span>
+          <span class="d-section-meta">Last 24h</span>
         </div>
-        <p class="d-feed-empty">No aircraft data for this period.</p>
+        <p class="d-feed-empty">Aircraft mix is still building.</p>
       </div>
     `;
     }
 
-    const showToggle = aircraft.length > MODAL_EXPAND_COLLAPSED;
-    const collapsedLabel = _modalExpandCollapsedLabel(aircraft.length, 'Show full mix');
-    const rows = aircraft.slice(0, MODAL_EXPAND_MAX).map((a, i) => {
-      const hiddenAttr = showToggle && i >= MODAL_EXPAND_COLLAPSED ? ' data-expand-hidden' : '';
-      return renderModalAircraftRow(a, hiddenAttr);
+    const segments = buckets.map((bucket) => {
+      const flexGrow = Math.max(bucket.count, 1);
+      return `<div class="d-mix-seg ${bucket.segClass}" style="flex-grow:${flexGrow}" title="${_escapeHtml(bucket.label)}"></div>`;
     }).join('');
 
-    const metaCollapsed = 'Top 3 · expandable';
-    const metaExpanded = 'Top 8';
-    const sectionMeta = showToggle ? metaCollapsed : `Top ${aircraft.length}`;
+    const catCells = buckets.map((bucket) => {
+      const pct = Math.round((bucket.count / total) * 100);
+      return `
+        <div class="d-mix-cat">
+          <div class="d-mix-cat-pct">${pct}%</div>
+          <div class="d-mix-cat-key"><span class="d-mix-cat-dot ${bucket.dotClass}" aria-hidden="true"></span></div>
+          <div class="d-mix-cat-label">${_escapeHtml(bucket.label)}</div>
+        </div>
+      `;
+    }).join('');
 
-    const toggleHtml = showToggle ? `
-      <div class="d-section-expand-wrap">
-        <button
-          type="button"
-          class="d-section-expand-btn"
-          data-expand-toggle
-          aria-expanded="false"
-          data-label-collapsed="${_escapeHtml(collapsedLabel)}"
-          data-label-expanded="Show less"
-        >${_escapeHtml(collapsedLabel)}</button>
-      </div>
-    ` : '';
+    const leadSentence = _aircraftMixLeadSentence(buckets, total);
+    const leadType = _aircraftMixLeadingType(dest);
+    const leadTypeHtml = leadType
+      ? `<p class="d-mix-lead-type">${_escapeHtml(leadType)}</p>`
+      : '';
 
     return `
-    <div class="d-section d-section--expandable" data-expand-section="aircraft" data-expanded="false">
+    <div class="d-section">
       <div class="d-section-head">
-          <span class="d-section-label">Private aircraft mix</span>
-          <span
-            class="d-section-meta"
-            data-expand-meta
-            data-meta-collapsed="${_escapeHtml(metaCollapsed)}"
-            data-meta-expanded="${_escapeHtml(metaExpanded)}"
-          >${sectionMeta}</span>
+        <span class="d-section-label">Private aircraft mix</span>
+        <span class="d-section-meta">Last 24h</span>
       </div>
-      <div class="d-aircraft">${rows}</div>
-      ${toggleHtml}
+      <div class="d-mix-bar-wrap">
+        <div class="d-mix-bar" role="img" aria-label="Private aircraft mix by category">${segments}</div>
+      </div>
+      <div class="d-mix-cats">${catCells}</div>
+      <p class="d-mix-interp">${_escapeHtml(leadSentence)}</p>
+      ${leadTypeHtml}
     </div>
   `;
   }
@@ -8870,6 +9123,57 @@
   `;
   }
 
+  function _formatOrdinal(n) {
+    const num = Math.round(Number(n));
+    if (!Number.isFinite(num) || num < 1) return String(n);
+    const mod100 = num % 100;
+    if (mod100 >= 11 && mod100 <= 13) return `${num}th`;
+    const mod10 = num % 10;
+    if (mod10 === 1) return `${num}st`;
+    if (mod10 === 2) return `${num}nd`;
+    if (mod10 === 3) return `${num}rd`;
+    return `${num}th`;
+  }
+
+  function _validComparisonScore(dest) {
+    if (!dest) return null;
+    const score = Number(dest.signal_score);
+    if (!Number.isFinite(score)) return null;
+    return score;
+  }
+
+  function _computePeerMedian(scores) {
+    const sorted = scores.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
+    const n = sorted.length;
+    if (n === 0) return null;
+    if (n % 2 === 1) return sorted[Math.floor(n / 2)];
+    const mid = (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+    return Math.round(mid * 10) / 10;
+  }
+
+  function _stackStatusTone(badgeKey) {
+    if (badgeKey === 'rising' || badgeKey === 'top') return 'up';
+    if (badgeKey === 'cooling') return 'down';
+    if (badgeKey === 'quiet') return 'quiet';
+    return 'steady';
+  }
+
+  function _stackRelativePhrase(rank, total, score, median) {
+    if (rank === 1) return 'leading the group';
+    if (rank === total) return 'trailing the group today';
+    if (median == null) return 'above the peer median';
+    const diff = score - median;
+    if (Math.abs(diff) <= 0.05) return 'at the peer median';
+    if (score > median) return 'above the peer median';
+    return 'below the peer median';
+  }
+
+  function _formatPeerMedianScore(median) {
+    if (median == null || !Number.isFinite(median)) return '—';
+    if (Number.isInteger(median)) return String(median);
+    return median.toFixed(1).replace(/\.0$/, '');
+  }
+
   function renderModalPeers(dest, allDestinations) {
     const peerIds = Array.isArray(dest.peers) ? dest.peers : [];
     if (peerIds.length === 0 || !Array.isArray(allDestinations)) {
@@ -8877,40 +9181,75 @@
     }
 
     const peerObjects = peerIds
-      .map(id => allDestinations.find(d => d.id === id))
+      .map((id) => allDestinations.find((d) => d.id === id))
       .filter(Boolean);
 
     if (peerObjects.length === 0) return '';
 
-    const rows = peerObjects.map(peer => {
-      const tier = _computeTier(peer, allDestinations);
-      const arrivals = _safeNum(peer.arrivals_count);
-      const tierLabel = tier === 'surge' ? 'Heating' : (tier === 'cool' ? 'Cooling' : 'Steady');
-      const region = _escapeHtml(peer.region || '');
-      const peerIcao = _escapeHtml(_destIcao(peer));
-      const subParts = [region, peerIcao].filter(Boolean).join(' · ');
+    const comparisonPool = [dest, ...peerObjects];
+    const scored = comparisonPool
+      .map((item) => ({ dest: item, score: _validComparisonScore(item) }))
+      .filter((item) => item.score != null);
 
+    if (scored.length < 2) {
       return `
-      <div class="d-peer" data-destination-id="${_escapeHtml(peer.id)}">
-        <div class="d-peer-info">
-          <div class="d-peer-name">${_escapeHtml(peer.name || '')}</div>
-          <div class="d-peer-region">${subParts}</div>
+      <div class="d-section">
+        <div class="d-section-head">
+          <span class="d-section-label">How it stacks up</span>
+          <span class="d-section-meta">Comparable destinations</span>
         </div>
-        <div class="d-peer-stats">
-          <div class="d-peer-arrivals">${arrivals}</div>
-          <div class="d-peer-tier ${tier}">${tierLabel}</div>
-        </div>
+        <p class="d-feed-empty">Comparable score data is still building.</p>
       </div>
     `;
+    }
+
+    const sorted = [...scored].sort((a, b) => b.score - a.score);
+    const totalCount = sorted.length;
+    const allScores = sorted.map((item) => item.score);
+    const median = _computePeerMedian(allScores);
+    const currentRank = sorted.findIndex((item) => item.dest.id === dest.id) + 1;
+    const relativePhrase = _stackRelativePhrase(currentRank, totalCount, sorted[currentRank - 1].score, median);
+    const rankSummary = `${_escapeHtml(dest.name || 'This destination')} ranks ${_formatOrdinal(currentRank)} of ${totalCount} by today\u2019s GoTango Index \u2014 ${relativePhrase}.`;
+
+    const withoutCurrent = sorted.filter((item) => item.dest.id !== dest.id);
+    const displayRows = [...withoutCurrent.slice(0, 4)];
+    const currentItem = sorted.find((item) => item.dest.id === dest.id);
+    if (currentItem) displayRows.push(currentItem);
+    displayRows.sort((a, b) => b.score - a.score);
+    const rows = displayRows.map((item) => {
+      const isCurrent = item.dest.id === dest.id;
+      const badge = getPublicSignalBadge(item.dest);
+      const tone = _stackStatusTone(badge.badgeKey);
+      const barWidth = Math.max(0, Math.min(100, Math.round(item.score)));
+      const scoreDisplay = String(Math.round(item.score));
+      const rowInner = `
+          <span class="d-stack-dot d-stack-dot--${tone}" aria-hidden="true"></span>
+          <div class="d-stack-main">
+            <span class="d-stack-name">${_escapeHtml(item.dest.name || '')}</span>
+            <div class="d-stack-track" aria-hidden="true">
+              <div class="d-stack-bar d-stack-bar--${tone}" style="width:${barWidth}%"></div>
+            </div>
+          </div>
+          <span class="d-stack-score">${scoreDisplay}</span>`;
+
+      if (isCurrent) {
+        return `<div class="d-stack-row d-stack-row--current">${rowInner}</div>`;
+      }
+
+      return `<button type="button" class="d-stack-row d-stack-row--peer" data-destination-id="${_escapeHtml(item.dest.id)}" role="button" tabindex="0">${rowInner}</button>`;
     }).join('');
+
+    const medianDisplay = _formatPeerMedianScore(median);
 
     return `
     <div class="d-section">
       <div class="d-section-head">
-        <span class="d-section-label">Similar destinations</span>
-        <span class="d-section-meta">Editorial peers</span>
+        <span class="d-section-label">How it stacks up</span>
+        <span class="d-section-meta">Comparable destinations</span>
       </div>
-      <div class="d-peers">${rows}</div>
+      <p class="d-stacks-summary">${rankSummary}</p>
+      <div class="d-stacks-rows">${rows}</div>
+      <p class="d-stacks-median">Peer median ${medianDisplay} · today\u2019s Index across ${totalCount} comparable destinations.</p>
     </div>
   `;
   }
