@@ -1314,18 +1314,23 @@
   #tab-movers .mover-side-col {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
     flex-shrink: 0;
-    gap: 6px;
+    gap: 4px;
     min-width: 48px;
     max-width: 100%;
+  }
+  #tab-movers .mover-side-col .mover-today {
+    text-align: center;
+    width: 100%;
   }
   #tab-movers .mover-card-actions {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
     position: relative;
     max-width: 100%;
+    width: 100%;
   }
   #tab-movers .mover-action-trigger {
     width: 34px;
@@ -1381,7 +1386,7 @@
     #tab-movers .mover-action-menu.is-open {
       flex-direction: row;
       flex-wrap: wrap;
-      justify-content: flex-end;
+      justify-content: center;
     }
   }
   #tab-movers .mover-action-btn {
@@ -1392,9 +1397,10 @@
     padding: 7px 10px;
     min-height: 34px;
     border-radius: 4px;
-    border: 1px solid var(--border);
-    background: var(--surface-2);
-    color: var(--text);
+    border: 1px solid rgba(232, 163, 23, 0.45);
+    background: rgba(232, 163, 23, 0.08);
+    color: var(--amber);
+    box-shadow: 0 0 10px rgba(232, 163, 23, 0.06);
     cursor: pointer;
     white-space: nowrap;
     max-width: 100%;
@@ -1403,13 +1409,18 @@
     line-height: 1.2;
   }
   #tab-movers .mover-action-btn:hover:not(:disabled) {
-    border-color: rgba(232, 163, 23, 0.35);
-    color: var(--amber);
+    border-color: var(--amber);
+    background: rgba(232, 163, 23, 0.12);
+    box-shadow: 0 0 14px rgba(232, 163, 23, 0.12);
+    color: var(--amber-bright);
   }
   #tab-movers .mover-action-btn:disabled {
-    opacity: 0.78;
+    opacity: 0.62;
     cursor: default;
     color: var(--text-dim);
+    border-color: rgba(232, 163, 23, 0.2);
+    background: rgba(232, 163, 23, 0.03);
+    box-shadow: none;
   }
   #tab-movers .mover-action-btn:focus-visible {
     outline: 2px solid var(--amber);
@@ -4346,7 +4357,7 @@
       gap: 10px;
     }
     #tab-movers .mover-side-col {
-      gap: 5px;
+      gap: 4px;
       min-width: 44px;
     }
     #tab-movers .mover-action-trigger {
@@ -4357,6 +4368,7 @@
     }
     #tab-movers .mover-action-menu {
       max-width: 100%;
+      width: 100%;
     }
     #tab-movers .mover-action-menu.is-open {
       flex-direction: column;
