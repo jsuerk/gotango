@@ -1314,25 +1314,21 @@
   #tab-movers .mover-side-col {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-end;
     flex-shrink: 0;
-    gap: 4px;
+    gap: 6px;
     min-width: 48px;
     max-width: 100%;
   }
-  #tab-movers .mover-side-col .mover-today {
-    text-align: center;
-    width: 100%;
-  }
-  #tab-movers .mover-card-actions {
+  #tab-movers .mover-action-stack {
     display: flex;
     flex-direction: column;
     align-items: center;
-    position: relative;
+    gap: 6px;
     max-width: 100%;
-    width: 100%;
+    flex-shrink: 0;
   }
-  #tab-movers .mover-action-trigger {
+  #tab-movers .mover-action-btn-circle {
     width: 34px;
     height: 34px;
     min-width: 34px;
@@ -1346,85 +1342,39 @@
     justify-content: center;
     cursor: pointer;
     box-shadow: 0 0 10px rgba(232, 163, 23, 0.1);
-    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s, color 0.15s;
     flex-shrink: 0;
     padding: 0;
   }
-  #tab-movers .mover-action-trigger:hover {
+  #tab-movers .mover-action-btn-circle:hover {
     border-color: var(--amber);
     box-shadow: 0 0 14px rgba(232, 163, 23, 0.2);
   }
-  #tab-movers .mover-action-trigger:focus-visible {
+  #tab-movers .mover-action-btn-circle:focus-visible {
     outline: 2px solid var(--amber);
     outline-offset: 2px;
   }
-  #tab-movers .mover-action-trigger[aria-expanded="true"] {
-    border-color: var(--amber);
-    background: rgba(232, 163, 23, 0.08);
-    box-shadow: 0 0 16px rgba(232, 163, 23, 0.22);
+  #tab-movers .mover-action-btn-circle--watch.is-watched {
+    border-color: rgba(127, 176, 105, 0.55);
+    color: var(--signal-up);
+    box-shadow: 0 0 10px rgba(127, 176, 105, 0.12);
+    cursor: default;
   }
-  #tab-movers .mover-action-trigger-icon {
+  #tab-movers .mover-action-btn-circle--watch.is-watched:hover {
+    border-color: var(--signal-up);
+    box-shadow: 0 0 14px rgba(127, 176, 105, 0.2);
+  }
+  #tab-movers .mover-action-btn-circle__icon {
     font-family: 'Geist Mono', monospace;
     font-size: 17px;
     line-height: 1;
     font-weight: 400;
     margin-top: -1px;
   }
-  #tab-movers .mover-action-menu {
-    display: none;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 4px;
-    margin-top: 2px;
-    min-width: 0;
-    max-width: min(100%, 220px);
-  }
-  #tab-movers .mover-action-menu.is-open {
-    display: flex;
-  }
-  @media (min-width: 360px) {
-    #tab-movers .mover-action-menu.is-open {
-      flex-direction: row;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-  }
-  #tab-movers .mover-action-btn {
-    font-family: 'Geist Mono', monospace;
-    font-size: var(--fs-micro);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    padding: 7px 10px;
-    min-height: 34px;
-    border-radius: 4px;
-    border: 1px solid rgba(232, 163, 23, 0.45);
-    background: rgba(232, 163, 23, 0.08);
-    color: var(--amber);
-    box-shadow: 0 0 10px rgba(232, 163, 23, 0.06);
-    cursor: pointer;
-    white-space: nowrap;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.2;
-  }
-  #tab-movers .mover-action-btn:hover:not(:disabled) {
-    border-color: var(--amber);
-    background: rgba(232, 163, 23, 0.12);
-    box-shadow: 0 0 14px rgba(232, 163, 23, 0.12);
-    color: var(--amber-bright);
-  }
-  #tab-movers .mover-action-btn:disabled {
-    opacity: 0.62;
-    cursor: default;
-    color: var(--text-dim);
-    border-color: rgba(232, 163, 23, 0.2);
-    background: rgba(232, 163, 23, 0.03);
-    box-shadow: none;
-  }
-  #tab-movers .mover-action-btn:focus-visible {
-    outline: 2px solid var(--amber);
-    outline-offset: 1px;
+  #tab-movers .mover-action-btn-circle__share-icon {
+    width: 15px;
+    height: 15px;
+    display: block;
   }
   .mover-chart-row {
     display: flex;
@@ -4357,26 +4307,21 @@
       gap: 10px;
     }
     #tab-movers .mover-side-col {
-      gap: 4px;
+      gap: 5px;
       min-width: 44px;
     }
-    #tab-movers .mover-action-trigger {
+    #tab-movers .mover-action-btn-circle {
       width: 32px;
       height: 32px;
       min-width: 32px;
       min-height: 32px;
     }
-    #tab-movers .mover-action-menu {
-      max-width: 100%;
-      width: 100%;
+    #tab-movers .mover-action-btn-circle__share-icon {
+      width: 14px;
+      height: 14px;
     }
-    #tab-movers .mover-action-menu.is-open {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    #tab-movers .mover-action-btn {
-      width: 100%;
-      text-align: center;
+    #tab-movers .mover-action-stack {
+      gap: 5px;
     }
     #tab-movers .section-head {
       padding-left: 16px;
@@ -6561,51 +6506,48 @@
       sideCol.appendChild(today);
 
       const actionsWrap = document.createElement('div');
-      actionsWrap.className = 'mover-card-actions';
+      actionsWrap.className = 'mover-action-stack';
       actionsWrap.setAttribute('data-mover-card-action', '');
-
-      const menuId = `mover-action-menu-${destId}`;
-
-      const trigger = document.createElement('button');
-      trigger.type = 'button';
-      trigger.className = 'mover-action-trigger';
-      trigger.setAttribute('data-mover-action-trigger', destId);
-      trigger.setAttribute('aria-expanded', 'false');
-      trigger.setAttribute('aria-controls', menuId);
-      trigger.setAttribute('aria-label', `Open actions for ${destName}`);
-
-      const plusIcon = document.createElement('span');
-      plusIcon.className = 'mover-action-trigger-icon';
-      plusIcon.setAttribute('aria-hidden', 'true');
-      plusIcon.textContent = '+';
-      trigger.appendChild(plusIcon);
-
-      const menu = document.createElement('div');
-      menu.className = 'mover-action-menu';
-      menu.id = menuId;
-      menu.setAttribute('role', 'group');
-      menu.setAttribute('aria-label', `Actions for ${destName}`);
-      menu.hidden = true;
 
       const watchBtn = document.createElement('button');
       watchBtn.type = 'button';
-      watchBtn.className = 'mover-action-btn mover-action-btn--watch';
+      watchBtn.className = 'mover-action-btn-circle mover-action-btn-circle--watch';
       watchBtn.setAttribute('data-mover-action', 'watch');
       watchBtn.setAttribute('data-destination-id', destId);
-      _applyMoverWatchActionState(watchBtn, destId);
+
+      const plusIcon = document.createElement('span');
+      plusIcon.className = 'mover-action-btn-circle__icon';
+      plusIcon.setAttribute('aria-hidden', 'true');
+      plusIcon.textContent = '+';
+      watchBtn.appendChild(plusIcon);
+      _applyMoverWatchButtonState(watchBtn, destId);
 
       const shareBtn = document.createElement('button');
       shareBtn.type = 'button';
-      shareBtn.className = 'mover-action-btn mover-action-btn--share';
+      shareBtn.className = 'mover-action-btn-circle mover-action-btn-circle--share';
       shareBtn.setAttribute('data-mover-action', 'share');
       shareBtn.setAttribute('data-destination-id', destId);
-      shareBtn.textContent = 'Share';
       shareBtn.setAttribute('aria-label', `Share ${destName}`);
 
-      menu.appendChild(watchBtn);
-      menu.appendChild(shareBtn);
-      actionsWrap.appendChild(trigger);
-      actionsWrap.appendChild(menu);
+      const shareSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      shareSvg.setAttribute('class', 'mover-action-btn-circle__share-icon');
+      shareSvg.setAttribute('viewBox', '0 0 24 24');
+      shareSvg.setAttribute('fill', 'none');
+      shareSvg.setAttribute('stroke', 'currentColor');
+      shareSvg.setAttribute('stroke-width', '2');
+      shareSvg.setAttribute('stroke-linecap', 'round');
+      shareSvg.setAttribute('stroke-linejoin', 'round');
+      shareSvg.setAttribute('aria-hidden', 'true');
+      const sharePath1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      sharePath1.setAttribute('d', 'M22 2L11 13');
+      const sharePath2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      sharePath2.setAttribute('d', 'M22 2l-7 20-4-9-9-4 20-7z');
+      shareSvg.appendChild(sharePath1);
+      shareSvg.appendChild(sharePath2);
+      shareBtn.appendChild(shareSvg);
+
+      actionsWrap.appendChild(watchBtn);
+      actionsWrap.appendChild(shareBtn);
       sideCol.appendChild(actionsWrap);
       headRight = sideCol;
     }
@@ -6729,63 +6671,26 @@
   }
 
   // ============ MOVERS CARD ACTIONS ============
-  let _openMoverActionMenuId = null;
   let _moverActionDelegationBound = false;
 
-  function closeMoverActionMenus() {
-    document.querySelectorAll('#tab-movers .mover-action-menu.is-open').forEach((menu) => {
-      menu.classList.remove('is-open');
-      menu.hidden = true;
-    });
-    document.querySelectorAll('#tab-movers .mover-action-trigger[aria-expanded="true"]').forEach((btn) => {
-      btn.setAttribute('aria-expanded', 'false');
-    });
-    _openMoverActionMenuId = null;
-  }
-
-  function _getMoverWatchActionState(destId) {
-    if (!_watchStorageAvailable) {
-      return { label: 'UNAVAILABLE', disabled: true };
-    }
-    if (isDestinationWatched(destId)) {
-      return { label: 'IN LIST', disabled: true };
-    }
-    if (getWatchlistIds().length >= WATCHLIST_MAX) {
-      return { label: 'LIST FULL', disabled: true };
-    }
-    return { label: 'ADD TO LIST', disabled: false };
-  }
-
-  function _applyMoverWatchActionState(btn, destId) {
-    if (!btn) return;
-    const state = _getMoverWatchActionState(destId);
+  function _applyMoverWatchButtonState(btn, destId) {
+    if (!btn || !destId) return;
     const dest = _getPublicDestinationByIdMap().get(destId);
     const name = dest && dest.name ? String(dest.name) : 'destination';
-    btn.textContent = state.label;
-    btn.disabled = state.disabled;
-    btn.setAttribute('aria-disabled', state.disabled ? 'true' : 'false');
+    const watched = isDestinationWatched(destId);
+    btn.classList.toggle('is-watched', watched);
+    btn.setAttribute('aria-pressed', watched ? 'true' : 'false');
     btn.setAttribute(
       'aria-label',
-      state.disabled ? `${state.label} — ${name}` : `Add ${name} to Watch list`,
+      watched ? `${name} is in Watch` : `Add ${name} to Watch`,
     );
   }
 
-  function toggleMoverActionMenu(destId) {
-    if (!destId) return;
-    const menu = document.getElementById(`mover-action-menu-${destId}`);
-    const trigger = document.querySelector(`#tab-movers [data-mover-action-trigger="${destId}"]`);
-    if (!menu || !trigger) return;
-
-    const isOpen = _openMoverActionMenuId === destId;
-    closeMoverActionMenus();
-    if (!isOpen) {
-      const watchBtn = menu.querySelector('[data-mover-action="watch"]');
-      _applyMoverWatchActionState(watchBtn, destId);
-      menu.classList.add('is-open');
-      menu.hidden = false;
-      trigger.setAttribute('aria-expanded', 'true');
-      _openMoverActionMenuId = destId;
-    }
+  function refreshMoverWatchButtons() {
+    document.querySelectorAll('#tab-movers [data-mover-action="watch"]').forEach((btn) => {
+      const destId = btn.getAttribute('data-destination-id');
+      if (destId) _applyMoverWatchButtonState(btn, destId);
+    });
   }
 
   function attachMoverActionDelegation() {
@@ -6793,54 +6698,30 @@
     _moverActionDelegationBound = true;
 
     document.addEventListener('click', (e) => {
-      const trigger = e.target.closest('[data-mover-action-trigger]');
-      if (trigger) {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleMoverActionMenu(trigger.getAttribute('data-mover-action-trigger'));
-        return;
-      }
-
       const actionBtn = e.target.closest('#tab-movers [data-mover-action]');
-      if (actionBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        const action = actionBtn.getAttribute('data-mover-action');
-        const destId = actionBtn.getAttribute('data-destination-id');
-        if (action === 'watch' && destId && !actionBtn.disabled) {
-          const added = addToWatchlist(destId);
-          if (added) {
-            actionBtn.textContent = 'ADDED';
-            actionBtn.disabled = true;
-            actionBtn.setAttribute('aria-disabled', 'true');
-            refreshWatchUI();
-            setTimeout(closeMoverActionMenus, 250);
-          } else {
-            _applyMoverWatchActionState(actionBtn, destId);
-            if (actionBtn.textContent === 'LIST FULL') {
-              setTimeout(closeMoverActionMenus, 400);
-            }
-          }
-        } else if (action === 'share' && destId) {
-          const dest = _getPublicDestinationByIdMap().get(destId);
-          if (dest) {
-            shareDestinationBrief(dest).then((ok) => {
-              if (ok) closeMoverActionMenus();
-            });
-          }
+      if (!actionBtn) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const action = actionBtn.getAttribute('data-mover-action');
+      const destId = actionBtn.getAttribute('data-destination-id');
+      if (!destId) return;
+
+      if (action === 'watch') {
+        if (isDestinationWatched(destId)) return;
+        const added = addToWatchlist(destId);
+        if (added) {
+          refreshWatchUI();
+        } else if (getWatchlistIds().length >= WATCHLIST_MAX) {
+          showToastMessage('3 / 3 FULL');
         }
         return;
       }
 
-      if (_openMoverActionMenuId && !e.target.closest('[data-mover-card-action]')) {
-        closeMoverActionMenus();
-      }
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && _openMoverActionMenuId && !_modalCurrentDestId) {
-        e.preventDefault();
-        closeMoverActionMenus();
+      if (action === 'share') {
+        const dest = _getPublicDestinationByIdMap().get(destId);
+        if (dest) shareDestinationBrief(dest);
       }
     });
   }
@@ -7362,6 +7243,7 @@
       _updateWatchHeroCount(getWatchlistIds().length);
     }
     refreshModalWatchControl();
+    refreshMoverWatchButtons();
   }
 
   function attachWatchDelegation() {
@@ -7456,7 +7338,6 @@
 
   function switchToTab(tabId) {
     if (!tabId) return;
-    closeMoverActionMenus();
     if (document.getElementById('tab-about-index').classList.contains('active') && location.hash === '#about-gotango-index') {
       const url = new URL(window.location.href);
       url.hash = '';
@@ -8450,7 +8331,6 @@
 
   function openDestinationModal(destinationId) {
     if (!destinationId) return;
-    closeMoverActionMenus();
 
     // Find the destination in the cached data
     const data = _modalArrivalsData;
