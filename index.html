@@ -1311,20 +1311,49 @@
   }
   .mover-trend-tag.up { color: var(--signal-up); }
   .mover-trend-tag.down { color: var(--signal-down); }
+  #tab-movers .mover-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
+    row-gap: 4px;
+    align-items: start;
+  }
+  #tab-movers .mover-head {
+    display: contents;
+    margin-bottom: 0;
+  }
+  #tab-movers .mover-info {
+    grid-column: 1;
+    grid-row: 1;
+  }
   #tab-movers .mover-side-col {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     flex-shrink: 0;
-    gap: 6px;
+    gap: 8px;
     min-width: 48px;
     max-width: 100%;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: start;
+  }
+  #tab-movers .mover-chart-row {
+    grid-column: 1;
+    grid-row: 2;
+    padding-top: 0;
+  }
+  #tab-movers .mover-title-block {
+    margin-bottom: 2px;
+  }
+  #tab-movers .mover-row {
+    padding: 14px;
   }
   #tab-movers .mover-action-stack {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     max-width: 100%;
     flex-shrink: 0;
   }
@@ -4306,8 +4335,12 @@
     #tab-movers .mover-head {
       gap: 10px;
     }
+    #tab-movers .mover-body {
+      column-gap: 10px;
+      row-gap: 4px;
+    }
     #tab-movers .mover-side-col {
-      gap: 5px;
+      gap: 8px;
       min-width: 44px;
     }
     #tab-movers .mover-action-btn-circle {
@@ -4321,7 +4354,7 @@
       height: 14px;
     }
     #tab-movers .mover-action-stack {
-      gap: 5px;
+      gap: 8px;
     }
     #tab-movers .section-head {
       padding-left: 16px;
@@ -6492,7 +6525,7 @@
     today.appendChild(labelEl);
 
     const trendTag = getMoverTrendTag(dest, story.badge);
-    if (trendTag) {
+    if (trendTag && !options.showActions) {
       const tagEl = document.createElement('div');
       tagEl.className = `mover-trend-tag ${trendTag.className}`;
       tagEl.textContent = trendTag.text;
