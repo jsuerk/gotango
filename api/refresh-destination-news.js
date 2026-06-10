@@ -100,12 +100,13 @@ async function saveNewsResults({
     generator_version: runSummary.generator_version,
   };
 
+  const existingLatest = await kv.get(NEWS_KV_KEYS.latest);
+  const mergedLatest = mergeLatestNews(existingLatest, results, completedAt);
+
   for (const result of results) {
     await kv.set(NEWS_KV_KEYS.diagnostics(result.destination_id), result);
   }
 
-  const existingLatest = await kv.get(NEWS_KV_KEYS.latest);
-  const mergedLatest = mergeLatestNews(existingLatest, results, completedAt);
   await kv.set(NEWS_KV_KEYS.latest, mergedLatest);
   await kv.set(NEWS_KV_KEYS.meta, meta);
   await kv.lpush(NEWS_KV_KEYS.runs, runSummary);

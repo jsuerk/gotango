@@ -16,6 +16,12 @@ export const NEWS_WEB_SEARCH_PRICING = {
 
 const PUBLIC_DESTINATION_BY_ID = new Map(DESTINATIONS.map((d) => [d.id, d]));
 
+export const DESTINATION_TRUSTED_EDITORIAL_DOMAINS = {
+  ibiza: ['periodicodeibiza.es', 'cadenaser.com'],
+  'st-barts': ['journaldesaintbarth.com', 'caribjournal.com'],
+  maldives: ['edition.mv'],
+};
+
 const PILOT_NEWS_CONFIGS = [
   {
     destination_id: 'ibiza',

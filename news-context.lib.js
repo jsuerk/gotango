@@ -8,9 +8,10 @@ import {
   isPilotDestinationId,
   PILOT_DESTINATION_COUNT,
   PILOT_DESTINATION_IDS,
+  DESTINATION_TRUSTED_EDITORIAL_DOMAINS,
 } from './news-context.config.js';
 
-export const GENERATOR_VERSION = 'news_v1';
+export const GENERATOR_VERSION = 'news_v2';
 
 export const REJECTION_REASONS = {
   NO_RELEVANT_TRAVEL_NEWS: 'NO_RELEVANT_TRAVEL_NEWS',
@@ -494,8 +495,14 @@ export function parseMaxOutputTokens() {
   return n;
 }
 
+export function computeEarliestPermittedSourceDate(utcDateIso) {
+  const generationDate = String(utcDateIso).slice(0, 10);
+  return subtractCalendarDays(generationDate, 7);
+}
+
 export function buildNewsPrompt(config, utcDateIso) {
   const utcDate = utcDateIso.slice(0, 10);
+  const earliestPermittedSourceDate = computeEarliestPermittedSourceDate(utcDateIso);
   const staticGuardrails = `You are preparing a compact destination-intelligence brief for GoTango, a destination intelligence application.
 
 Search the live web before answering.
@@ -602,6 +609,11 @@ NO_RELEVANT_TRAVEL_NEWS
 No blurb is better than a technically valid but pointless blurb.
 
 Do not return an uncited paragraph.
+
+Current generation date: ${utcDate}
+Earliest permitted source date: ${earliestPermittedSourceDate}
+Do not cite a source published before ${earliestPermittedSourceDate}
+If the available reporting cannot support the brief using sources on or after ${earliestPermittedSourceDate}, return exactly NO_RELEVANT_TRAVEL_NEWS
 
 Current UTC date: ${utcDate}
 
@@ -1434,15 +1446,30 @@ function isFirstPartyDomain(domain) {
   );
 }
 
-function isIndependentEditorialDomain(domain) {
+function domainMatchesAllowlist(domain, allowlist) {
   const normalized = domain.toLowerCase();
   return (
-    INDEPENDENT_EDITORIAL_DOMAINS.has(normalized) ||
-    [...INDEPENDENT_EDITORIAL_DOMAINS].some(
-      (editorialDomain) =>
-        normalized === editorialDomain || normalized.endsWith(`.${editorialDomain}`),
+    allowlist.has(normalized) ||
+    [...allowlist].some(
+      (allowedDomain) =>
+        normalized === allowedDomain || normalized.endsWith(`.${allowedDomain}`),
     )
   );
+}
+
+function isIndependentEditorialDomain(domain, destinationId = null) {
+  if (domainMatchesAllowlist(domain, INDEPENDENT_EDITORIAL_DOMAINS)) {
+    return true;
+  }
+
+  if (!destinationId) return false;
+
+  const destinationDomains = DESTINATION_TRUSTED_EDITORIAL_DOMAINS[destinationId];
+  if (!Array.isArray(destinationDomains) || destinationDomains.length === 0) {
+    return false;
+  }
+
+  return domainMatchesAllowlist(domain, new Set(destinationDomains));
 }
 
 export function isFirstPartySource(citation) {
@@ -1458,15 +1485,16 @@ export function isFirstPartySource(citation) {
   return false;
 }
 
-export function isIndependentEditorialSource(citation) {
+export function isIndependentEditorialSource(citation, config = null) {
   const domain = citation?.domain ?? normalizeDomain(citation?.url);
   if (!domain) return false;
   if (isPressReleaseDomain(domain)) return false;
   if (isFirstPartySource(citation)) return false;
-  return isIndependentEditorialDomain(domain);
+  const destinationId = config?.destination_id ?? null;
+  return isIndependentEditorialDomain(domain, destinationId);
 }
 
-export function validateSourceIndependence(citations) {
+export function validateSourceIndependence(citations, config = null) {
   let pressReleaseSourceCount = 0;
   let firstPartySourceCount = 0;
 
@@ -1483,7 +1511,7 @@ export function validateSourceIndependence(citations) {
     (citation) => !isPressReleaseDomain(citation.domain ?? normalizeDomain(citation.url)),
   );
   const hasIndependentEditorialSource = citations.some((citation) =>
-    isIndependentEditorialSource(citation),
+    isIndependentEditorialSource(citation, config),
   );
 
   return {
@@ -1715,7 +1743,7 @@ export function validateBlurb(outputText, rawCitations, config, utcDateIso) {
     });
   }
 
-  const sourceIndependence = validateSourceIndependence(uniqueCitations);
+  const sourceIndependence = validateSourceIndependence(uniqueCitations, config);
   if (!sourceIndependence.passes) {
     return buildValidationFailure({
       rejectionReason: REJECTION_REASONS.SOURCE_INDEPENDENCE,
@@ -2342,7 +2370,50 @@ export function isEntryUnexpired(entry, nowIso = new Date().toISOString()) {
   return String(entry.expires_at) > nowIso;
 }
 
+export function isPriorEntryCompatible(entry) {
+  return entry?.generator_version === GENERATOR_VERSION;
+}
+
+export function isPreservablePriorEntry(entry, nowIso = new Date().toISOString()) {
+  return (
+    entry != null &&
+    isEntryUnexpired(entry, nowIso) &&
+    isPriorEntryCompatible(entry)
+  );
+}
+
+export function annotateResultsWithPriorLatestEntryHandling(existingLatest, results, nowIso) {
+  const existingMap = new Map();
+  if (existingLatest && typeof existingLatest === 'object' && Array.isArray(existingLatest.destinations)) {
+    for (const entry of existingLatest.destinations) {
+      if (entry?.destination_id) {
+        existingMap.set(entry.destination_id, entry);
+      }
+    }
+  }
+
+  for (const result of results) {
+    const prior = existingMap.get(result.destination_id) ?? null;
+    const priorLatestEntryFound = prior != null;
+    const priorLatestEntryVersion = prior?.generator_version ?? null;
+    const priorLatestEntryCompatible = isPriorEntryCompatible(prior);
+    const preservablePriorEntry = isPreservablePriorEntry(prior, nowIso);
+    const legacyLatestEntryRemoved =
+      !result.publishable && priorLatestEntryFound && !priorLatestEntryCompatible;
+
+    result.prior_latest_entry_found = priorLatestEntryFound;
+    result.prior_latest_entry_version = priorLatestEntryVersion;
+    result.prior_latest_entry_compatible = priorLatestEntryCompatible;
+    result.prior_latest_entry_preserved = !result.publishable && preservablePriorEntry;
+    result.legacy_latest_entry_removed = legacyLatestEntryRemoved;
+  }
+
+  return results;
+}
+
 export function mergeLatestNews(existingLatest, newResults, nowIso) {
+  annotateResultsWithPriorLatestEntryHandling(existingLatest, newResults, nowIso);
+
   const existingMap = new Map();
   if (existingLatest && typeof existingLatest === 'object' && Array.isArray(existingLatest.destinations)) {
     for (const entry of existingLatest.destinations) {
@@ -2370,7 +2441,7 @@ export function mergeLatestNews(existingLatest, newResults, nowIso) {
     }
 
     const prior = existingMap.get(result.destination_id);
-    if (!isEntryUnexpired(prior, nowIso)) {
+    if (!isPreservablePriorEntry(prior, nowIso)) {
       existingMap.delete(result.destination_id);
     }
   }
