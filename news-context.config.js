@@ -2,7 +2,10 @@ import { DESTINATIONS } from './destinations.config.js';
 
 export const NEWS_PRICING_VERSION = '2026-06-10';
 
-export const NEWS_SOURCE_MAX_AGE_DAYS = 60;
+export const NEWS_SOURCE_MAX_AGE_DAYS = 30;
+export const NEWS_EVENT_SOURCE_MAX_AGE_DAYS = 60;
+export const NEWS_UPCOMING_EVENT_WINDOW_DAYS = 60;
+export const NEWS_RECENT_OPENING_MAX_AGE_DAYS = 21;
 
 export const PLATFORM_HOSTING_DOMAINS = [
   'wordpress.com',
@@ -44,13 +47,15 @@ const PILOT_NEWS_CONFIGS = [
     aliases: ['Ibiza', 'Eivissa'],
     excluded_meanings: [],
     search_hints: [
-      'luxury travel',
-      'hotels',
-      'restaurants',
-      'nightlife',
       'events',
-      'air access',
-      'marinas',
+      'concerts',
+      'nightlife',
+      'DJ residencies',
+      'restaurant openings',
+      'beach clubs',
+      'festivals',
+      'cultural programming',
+      'marina events',
     ],
   },
   {
@@ -65,12 +70,14 @@ const PILOT_NEWS_CONFIGS = [
       'West Palm Beach city government',
     ],
     search_hints: [
-      'luxury travel',
-      'hotels',
-      'restaurants',
-      'cultural events',
-      'seasonal travel',
-      'Palm Beach International Airport',
+      'events',
+      'restaurant openings',
+      'cultural programming',
+      'seasonal dining',
+      'nightlife',
+      'art exhibitions',
+      'polo',
+      'yachting',
     ],
   },
   {
@@ -87,13 +94,14 @@ const PILOT_NEWS_CONFIGS = [
     ],
     excluded_meanings: [],
     search_hints: [
-      'luxury travel',
-      'hotels',
-      'restaurants',
-      'yachts',
       'events',
+      'restaurant openings',
+      'yachting',
+      'regattas',
+      'festivals',
+      'nightlife',
       'Gustavia',
-      'travel access',
+      'cultural programming',
     ],
   },
   {
@@ -108,12 +116,14 @@ const PILOT_NEWS_CONFIGS = [
       'Maldives elections',
     ],
     search_hints: [
-      'luxury resorts',
-      'private islands',
-      'hotel openings',
-      'air access',
-      'seaplanes',
-      'travel conditions',
+      'resort openings',
+      'restaurant openings',
+      'beach clubs',
+      'diving events',
+      'culinary events',
+      'cultural programming',
+      'regattas',
+      'nightlife',
     ],
   },
   {
@@ -132,11 +142,12 @@ const PILOT_NEWS_CONFIGS = [
       'Harbor Island South Carolina',
     ],
     search_hints: [
-      'luxury travel',
-      'hotels',
-      'restaurants',
       'events',
-      'North Eleuthera Airport',
+      'restaurant openings',
+      'regattas',
+      'festivals',
+      'nightlife',
+      'cultural programming',
       'Bahamas travel',
     ],
   },
