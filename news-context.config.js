@@ -2,6 +2,18 @@ import { DESTINATIONS } from './destinations.config.js';
 
 export const NEWS_PRICING_VERSION = '2026-06-10';
 
+export const NEWS_SOURCE_MAX_AGE_DAYS = 60;
+
+export const PLATFORM_HOSTING_DOMAINS = [
+  'wordpress.com',
+  'medium.com',
+  'substack.com',
+  'blogspot.com',
+  'tumblr.com',
+  'wixsite.com',
+  'weebly.com',
+];
+
 export const NEWS_MODEL_PRICING = {
   'gpt-5.4-mini': {
     input_per_1m: 0.75,
