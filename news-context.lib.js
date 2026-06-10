@@ -27,6 +27,7 @@ export const REJECTION_REASONS = {
   TIMEOUT: 'TIMEOUT',
   RATE_LIMITED: 'RATE_LIMITED',
   INVALID_RESPONSE: 'INVALID_RESPONSE',
+  STALE_EVENT_DATE: 'STALE_EVENT_DATE',
   FUNCTION_DEADLINE: 'FUNCTION_DEADLINE',
   VALIDATION_FAILED: 'VALIDATION_FAILED',
 };
@@ -93,6 +94,25 @@ const INVENTED_METRICS_PATTERNS = [
 
 const NO_RELEVANT_MARKER = 'NO_RELEVANT_TRAVEL_NEWS';
 const MAX_DIAGNOSTIC_ERROR_MESSAGE_LENGTH = 200;
+const ENGLISH_MONTH_NAMES = [
+  'january',
+  'february',
+  'march',
+  'april',
+  'may',
+  'june',
+  'july',
+  'august',
+  'september',
+  'october',
+  'november',
+  'december',
+];
+const STALE_EVENT_END_PATTERN = new RegExp(
+  `(?:through|until|ends?|ending|runs through)\\s+(${ENGLISH_MONTH_NAMES.join('|')})\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b`,
+  'gi',
+);
+const VERSIONED_GPT_54_MINI_PATTERN = /^gpt-5\.4-mini-\d{4}-\d{2}-\d{2}$/;
 
 function truncateDiagnosticMessage(value, maxLength = MAX_DIAGNOSTIC_ERROR_MESSAGE_LENGTH) {
   const text = String(value ?? '').trim();
@@ -345,13 +365,25 @@ When credible current travel reporting is available:
 - include inline citations supported by the web-search tool
 - use two or three relevant sources
 - use at least two distinct source domains
+- prefer three distinct source domains when credible reporting is available
+- avoid citing the same publisher twice unless a second independent domain is not available
 - use neutral, factual language
 
 When those requirements cannot be met, return exactly:
 
 NO_RELEVANT_TRAVEL_NEWS
 
-Current UTC date: ${utcDate}`;
+Current UTC date: ${utcDate}
+
+Compare every event date with today before writing.
+
+Do not describe an event as upcoming, underway, current, or ongoing when its final date is earlier than today.
+
+Do not include an event that has already ended unless it has a continuing, direct, practical effect on travelers today.
+
+For recurring events, mention a future occurrence or next scheduled date, not only a past launch date.
+
+If the available sources do not support current or future traveler-relevant information, return exactly NO_RELEVANT_TRAVEL_NEWS.`;
 
   const destinationBlock = `Destination context:
 - Public destination name: ${config.destination_name}
@@ -672,160 +704,254 @@ function validateCitationOffsets(citations, outputTextLength) {
   return true;
 }
 
-export function validateBlurb(outputText, rawCitations, config) {
+function blurbContainsMarkupOrUrls(text) {
+  if (/https?:\/\//i.test(text)) return true;
+  if (/\]\(/.test(text)) return true;
+  if (/<a\s/i.test(text)) return true;
+  return false;
+}
+
+export function cleanBlurbFromCitationMarkup(outputText, citations) {
+  const raw = typeof outputText === 'string' ? outputText : '';
+  const removable = citations.filter(
+    (citation) =>
+      Number.isInteger(citation.start_index) &&
+      Number.isInteger(citation.end_index) &&
+      citation.start_index >= 0 &&
+      citation.end_index > citation.start_index &&
+      citation.end_index <= raw.length,
+  );
+  const sorted = [...removable].sort((a, b) => b.start_index - a.start_index);
+
+  let cleaned = raw;
+  let citationMarkupRemoved = false;
+  for (const citation of sorted) {
+    cleaned = cleaned.slice(0, citation.start_index) + cleaned.slice(citation.end_index);
+    citationMarkupRemoved = true;
+  }
+
+  cleaned = cleaned.replace(/\(\s*\)/g, '');
+  cleaned = cleaned.replace(/ {2,}/g, ' ');
+  cleaned = cleaned.replace(/ +([.,;:!?])/g, '$1');
+  cleaned = cleaned.trim();
+
+  return { cleaned, citation_markup_removed: citationMarkupRemoved };
+}
+
+function formatUtcDateIso(year, monthIndex, day) {
+  const month = String(monthIndex + 1).padStart(2, '0');
+  const dayText = String(day).padStart(2, '0');
+  return `${year}-${month}-${dayText}`;
+}
+
+export function detectStaleEventEndDate(cleanedBlurb, utcDateIso) {
+  const text = typeof cleanedBlurb === 'string' ? cleanedBlurb : '';
+  if (!text) return null;
+
+  const today = String(utcDateIso).slice(0, 10);
+  const currentYear = Number(today.slice(0, 4));
+  if (!Number.isInteger(currentYear)) return null;
+
+  STALE_EVENT_END_PATTERN.lastIndex = 0;
+  let match = STALE_EVENT_END_PATTERN.exec(text);
+  while (match) {
+    const monthIndex = ENGLISH_MONTH_NAMES.indexOf(match[1].toLowerCase());
+    const day = Number(match[2]);
+    if (monthIndex >= 0 && Number.isInteger(day) && day >= 1 && day <= 31) {
+      const normalizedDate = formatUtcDateIso(currentYear, monthIndex, day);
+      if (normalizedDate < today) {
+        return normalizedDate;
+      }
+    }
+    match = STALE_EVENT_END_PATTERN.exec(text);
+  }
+
+  return null;
+}
+
+function buildValidationFailure({
+  rejectionReason,
+  validationWarnings,
+  wordCount = 0,
+  distinctDomainCount = 0,
+  cleanBlurbWordCount = 0,
+  citationMarkupRemoved = false,
+  staleEventDateDetected = null,
+}) {
+  return {
+    publishable: false,
+    blurb: null,
+    citations: [],
+    rejection_reason: rejectionReason,
+    validation_warnings: validationWarnings,
+    word_count: wordCount,
+    distinct_domain_count: distinctDomainCount,
+    clean_blurb_word_count: cleanBlurbWordCount,
+    citation_markup_removed: citationMarkupRemoved,
+    stale_event_date_detected: staleEventDateDetected,
+  };
+}
+
+export function validateBlurb(outputText, rawCitations, config, utcDateIso) {
   const validationWarnings = ['source_recency_not_deterministically_verified'];
   const trimmed = typeof outputText === 'string' ? outputText.trim() : '';
 
   if (!trimmed) {
-    return {
-      publishable: false,
-      blurb: null,
-      citations: [],
-      rejection_reason: REJECTION_REASONS.INVALID_RESPONSE,
-      validation_warnings: validationWarnings,
-      word_count: 0,
-      distinct_domain_count: 0,
-    };
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.INVALID_RESPONSE,
+      validationWarnings,
+    });
   }
 
   if (trimmed === NO_RELEVANT_MARKER) {
-    return {
-      publishable: false,
-      blurb: null,
-      citations: [],
-      rejection_reason: REJECTION_REASONS.NO_RELEVANT_TRAVEL_NEWS,
-      validation_warnings: validationWarnings,
-      word_count: 0,
-      distinct_domain_count: 0,
-    };
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.NO_RELEVANT_TRAVEL_NEWS,
+      validationWarnings,
+    });
   }
 
-  const wordCount = countWords(trimmed);
-  if (wordCount < 55 || wordCount > 90) {
-    return {
-      publishable: false,
-      blurb: null,
-      citations: [],
-      rejection_reason: REJECTION_REASONS.WORD_COUNT,
-      validation_warnings: validationWarnings,
-      word_count: wordCount,
-      distinct_domain_count: 0,
-    };
+  const invalidCitationUrl = rawCitations.some(
+    (citation) => citation?.url && !validateHttpsUrl(citation.url),
+  );
+  if (invalidCitationUrl) {
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.UNSAFE_URL,
+      validationWarnings,
+    });
   }
 
   const deduped = dedupeCitations(rawCitations);
-  const invalidCitationUrl = rawCitations.some((citation) => citation?.url && !validateHttpsUrl(citation.url));
-  if (invalidCitationUrl) {
-    return {
-      publishable: false,
-      blurb: null,
-      citations: [],
-      rejection_reason: REJECTION_REASONS.UNSAFE_URL,
-      validation_warnings: validationWarnings,
-      word_count: wordCount,
-      distinct_domain_count: 0,
-    };
+  if (!validateCitationOffsets(deduped, trimmed.length)) {
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.MALFORMED_CITATIONS,
+      validationWarnings,
+    });
   }
 
-  if (!validateCitationOffsets(deduped, trimmed.length)) {
-    return {
-      publishable: false,
-      blurb: null,
-      citations: [],
-      rejection_reason: REJECTION_REASONS.MALFORMED_CITATIONS,
-      validation_warnings: validationWarnings,
-      word_count: wordCount,
-      distinct_domain_count: 0,
-    };
+  const { cleaned, citation_markup_removed: citationMarkupRemoved } =
+    cleanBlurbFromCitationMarkup(trimmed, deduped);
+
+  if (!cleaned || blurbContainsMarkupOrUrls(cleaned)) {
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.INVALID_RESPONSE,
+      validationWarnings,
+      citationMarkupRemoved,
+    });
+  }
+
+  const wordCount = countWords(cleaned);
+  if (wordCount < 55 || wordCount > 90) {
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.WORD_COUNT,
+      validationWarnings,
+      wordCount,
+      cleanBlurbWordCount: wordCount,
+      citationMarkupRemoved,
+    });
   }
 
   if (deduped.length < 2 || deduped.length > 3) {
-    return {
-      publishable: false,
-      blurb: null,
-      citations: [],
-      rejection_reason: REJECTION_REASONS.CITATION_COUNT,
-      validation_warnings: validationWarnings,
-      word_count: wordCount,
-      distinct_domain_count: new Set(deduped.map((c) => c.domain).filter(Boolean)).size,
-    };
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.CITATION_COUNT,
+      validationWarnings,
+      wordCount,
+      distinctDomainCount: new Set(deduped.map((c) => c.domain).filter(Boolean)).size,
+      cleanBlurbWordCount: wordCount,
+      citationMarkupRemoved,
+    });
   }
 
   const domains = new Set(deduped.map((c) => c.domain).filter(Boolean));
   if (domains.size < 2) {
-    return {
-      publishable: false,
-      blurb: null,
-      citations: [],
-      rejection_reason: REJECTION_REASONS.DOMAIN_DIVERSITY,
-      validation_warnings: validationWarnings,
-      word_count: wordCount,
-      distinct_domain_count: domains.size,
-    };
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.DOMAIN_DIVERSITY,
+      validationWarnings,
+      wordCount,
+      distinctDomainCount: domains.size,
+      cleanBlurbWordCount: wordCount,
+      citationMarkupRemoved,
+    });
   }
 
-  const relevanceText = [
-    trimmed,
-    ...deduped.map((citation) => citation.title || ''),
-  ].join('\n');
+  const relevanceText = [cleaned, ...deduped.map((citation) => citation.title || '')].join('\n');
 
   if (!textMentionsDestination(relevanceText, config)) {
-    return {
-      publishable: false,
-      blurb: null,
-      citations: [],
-      rejection_reason: REJECTION_REASONS.DESTINATION_MISMATCH,
-      validation_warnings: validationWarnings,
-      word_count: wordCount,
-      distinct_domain_count: domains.size,
-    };
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.DESTINATION_MISMATCH,
+      validationWarnings,
+      wordCount,
+      distinctDomainCount: domains.size,
+      cleanBlurbWordCount: wordCount,
+      citationMarkupRemoved,
+    });
   }
 
-  if (containsAnyPattern(trimmed, PROHIBITED_PATTERNS)) {
-    return {
-      publishable: false,
-      blurb: null,
-      citations: [],
-      rejection_reason: REJECTION_REASONS.PROHIBITED_SUBJECT,
-      validation_warnings: validationWarnings,
-      word_count: wordCount,
-      distinct_domain_count: domains.size,
-    };
+  if (containsAnyPattern(cleaned, PROHIBITED_PATTERNS)) {
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.PROHIBITED_SUBJECT,
+      validationWarnings,
+      wordCount,
+      distinctDomainCount: domains.size,
+      cleanBlurbWordCount: wordCount,
+      citationMarkupRemoved,
+    });
   }
 
-  if (containsAnyPattern(trimmed, CAUSAL_INDEX_PATTERNS)) {
-    return {
-      publishable: false,
-      blurb: null,
-      citations: [],
-      rejection_reason: REJECTION_REASONS.CAUSAL_INDEX_LANGUAGE,
-      validation_warnings: validationWarnings,
-      word_count: wordCount,
-      distinct_domain_count: domains.size,
-    };
+  if (containsAnyPattern(cleaned, CAUSAL_INDEX_PATTERNS)) {
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.CAUSAL_INDEX_LANGUAGE,
+      validationWarnings,
+      wordCount,
+      distinctDomainCount: domains.size,
+      cleanBlurbWordCount: wordCount,
+      citationMarkupRemoved,
+    });
   }
 
-  if (containsAnyPattern(trimmed, INVENTED_METRICS_PATTERNS)) {
-    return {
-      publishable: false,
-      blurb: null,
-      citations: [],
-      rejection_reason: REJECTION_REASONS.INVENTED_METRICS,
-      validation_warnings: validationWarnings,
-      word_count: wordCount,
-      distinct_domain_count: domains.size,
-    };
+  if (containsAnyPattern(cleaned, INVENTED_METRICS_PATTERNS)) {
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.INVENTED_METRICS,
+      validationWarnings,
+      wordCount,
+      distinctDomainCount: domains.size,
+      cleanBlurbWordCount: wordCount,
+      citationMarkupRemoved,
+    });
+  }
+
+  const staleEventDateDetected = detectStaleEventEndDate(cleaned, utcDateIso);
+  if (staleEventDateDetected) {
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.STALE_EVENT_DATE,
+      validationWarnings: [...validationWarnings, staleEventDateDetected],
+      wordCount,
+      distinctDomainCount: domains.size,
+      cleanBlurbWordCount: wordCount,
+      citationMarkupRemoved,
+      staleEventDateDetected,
+    });
   }
 
   return {
     publishable: true,
-    blurb: trimmed,
+    blurb: cleaned,
     citations: deduped,
     rejection_reason: null,
     validation_warnings: validationWarnings,
     word_count: wordCount,
     distinct_domain_count: domains.size,
+    clean_blurb_word_count: wordCount,
+    citation_markup_removed: citationMarkupRemoved,
+    stale_event_date_detected: null,
   };
+}
+
+export function resolvePricingModelFamily(model) {
+  if (!model || typeof model !== 'string') return null;
+  if (model === 'gpt-5.4-mini' || VERSIONED_GPT_54_MINI_PATTERN.test(model)) {
+    return 'gpt-5.4-mini';
+  }
+  return null;
 }
 
 export function estimateCosts({ model, tokenUsage, webSearchCalls, validationWarnings }) {
@@ -834,7 +960,8 @@ export function estimateCosts({ model, tokenUsage, webSearchCalls, validationWar
     Math.round((webSearchCalls / 1000) * NEWS_WEB_SEARCH_PRICING.per_1000_calls * 1_000_000) /
     1_000_000;
 
-  const pricing = NEWS_MODEL_PRICING[model];
+  const pricingModelFamily = resolvePricingModelFamily(model);
+  const pricing = pricingModelFamily ? NEWS_MODEL_PRICING[pricingModelFamily] : null;
   if (!pricing) {
     warnings.push('model_pricing_not_configured');
     return {
@@ -842,6 +969,7 @@ export function estimateCosts({ model, tokenUsage, webSearchCalls, validationWar
       estimated_model_cost: null,
       estimated_total_cost: null,
       validation_warnings: warnings,
+      pricing_model_family: null,
     };
   }
 
@@ -860,6 +988,7 @@ export function estimateCosts({ model, tokenUsage, webSearchCalls, validationWar
     estimated_model_cost: modelCost,
     estimated_total_cost: modelCost + searchCost,
     validation_warnings: warnings,
+    pricing_model_family: pricingModelFamily,
   };
 }
 
@@ -886,6 +1015,9 @@ export function buildDestinationResult({
   tokenUsage,
   costEstimates,
   durationMs,
+  cleanBlurbWordCount = 0,
+  citationMarkupRemoved = false,
+  staleEventDateDetected = null,
   error = null,
 }) {
   return {
@@ -911,7 +1043,11 @@ export function buildDestinationResult({
     estimated_model_cost: costEstimates.estimated_model_cost,
     estimated_total_cost: costEstimates.estimated_total_cost,
     pricing_version: NEWS_PRICING_VERSION,
+    pricing_model_family: costEstimates.pricing_model_family ?? null,
     validation_warnings: costEstimates.validation_warnings,
+    clean_blurb_word_count: cleanBlurbWordCount,
+    citation_markup_removed: citationMarkupRemoved,
+    stale_event_date_detected: staleEventDateDetected,
     generator_version: GENERATOR_VERSION,
     duration_ms: durationMs,
     error,
@@ -1156,7 +1292,7 @@ export async function processDestinationNews({
 
   const { parsed, tokenUsage, webSearchCalls, webSearchActions, consultedSources } =
     apiResult.metrics;
-  const validation = validateBlurb(parsed.output_text, parsed.citations, config);
+  const validation = validateBlurb(parsed.output_text, parsed.citations, config, generatedAt);
   const costEstimates = estimateCosts({
     model: apiResult.metrics.model,
     tokenUsage,
@@ -1181,6 +1317,9 @@ export async function processDestinationNews({
     tokenUsage,
     costEstimates,
     durationMs,
+    cleanBlurbWordCount: validation.clean_blurb_word_count ?? 0,
+    citationMarkupRemoved: validation.citation_markup_removed ?? false,
+    staleEventDateDetected: validation.stale_event_date_detected ?? null,
     error: null,
   });
 }
