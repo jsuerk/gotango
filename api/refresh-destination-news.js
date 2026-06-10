@@ -11,6 +11,7 @@ import {
   getConfiguredModel,
   mergeLatestNews,
   parsePilotDestinationId,
+  parseMaxOutputTokens,
   parsePilotLimit,
   parseTtlHours,
   parseWorkerConcurrency,
@@ -57,6 +58,7 @@ async function saveNewsResults({
   completedAt,
   durationMs,
   configuredModel,
+  maxOutputTokens,
   attempted,
   metrics,
   results,
@@ -67,6 +69,7 @@ async function saveNewsResults({
     completedAt,
     durationMs,
     configuredModel,
+    maxOutputTokens,
     attempted,
     metrics,
   });
@@ -77,6 +80,7 @@ async function saveNewsResults({
     completed_at: completedAt,
     duration_ms: durationMs,
     configured_model: configuredModel,
+    max_output_tokens: maxOutputTokens,
     attempted,
     completed: metrics.completedCount,
     publishable_count: metrics.publishableCount,
@@ -157,6 +161,7 @@ export default async function handler(req, res) {
     limit: limitResult.value,
   });
   const configuredModel = getConfiguredModel();
+  const maxOutputTokens = parseMaxOutputTokens();
   const ttlHours = parseTtlHours();
   const concurrency = parseWorkerConcurrency();
 
@@ -180,6 +185,7 @@ export default async function handler(req, res) {
       completedAt,
       durationMs,
       configuredModel,
+      maxOutputTokens,
       attempted: destinations.length,
       metrics,
       results,
@@ -192,6 +198,7 @@ export default async function handler(req, res) {
       completed_at: completedAt,
       duration_ms: durationMs,
       configured_model: configuredModel,
+      max_output_tokens: maxOutputTokens,
       pilot_destination_count: PILOT_DESTINATION_COUNT,
       attempted: destinations.length,
       completed: metrics.completedCount,

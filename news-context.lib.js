@@ -44,6 +44,9 @@ export const HARD_EXECUTION_DEADLINE_MS = 52_000;
 export const DESTINATION_OPENAI_TIMEOUT_MS = 35_000;
 export const DEFAULT_WORKER_CONCURRENCY = 2;
 export const LOCK_TTL_SECONDS = 600;
+export const DEFAULT_MAX_OUTPUT_TOKENS = 25_000;
+export const MIN_MAX_OUTPUT_TOKENS = 2_000;
+export const MAX_MAX_OUTPUT_TOKENS = 25_000;
 
 const QUERY_SECRET_KEYS = ['secret', 'token', 'auth', 'key', 'api_key'];
 const ALLOWED_SEARCH_SIZES = new Set(['low', 'medium', 'high']);
@@ -253,6 +256,19 @@ export function getValidatedSearchSize() {
   return ALLOWED_SEARCH_SIZES.has(value) ? value : 'low';
 }
 
+export function parseMaxOutputTokens() {
+  const raw = process.env.NEWS_CONTEXT_MAX_OUTPUT_TOKENS;
+  if (raw == null || String(raw).trim() === '') return DEFAULT_MAX_OUTPUT_TOKENS;
+  if (Array.isArray(raw)) return DEFAULT_MAX_OUTPUT_TOKENS;
+  const str = String(raw).trim();
+  if (!/^\d+$/.test(str)) return DEFAULT_MAX_OUTPUT_TOKENS;
+  const n = Number(str);
+  if (!Number.isInteger(n) || n < MIN_MAX_OUTPUT_TOKENS || n > MAX_MAX_OUTPUT_TOKENS) {
+    return DEFAULT_MAX_OUTPUT_TOKENS;
+  }
+  return n;
+}
+
 export function buildNewsPrompt(config, utcDateIso) {
   const utcDate = utcDateIso.slice(0, 10);
   const staticGuardrails = `You are preparing a short current travel-news note for GoTango, a destination intelligence application.
@@ -359,7 +375,7 @@ export function buildResponsesApiRequest(prompt) {
     text: {
       verbosity: 'low',
     },
-    max_output_tokens: 350,
+    max_output_tokens: parseMaxOutputTokens(),
     max_tool_calls: 3,
     tool_choice: 'required',
     tools: [
@@ -403,6 +419,29 @@ export function extractTokenUsage(response) {
     output_tokens: outputTokens,
     reasoning_tokens: reasoningTokens,
     total_tokens: totalTokens || inputTokens + outputTokens,
+  };
+}
+
+export function extractResponseMetrics(response, requestModel) {
+  const tokenUsage = extractTokenUsage(response);
+  const parsed = traverseResponsesOutput(response);
+  const model = response?.model ?? requestModel ?? getConfiguredModel();
+  const costEstimates = estimateCosts({
+    model,
+    tokenUsage,
+    webSearchCalls: parsed.web_search_calls,
+    validationWarnings: ['source_recency_not_deterministically_verified'],
+  });
+
+  return {
+    response_id: response?.id ?? null,
+    model,
+    tokenUsage,
+    webSearchCalls: parsed.web_search_calls,
+    webSearchActions: parsed.web_search_actions,
+    consultedSources: parsed.consulted_sources,
+    costEstimates,
+    parsed,
   };
 }
 
@@ -1006,13 +1045,14 @@ export async function callResponsesApi({
         };
       }
 
+      const metrics = extractResponseMetrics(payload, requestBody.model);
       const completionCheck = validateResponseCompletion(payload);
       if (!completionCheck.ok) {
         return {
           ok: false,
           rejection_reason: completionCheck.rejection_reason,
           error: completionCheck.error,
-          response_id: payload.id ?? null,
+          metrics,
         };
       }
 
@@ -1020,6 +1060,7 @@ export async function callResponsesApi({
         ok: true,
         response: payload,
         request_model: requestBody.model,
+        metrics,
       };
     } catch (err) {
       if (err?.name === 'AbortError') {
@@ -1071,50 +1112,55 @@ export async function processDestinationNews({
   });
 
   const durationMs = Date.now() - started;
+  const emptyUsage = {
+    input_tokens: 0,
+    cached_input_tokens: 0,
+    output_tokens: 0,
+    reasoning_tokens: 0,
+    total_tokens: 0,
+  };
+  const emptyWebSearchActions = { search: 0, open_page: 0, find_in_page: 0 };
 
   if (!apiResult.ok) {
-    const emptyUsage = {
-      input_tokens: 0,
-      cached_input_tokens: 0,
-      output_tokens: 0,
-      reasoning_tokens: 0,
-      total_tokens: 0,
-    };
-    const costEstimates = estimateCosts({
-      model,
-      tokenUsage: emptyUsage,
-      webSearchCalls: 0,
-      validationWarnings: [],
-    });
+    const metrics = apiResult.metrics;
+    const tokenUsage = metrics?.tokenUsage ?? emptyUsage;
+    const costEstimates =
+      metrics?.costEstimates ??
+      estimateCosts({
+        model,
+        tokenUsage: emptyUsage,
+        webSearchCalls: 0,
+        validationWarnings: [],
+      });
 
     return buildDestinationResult({
       config,
       publishable: false,
       blurb: null,
       citations: [],
-      consultedSources: [],
+      consultedSources: metrics?.consultedSources ?? [],
       rejectionReason: apiResult.rejection_reason || REJECTION_REASONS.OPENAI_ERROR,
       validationWarnings: costEstimates.validation_warnings,
       generatedAt,
       ttlHours,
-      model,
-      responseId: apiResult.response_id ?? null,
-      webSearchCalls: 0,
-      webSearchActions: { search: 0, open_page: 0, find_in_page: 0 },
-      tokenUsage: emptyUsage,
+      model: metrics?.model ?? model,
+      responseId: metrics?.response_id ?? null,
+      webSearchCalls: metrics?.webSearchCalls ?? 0,
+      webSearchActions: metrics?.webSearchActions ?? emptyWebSearchActions,
+      tokenUsage,
       costEstimates,
       durationMs,
       error: apiResult.error ?? null,
     });
   }
 
-  const parsed = traverseResponsesOutput(apiResult.response);
-  const tokenUsage = extractTokenUsage(apiResult.response);
+  const { parsed, tokenUsage, webSearchCalls, webSearchActions, consultedSources } =
+    apiResult.metrics;
   const validation = validateBlurb(parsed.output_text, parsed.citations, config);
   const costEstimates = estimateCosts({
-    model,
+    model: apiResult.metrics.model,
     tokenUsage,
-    webSearchCalls: parsed.web_search_calls,
+    webSearchCalls,
     validationWarnings: validation.validation_warnings,
   });
 
@@ -1123,15 +1169,15 @@ export async function processDestinationNews({
     publishable: validation.publishable,
     blurb: validation.blurb,
     citations: validation.citations,
-    consultedSources: parsed.consulted_sources,
+    consultedSources,
     rejectionReason: validation.rejection_reason,
     validationWarnings: costEstimates.validation_warnings,
     generatedAt,
     ttlHours,
-    model,
-    responseId: apiResult.response?.id ?? null,
-    webSearchCalls: parsed.web_search_calls,
-    webSearchActions: parsed.web_search_actions,
+    model: apiResult.metrics.model,
+    responseId: apiResult.metrics.response_id,
+    webSearchCalls,
+    webSearchActions,
     tokenUsage,
     costEstimates,
     durationMs,
@@ -1338,6 +1384,7 @@ export function compactRunSummary({
   completedAt,
   durationMs,
   configuredModel,
+  maxOutputTokens,
   attempted,
   metrics,
 }) {
@@ -1347,6 +1394,7 @@ export function compactRunSummary({
     completed_at: completedAt,
     duration_ms: durationMs,
     configured_model: configuredModel,
+    max_output_tokens: maxOutputTokens,
     attempted,
     completed: metrics.completedCount,
     publishable_count: metrics.publishableCount,
