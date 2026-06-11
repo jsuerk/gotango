@@ -3,7 +3,7 @@ import {
   GENERATOR_VERSION,
   NEWS_KV_KEYS,
   normalizeDomain,
-  parsePilotDestinationId,
+  parseDestinationNewsId,
   rejectUnknownQueryParams,
   validateHttpsUrl,
 } from '../news-context.lib.js';
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: unknownParamError.error });
   }
 
-  const idResult = parsePilotDestinationId(req.query?.id);
+  const idResult = parseDestinationNewsId(req.query?.id);
   if (idResult.error) {
     return res.status(400).json({ ok: false, error: idResult.error });
   }

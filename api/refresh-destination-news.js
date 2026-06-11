@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { kv } from '@vercel/kv';
-import { NEWS_PRICING_VERSION, PILOT_DESTINATION_COUNT } from '../news-context.config.js';
+import { DESTINATION_NEWS_DESTINATION_COUNT, NEWS_PRICING_VERSION } from '../news-context.config.js';
 import {
   NEWS_KV_KEYS,
   LOCK_TTL_SECONDS,
@@ -10,15 +10,14 @@ import {
   compactRunSummary,
   getConfiguredModel,
   mergeLatestNews,
-  parsePilotDestinationId,
+  parseDestinationNewsId,
   parseMaxOutputTokens,
-  parsePilotLimit,
   parseTtlHours,
   parseWorkerConcurrency,
   rejectUnknownQueryParams,
-  resolvePilotDestinations,
   runNewsWorkerPool,
 } from '../news-context.lib.js';
+import { getDestinationNewsConfigById } from '../news-context.config.js';
 
 async function acquireRunLock(runId) {
   const acquiredAt = new Date().toISOString();
@@ -132,20 +131,21 @@ export default async function handler(req, res) {
     return res.status(auth.status).json({ ok: false, error: auth.error });
   }
 
-  const unknownParamError = rejectUnknownQueryParams(req, ['id', 'limit']);
+  const unknownParamError = rejectUnknownQueryParams(req, ['id']);
   if (unknownParamError) {
     return res.status(400).json({ ok: false, error: unknownParamError.error });
   }
 
-  const idResult = parsePilotDestinationId(req.query?.id);
+  const idResult = parseDestinationNewsId(req.query?.id);
   if (idResult.error) {
     return res.status(400).json({ ok: false, error: idResult.error });
   }
-
-  const limitResult = parsePilotLimit(req.query?.limit);
-  if (limitResult.error) {
-    return res.status(400).json({ ok: false, error: limitResult.error });
+  if (!idResult.id) {
+    return res.status(400).json({ ok: false, error: 'Missing id query parameter.' });
   }
+
+  const destination = getDestinationNewsConfigById(idResult.id);
+  const destinations = [destination];
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || !String(apiKey).trim()) {
@@ -157,10 +157,6 @@ export default async function handler(req, res) {
     return res.status(409).json({ ok: false, error: 'News refresh already in progress' });
   }
 
-  const destinations = resolvePilotDestinations({
-    id: idResult.id,
-    limit: limitResult.value,
-  });
   const configuredModel = getConfiguredModel();
   const maxOutputTokens = parseMaxOutputTokens();
   const ttlHours = parseTtlHours();
@@ -200,7 +196,8 @@ export default async function handler(req, res) {
       duration_ms: durationMs,
       configured_model: configuredModel,
       max_output_tokens: maxOutputTokens,
-      pilot_destination_count: PILOT_DESTINATION_COUNT,
+      destination_news_destination_count: DESTINATION_NEWS_DESTINATION_COUNT,
+      pilot_destination_count: DESTINATION_NEWS_DESTINATION_COUNT,
       attempted: destinations.length,
       completed: metrics.completedCount,
       publishable_count: metrics.publishableCount,

@@ -38,7 +38,25 @@ export const DESTINATION_TRUSTED_EDITORIAL_DOMAINS = {
   maldives: ['edition.mv'],
 };
 
-const PILOT_NEWS_CONFIGS = [
+export const DEFAULT_EVENT_SCENE_SEARCH_HINTS = [
+  'events',
+  'upcoming events',
+  'concerts',
+  'music',
+  'DJ residencies',
+  'nightlife',
+  'restaurant openings',
+  'hotel openings',
+  'beach clubs',
+  'festivals',
+  'food and culinary events',
+  'art exhibitions',
+  'cultural programming',
+  'sporting events',
+  'seasonal visitor experiences',
+];
+
+const HAND_TUNED_NEWS_CONFIGS = [
   {
     destination_id: 'ibiza',
     country: 'Spain',
@@ -153,27 +171,231 @@ const PILOT_NEWS_CONFIGS = [
   },
 ];
 
+const HAND_TUNED_BY_ID = new Map(
+  HAND_TUNED_NEWS_CONFIGS.map((config) => [config.destination_id, config]),
+);
+
+const US_REGIONS = new Set([
+  'Colorado Rockies',
+  'Wyoming',
+  'New York',
+  'Massachusetts',
+  'Florida',
+  'Florida Panhandle',
+  'Rhode Island',
+  'South Carolina',
+  'Idaho',
+  'California',
+  'New Mexico',
+]);
+
+const SKI_DESTINATION_IDS = new Set([
+  'aspen',
+  'courchevel',
+  'st-moritz',
+  'jackson-hole',
+  'verbier',
+  'megeve-chamonix',
+  'whistler',
+  'sun-valley',
+]);
+
+const COASTAL_YACHTING_REGIONS = new Set([
+  'Caribbean',
+  'British Caribbean',
+  'French Caribbean',
+  'Bahamas',
+  'Balearic Islands',
+  'Greek Islands',
+  'Sardinia',
+  'Campania, Italy',
+  'Sicily, Italy',
+  "Côte d'Azur",
+  'Florida',
+  'Florida Panhandle',
+  'Massachusetts',
+  'Rhode Island',
+  'South Carolina',
+  'Riviera Maya',
+  'Baja California Sur',
+  'Riviera Nayarit, Mexico',
+  'Oaxaca, Mexico',
+  'Uruguay',
+  'Maldives',
+  'Thailand',
+  'Indonesia',
+]);
+
+function deriveCountry(dest) {
+  const { region, id } = dest;
+
+  const directCountryRegions = {
+    Portugal: 'Portugal',
+    Morocco: 'Morocco',
+    Uruguay: 'Uruguay',
+    Thailand: 'Thailand',
+    Maldives: 'Maldives',
+    Indonesia: 'Indonesia',
+    'United Arab Emirates': 'United Arab Emirates',
+    'Dominican Republic': 'Dominican Republic',
+    Bahamas: 'Bahamas',
+  };
+  if (directCountryRegions[region]) return directCountryRegions[region];
+  if (region.endsWith(', Italy')) return 'Italy';
+  if (region.includes('Mexico')) return 'Mexico';
+  if (US_REGIONS.has(region)) return 'United States';
+  if (region === 'French Alps' || region === "Côte d'Azur") return 'France';
+  if (region === 'Swiss Alps') return 'Switzerland';
+  if (region === 'British Columbia') return 'Canada';
+  if (region === 'Balearic Islands') return 'Spain';
+  if (region === 'Greek Islands') return 'Greece';
+  if (region === 'Sardinia') return 'Italy';
+  if (region === 'Baja California Sur' || region === 'Riviera Maya') return 'Mexico';
+  if (id === 'turks-caicos') return 'Turks & Caicos';
+  if (id === 'mustique') return 'Saint Vincent and the Grenadines';
+  if (id === 'barbados') return 'Barbados';
+  if (id === 'antigua') return 'Antigua';
+  if (id === 'anguilla') return 'Anguilla';
+
+  return '';
+}
+
+const ALIAS_OVERRIDES = {
+  'turks-caicos': ['Turks & Caicos', 'Turks and Caicos', 'Providenciales'],
+  tulum: ['Tulum', 'Cancún', 'Cancun'],
+  'puerto-vallarta': ['Puerto Vallarta', 'Punta Mita'],
+};
+
+function deriveAliasesFromName(dest) {
+  const { id, name } = dest;
+  const aliases = [];
+
+  const overrideAliases = ALIAS_OVERRIDES[id];
+  if (overrideAliases) {
+    aliases.push(...overrideAliases);
+  }
+
+  const parenthetical = name.match(/\(([^)]+)\)/g);
+  if (parenthetical) {
+    for (const match of parenthetical) {
+      let value = match.slice(1, -1).trim();
+      if (!value) continue;
+      if (/^via\s+/i.test(value)) {
+        value = value.replace(/^via\s+/i, '').trim();
+      }
+      if (/ area$/i.test(value)) continue;
+      if (value) aliases.push(value);
+    }
+  }
+
+  const slashParts = name.split('/').map((part) => part.replace(/\([^)]*\)/g, '').trim());
+  if (slashParts.length > 1) {
+    for (const part of slashParts) {
+      if (part) aliases.push(part);
+    }
+  }
+
+  const displayNormalized = name.toLowerCase().trim();
+  const normalized = new Set();
+  const out = [];
+  for (const alias of aliases) {
+    const trimmed = String(alias).trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (key === displayNormalized) continue;
+    if (!normalized.has(key)) {
+      normalized.add(key);
+      out.push(trimmed);
+    }
+  }
+  return out;
+}
+
+function buildSupplementalSearchHints(dest) {
+  const hints = [];
+  if (SKI_DESTINATION_IDS.has(dest.id)) {
+    hints.push('ski events');
+  }
+  if (COASTAL_YACHTING_REGIONS.has(dest.region)) {
+    hints.push('yachting', 'regattas');
+  }
+  return hints;
+}
+
+function mergeSearchHints(baseHints, supplementalHints) {
+  const seen = new Set();
+  const merged = [];
+  for (const hint of [...baseHints, ...supplementalHints]) {
+    const normalized = String(hint).trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    merged.push(String(hint).trim());
+  }
+  return merged;
+}
+
+function buildDefaultNewsConfig(dest) {
+  const supplementalHints = buildSupplementalSearchHints(dest);
+  return {
+    destination_id: dest.id,
+    country: deriveCountry(dest),
+    region: dest.region,
+    search_city: dest.name,
+    aliases: deriveAliasesFromName(dest),
+    excluded_meanings: [],
+    search_hints: mergeSearchHints(DEFAULT_EVENT_SCENE_SEARCH_HINTS, supplementalHints),
+  };
+}
+
+export const DESTINATION_NEWS_CONFIGS = DESTINATIONS.map((dest) => {
+  const handTuned = HAND_TUNED_BY_ID.get(dest.id);
+  if (handTuned) {
+    return { ...handTuned };
+  }
+  return buildDefaultNewsConfig(dest);
+});
+
 const seenIds = new Set();
-for (const config of PILOT_NEWS_CONFIGS) {
+for (const config of DESTINATION_NEWS_CONFIGS) {
+  if (!config.destination_id || String(config.destination_id).trim() === '') {
+    throw new Error('Blank news destination_id in configuration.');
+  }
   if (seenIds.has(config.destination_id)) {
-    throw new Error(`Duplicate news pilot destination_id: ${config.destination_id}`);
+    throw new Error(`Duplicate news destination_id: ${config.destination_id}`);
   }
   seenIds.add(config.destination_id);
 
   const publicDest = PUBLIC_DESTINATION_BY_ID.get(config.destination_id);
   if (!publicDest) {
     throw new Error(
-      `News pilot destination_id not found in public DESTINATIONS: ${config.destination_id}`,
+      `News destination_id not found in public DESTINATIONS: ${config.destination_id}`,
     );
+  }
+  if (!publicDest.name || String(publicDest.name).trim() === '') {
+    throw new Error(`Blank destination name for id: ${config.destination_id}`);
+  }
+  if (!config.search_city || String(config.search_city).trim() === '') {
+    throw new Error(`Blank search_city for id: ${config.destination_id}`);
+  }
+  if (!config.country || String(config.country).trim() === '') {
+    throw new Error(`Blank country for id: ${config.destination_id}`);
+  }
+  if (!config.region || String(config.region).trim() === '') {
+    throw new Error(`Blank region for id: ${config.destination_id}`);
   }
 }
 
-export const PILOT_DESTINATION_IDS = PILOT_NEWS_CONFIGS.map((c) => c.destination_id);
+export const DESTINATION_NEWS_DESTINATION_IDS = DESTINATION_NEWS_CONFIGS.map(
+  (c) => c.destination_id,
+);
 
-export const PILOT_DESTINATION_COUNT = PILOT_NEWS_CONFIGS.length;
+export const DESTINATION_NEWS_DESTINATION_COUNT = DESTINATION_NEWS_CONFIGS.length;
 
-const PILOT_CONFIG_BY_ID = new Map(
-  PILOT_NEWS_CONFIGS.map((config) => {
+export const PILOT_DESTINATION_IDS = DESTINATION_NEWS_DESTINATION_IDS;
+export const PILOT_DESTINATION_COUNT = DESTINATION_NEWS_DESTINATION_COUNT;
+
+const DESTINATION_NEWS_CONFIG_BY_ID = new Map(
+  DESTINATION_NEWS_CONFIGS.map((config) => {
     const publicDest = PUBLIC_DESTINATION_BY_ID.get(config.destination_id);
     return [
       config.destination_id,
@@ -185,16 +407,30 @@ const PILOT_CONFIG_BY_ID = new Map(
   }),
 );
 
-export function getPilotConfigById(destinationId) {
-  return PILOT_CONFIG_BY_ID.get(destinationId) ?? null;
+export function getDestinationNewsConfigById(destinationId) {
+  return DESTINATION_NEWS_CONFIG_BY_ID.get(destinationId) ?? null;
 }
 
-export function getPilotConfigsInOrder(limit = null) {
-  const configs = PILOT_NEWS_CONFIGS.map((config) => PILOT_CONFIG_BY_ID.get(config.destination_id));
+export function getDestinationNewsConfigsInOrder(limit = null) {
+  const configs = DESTINATION_NEWS_CONFIGS.map((config) =>
+    DESTINATION_NEWS_CONFIG_BY_ID.get(config.destination_id),
+  );
   if (limit == null) return configs;
   return configs.slice(0, limit);
 }
 
+export function isDestinationNewsId(destinationId) {
+  return DESTINATION_NEWS_CONFIG_BY_ID.has(destinationId);
+}
+
+export function getPilotConfigById(destinationId) {
+  return getDestinationNewsConfigById(destinationId);
+}
+
+export function getPilotConfigsInOrder(limit = null) {
+  return getDestinationNewsConfigsInOrder(limit);
+}
+
 export function isPilotDestinationId(destinationId) {
-  return PILOT_CONFIG_BY_ID.has(destinationId);
+  return isDestinationNewsId(destinationId);
 }

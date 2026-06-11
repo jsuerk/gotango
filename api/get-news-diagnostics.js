@@ -1,12 +1,12 @@
 import { kv } from '@vercel/kv';
-import { PILOT_DESTINATION_IDS } from '../news-context.config.js';
+import { DESTINATION_NEWS_DESTINATION_IDS } from '../news-context.config.js';
 import {
   NEWS_KV_KEYS,
   authorizeNewsRequest,
   buildConfigSafeIdentity,
-  getPilotConfigById,
-  isPilotDestinationId,
-  parsePilotDestinationId,
+  getDestinationNewsConfigById,
+  isDestinationNewsId,
+  parseDestinationNewsId,
   rejectUnknownQueryParams,
 } from '../news-context.lib.js';
 
@@ -34,14 +34,16 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: unknownParamError.error });
   }
 
-  const idResult = parsePilotDestinationId(req.query?.id);
+  const idResult = parseDestinationNewsId(req.query?.id);
   if (idResult.error) {
     return res.status(400).json({ ok: false, error: idResult.error });
   }
 
   try {
     if (!idResult.id) {
-      const diagnosticsKeys = PILOT_DESTINATION_IDS.map((id) => NEWS_KV_KEYS.diagnostics(id));
+      const diagnosticsKeys = DESTINATION_NEWS_DESTINATION_IDS.map((id) =>
+        NEWS_KV_KEYS.diagnostics(id),
+      );
       const [meta, latest, runs, ...diagnosticsValues] = await Promise.all([
         kv.get(NEWS_KV_KEYS.meta),
         kv.get(NEWS_KV_KEYS.latest),
@@ -50,8 +52,8 @@ export default async function handler(req, res) {
       ]);
 
       const diagnostics = {};
-      for (let i = 0; i < PILOT_DESTINATION_IDS.length; i += 1) {
-        diagnostics[PILOT_DESTINATION_IDS[i]] = diagnosticsValues[i] ?? null;
+      for (let i = 0; i < DESTINATION_NEWS_DESTINATION_IDS.length; i += 1) {
+        diagnostics[DESTINATION_NEWS_DESTINATION_IDS[i]] = diagnosticsValues[i] ?? null;
       }
 
       return res.status(200).json({
@@ -63,9 +65,9 @@ export default async function handler(req, res) {
       });
     }
 
-    const config = getPilotConfigById(idResult.id);
-    if (!config || !isPilotDestinationId(idResult.id)) {
-      return res.status(400).json({ ok: false, error: 'Unknown pilot destination id.' });
+    const config = getDestinationNewsConfigById(idResult.id);
+    if (!config || !isDestinationNewsId(idResult.id)) {
+      return res.status(400).json({ ok: false, error: 'Unknown destination id.' });
     }
 
     const [diagnostics, latest] = await Promise.all([

@@ -3,8 +3,13 @@ import {
   NEWS_MODEL_PRICING,
   NEWS_PRICING_VERSION,
   NEWS_WEB_SEARCH_PRICING,
+  DESTINATION_NEWS_DESTINATION_COUNT,
+  DESTINATION_NEWS_DESTINATION_IDS,
+  getDestinationNewsConfigById,
+  getDestinationNewsConfigsInOrder,
   getPilotConfigById,
   getPilotConfigsInOrder,
+  isDestinationNewsId,
   isPilotDestinationId,
   PILOT_DESTINATION_COUNT,
   PILOT_DESTINATION_IDS,
@@ -672,36 +677,50 @@ export function rejectUnknownQueryParams(req, allowedKeys) {
   return null;
 }
 
-export function parsePilotDestinationId(raw) {
+export function parseDestinationNewsId(raw) {
   if (Array.isArray(raw)) {
     return { error: 'id must be a single value.' };
   }
   if (raw == null || String(raw).trim() === '') return { id: null };
   const id = String(raw).trim();
-  if (!isPilotDestinationId(id)) {
-    return { error: 'Unknown pilot destination id.' };
+  if (!isDestinationNewsId(id)) {
+    return { error: 'Unknown destination id.' };
   }
   return { id };
 }
 
-export function parsePilotLimit(raw) {
+export function parsePilotDestinationId(raw) {
+  return parseDestinationNewsId(raw);
+}
+
+export function parseDestinationNewsLimit(raw) {
   if (Array.isArray(raw)) {
     return { error: 'limit must be a single value.' };
   }
   if (raw == null || String(raw).trim() === '') return { value: null };
   const n = Number(raw);
-  if (!Number.isInteger(n) || n < 1 || n > PILOT_DESTINATION_COUNT) {
-    return { error: `limit must be an integer from 1 to ${PILOT_DESTINATION_COUNT}.` };
+  if (!Number.isInteger(n) || n < 1 || n > DESTINATION_NEWS_DESTINATION_COUNT) {
+    return {
+      error: `limit must be an integer from 1 to ${DESTINATION_NEWS_DESTINATION_COUNT}.`,
+    };
   }
   return { value: n };
 }
 
-export function resolvePilotDestinations({ id = null, limit = null } = {}) {
+export function parsePilotLimit(raw) {
+  return parseDestinationNewsLimit(raw);
+}
+
+export function resolveDestinationNewsDestinations({ id = null, limit = null } = {}) {
   if (id) {
-    const config = getPilotConfigById(id);
+    const config = getDestinationNewsConfigById(id);
     return config ? [config] : [];
   }
-  return getPilotConfigsInOrder(limit);
+  return getDestinationNewsConfigsInOrder(limit);
+}
+
+export function resolvePilotDestinations({ id = null, limit = null } = {}) {
+  return resolveDestinationNewsDestinations({ id, limit });
 }
 
 export function parseTtlHours() {
@@ -4197,6 +4216,10 @@ export function buildConfigSafeIdentity(config) {
 }
 
 export {
+  DESTINATION_NEWS_DESTINATION_COUNT,
+  DESTINATION_NEWS_DESTINATION_IDS,
+  getDestinationNewsConfigById,
+  isDestinationNewsId,
   PILOT_DESTINATION_COUNT,
   PILOT_DESTINATION_IDS,
   getPilotConfigById,
