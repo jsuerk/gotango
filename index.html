@@ -3646,6 +3646,81 @@
   }
 }
 
+/* === What's happening (destination scene) === */
+.d-destination-news__blurb {
+  font-family: 'Fraunces', serif;
+  font-size: var(--fs-editorial);
+  line-height: 1.6;
+  color: var(--text, #F5F1E8);
+  margin: 0;
+}
+
+.d-destination-news__sources-wrap {
+  margin-top: 18px;
+}
+
+.d-destination-news__sources-label {
+  font-family: 'Geist Mono', monospace;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-faint, #6B6557);
+  margin-bottom: 10px;
+}
+
+.d-destination-news__sources {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.d-destination-news__source {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  text-decoration: none;
+  color: inherit;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.d-destination-news__source:hover {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(232, 163, 23, 0.2);
+}
+
+.d-destination-news__source:focus-visible {
+  outline: 2px solid var(--amber, #E8A317);
+  outline-offset: 2px;
+}
+
+.d-destination-news__source-title {
+  display: block;
+  font-family: 'Fraunces', serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--text, #F5F1E8);
+  overflow-wrap: anywhere;
+}
+
+.d-destination-news__source-domain {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  font-family: 'Geist Mono', monospace;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.06em;
+  color: var(--text-faint, #6B6557);
+}
+
+.d-destination-news__source-external {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--text-dim, #A8A293);
+}
+
 /* === Recent flights feed === */
 .d-feed {
   display: flex;
@@ -8365,6 +8440,219 @@
   let _modalArrivalsData = null;
   let _modalMoversIndexData = null;
   let _modalHistoryRequestId = 0;
+  const _destinationNewsCache = new Map();
+  let _destinationNewsRequestToken = 0;
+  let _destinationNewsAbortController = null;
+
+  function _clearDestinationNewsSection() {
+    const existing = document.querySelector('[data-modal-section="destination-news"]');
+    if (existing) existing.remove();
+  }
+
+  function _formatNewsUpdatedLabel(generatedAt) {
+    if (generatedAt == null) return null;
+    const ms = Date.parse(String(generatedAt));
+    if (!Number.isFinite(ms)) return null;
+    const d = new Date(ms);
+    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const month = months[d.getUTCMonth()];
+    if (!month) return null;
+    return `UPDATED ${month} ${d.getUTCDate()}`;
+  }
+
+  function _isSafeHttpsUrl(value) {
+    if (typeof value !== 'string') return false;
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
+  function _isValidDestinationNewsPayload(payload, expectedDestinationId) {
+    if (!payload || payload.ok !== true || typeof payload.destination_id !== 'string') return false;
+    if (payload.destination_id !== expectedDestinationId) return false;
+    if (payload.news == null) return true;
+    const news = payload.news;
+    if (typeof news !== 'object') return false;
+    if (typeof news.blurb !== 'string' || news.blurb.trim() === '') return false;
+
+    const generatedMs = Date.parse(news.generated_at);
+    const expiresMs = Date.parse(news.expires_at);
+    if (!Number.isFinite(generatedMs) || !Number.isFinite(expiresMs)) return false;
+    if (expiresMs <= Date.now()) return false;
+
+    if (!Array.isArray(news.citations) || news.citations.length < 2 || news.citations.length > 3) {
+      return false;
+    }
+    for (const citation of news.citations) {
+      if (!citation || typeof citation !== 'object') return false;
+      if (!_isSafeHttpsUrl(citation.url)) return false;
+      if (typeof citation.domain !== 'string' || citation.domain.trim() === '') return false;
+    }
+    return true;
+  }
+
+  function _buildDestinationNewsSection(news) {
+    const section = document.createElement('div');
+    section.className = 'd-section';
+    section.setAttribute('data-modal-section', 'destination-news');
+
+    const head = document.createElement('div');
+    head.className = 'd-section-head';
+
+    const label = document.createElement('span');
+    label.className = 'd-section-label';
+    label.textContent = "WHAT'S HAPPENING";
+    head.appendChild(label);
+
+    const updatedLabel = _formatNewsUpdatedLabel(news.generated_at);
+    if (updatedLabel) {
+      const meta = document.createElement('span');
+      meta.className = 'd-section-meta d-destination-news__updated';
+      meta.textContent = updatedLabel;
+      head.appendChild(meta);
+    }
+
+    section.appendChild(head);
+
+    const blurb = document.createElement('p');
+    blurb.className = 'd-destination-news__blurb';
+    blurb.textContent = news.blurb;
+    section.appendChild(blurb);
+
+    const sourcesWrap = document.createElement('div');
+    sourcesWrap.className = 'd-destination-news__sources-wrap';
+
+    const sourcesLabel = document.createElement('div');
+    sourcesLabel.className = 'd-destination-news__sources-label';
+    sourcesLabel.textContent = 'SOURCES';
+    sourcesWrap.appendChild(sourcesLabel);
+
+    const sourcesList = document.createElement('div');
+    sourcesList.className = 'd-destination-news__sources';
+    sourcesList.setAttribute('role', 'list');
+
+    for (const citation of news.citations) {
+      if (!_isSafeHttpsUrl(citation.url)) continue;
+
+      const title = citation.title != null ? String(citation.title).trim() : '';
+      const domain = citation.domain != null ? String(citation.domain).trim() : '';
+      const visibleTitle = title || domain;
+      if (!visibleTitle) continue;
+
+      const link = document.createElement('a');
+      link.className = 'd-destination-news__source';
+      link.href = citation.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.setAttribute('role', 'listitem');
+      link.setAttribute('aria-label', `${visibleTitle} (opens in new tab)`);
+
+      const titleEl = document.createElement('span');
+      titleEl.className = 'd-destination-news__source-title';
+      titleEl.textContent = visibleTitle;
+      link.appendChild(titleEl);
+
+      if (domain) {
+        const domainEl = document.createElement('span');
+        domainEl.className = 'd-destination-news__source-domain';
+        domainEl.textContent = domain;
+
+        const external = document.createElement('span');
+        external.className = 'd-destination-news__source-external';
+        external.setAttribute('aria-hidden', 'true');
+        external.textContent = '\u2197';
+        domainEl.appendChild(external);
+
+        link.appendChild(domainEl);
+      }
+
+      sourcesList.appendChild(link);
+    }
+
+    if (sourcesList.childElementCount < 2) return null;
+
+    sourcesWrap.appendChild(sourcesList);
+    section.appendChild(sourcesWrap);
+    return section;
+  }
+
+  function _mountDestinationNewsSection(destinationId, news) {
+    _clearDestinationNewsSection();
+    if (!news) return;
+
+    const section = _buildDestinationNewsSection(news);
+    if (!section) return;
+
+    const trajectoryEl = document.querySelector('[data-modal-section="trajectory"]');
+    if (!trajectoryEl || !trajectoryEl.parentNode) return;
+    trajectoryEl.parentNode.insertBefore(section, trajectoryEl);
+  }
+
+  async function loadDestinationNews(destinationId) {
+    const requestToken = ++_destinationNewsRequestToken;
+
+    if (_destinationNewsAbortController) {
+      _destinationNewsAbortController.abort();
+    }
+    _destinationNewsAbortController = new AbortController();
+    const { signal } = _destinationNewsAbortController;
+
+    _clearDestinationNewsSection();
+
+    if (_destinationNewsCache.has(destinationId)) {
+      const cached = _destinationNewsCache.get(destinationId);
+      if (cached === null) {
+        return;
+      }
+      if (cached) {
+        const expiresMs = Date.parse(cached.expires_at);
+        if (Number.isFinite(expiresMs) && expiresMs > Date.now()) {
+          if (requestToken === _destinationNewsRequestToken && _modalCurrentDestId === destinationId) {
+            _mountDestinationNewsSection(destinationId, cached);
+          }
+          return;
+        }
+        _destinationNewsCache.delete(destinationId);
+      }
+    }
+
+    try {
+      const response = await fetch(
+        `/api/get-destination-news?id=${encodeURIComponent(destinationId)}`,
+        { signal },
+      );
+      if (requestToken !== _destinationNewsRequestToken || _modalCurrentDestId !== destinationId) {
+        return;
+      }
+      if (!response.ok) {
+        console.warn('[modal] Destination news fetch failed:', response.status);
+        return;
+      }
+      const payload = await response.json();
+      if (requestToken !== _destinationNewsRequestToken || _modalCurrentDestId !== destinationId) {
+        return;
+      }
+      if (!_isValidDestinationNewsPayload(payload, destinationId)) {
+        console.warn('[modal] Destination news payload invalid');
+        _destinationNewsCache.set(destinationId, null);
+        return;
+      }
+      const news = payload.news;
+      _destinationNewsCache.set(destinationId, news);
+      if (news) {
+        _mountDestinationNewsSection(destinationId, news);
+      }
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+      console.warn('[modal] Destination news fetch error:', err);
+      if (requestToken !== _destinationNewsRequestToken || _modalCurrentDestId !== destinationId) {
+        return;
+      }
+    }
+  }
 
   function openDestinationModal(destinationId) {
     if (!destinationId) return;
@@ -8386,6 +8674,7 @@
     }
 
     _modalCurrentDestId = destinationId;
+    _clearDestinationNewsSection();
 
     const bodyEl = document.getElementById('dest-modal-body');
     if (bodyEl) {
@@ -8426,6 +8715,7 @@
     }
 
     loadDestinationHistoryIntoModal(destinationId, dest);
+    loadDestinationNews(destinationId);
   }
 
   async function loadDestinationHistoryIntoModal(destinationId, dest) {
