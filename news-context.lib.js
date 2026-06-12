@@ -16,6 +16,8 @@ import {
   DESTINATION_TRUSTED_EDITORIAL_DOMAINS,
   DESTINATION_AUTHORITY_DOMAINS,
   DESTINATION_SPECIALIST_EDITORIAL_DOMAINS,
+  DESTINATION_COMMERCIAL_FIRST_PARTY_DOMAINS,
+  DESTINATION_COMMERCIAL_FIRST_PARTY_ORGANIZATION_ALIASES,
   ACCESS_CITY_SEARCH_ONLY_ALIASES,
   NEWS_SOURCE_MAX_AGE_DAYS,
   NEWS_EVENT_SOURCE_MAX_AGE_DAYS,
@@ -63,7 +65,8 @@ export const NEWS_KV_KEYS = {
 export const DESTINATION_START_DEADLINE_MS = 40_000;
 export const HARD_EXECUTION_DEADLINE_MS = 52_000;
 export const DESTINATION_OPENAI_TIMEOUT_MS = 35_000;
-export const EVENT_FALLBACK_MIN_REMAINING_MS = DESTINATION_OPENAI_TIMEOUT_MS + 3_000;
+export const MECHANICAL_REPAIR_MIN_REMAINING_MS = 12_000;
+export const EVENT_FALLBACK_MIN_REMAINING_MS = 18_000;
 export const DEFAULT_WORKER_CONCURRENCY = 2;
 export const LOCK_TTL_SECONDS = 600;
 export const DEFAULT_MAX_OUTPUT_TOKENS = 25_000;
@@ -430,7 +433,6 @@ export const NEWS_BLURB_TARGET_MIN_WORDS = 95;
 export const NEWS_BLURB_TARGET_MAX_WORDS = 115;
 export const EVENT_FALLBACK_MAX_TOOL_CALLS = 4;
 export const MECHANICAL_REPAIR_MAX_TOOL_CALLS = 2;
-export const SECOND_ATTEMPT_MIN_REMAINING_MS = DESTINATION_OPENAI_TIMEOUT_MS + 3_000;
 const MAX_DIAGNOSTIC_ERROR_MESSAGE_LENGTH = 200;
 const MAX_STORED_CONSULTED_SOURCES = 20;
 const PRESS_RELEASE_DOMAINS = new Set([
@@ -1004,7 +1006,8 @@ If the available sources do not support current or future traveler-relevant info
   return `${staticGuardrails}\n\n${destinationBlock}`;
 }
 
-export function buildEventFallbackPrompt(config, utcDateIso) {
+export function buildEventFallbackPrompt(config, utcDateIso, options = {}) {
+  const { initialRejectionReason = null } = options;
   const utcDate = utcDateIso.slice(0, 10);
   const earliestPermittedSourceDate = computeEarliestPermittedSourceDate(utcDateIso);
   const destinationBlock = `Destination context:
@@ -1014,6 +1017,18 @@ export function buildEventFallbackPrompt(config, utcDateIso) {
 - Search city: ${config.search_city}
 - Aliases: ${config.aliases.join(', ')}
 - Excluded meanings: ${config.excluded_meanings.length ? config.excluded_meanings.join('; ') : '(none)'}`;
+
+  const sourceQualityDomainGuidance =
+    initialRejectionReason === REJECTION_REASONS.SOURCE_QUALITY
+      ? `
+
+Source-quality recovery:
+- use two distinct domains when credible sources are available
+- or deliberately use two or three separate event pages from one recognized destination authority when that controlled fallback applies
+- do not return two unrelated weak sources merely to manufacture diversity
+- do not repeat one hotel, resort, or other commercial brand
+- prefer official event listings, organizers, local culture publications, and destination specialists`
+      : '';
 
   return `The first search did not produce a publishable destination-scene brief for ${config.destination_name}.
 
@@ -1028,6 +1043,7 @@ Do not describe completed concerts, parties, festivals, matches, dinners, galas,
 Do not use unrelated access-city events when the canonical destination has its own scene.
 
 Use hosted web search with category-focused queries. Prefer event, dining, culture, nightlife, sport, and opening content over transportation news.
+${sourceQualityDomainGuidance}
 
 Return exactly one plain-text paragraph of ${NEWS_BLURB_MIN_WORDS}–${NEWS_BLURB_MAX_WORDS} clean words with ${NEWS_BLURB_MIN_SENTENCES}–${NEWS_BLURB_MAX_SENTENCES} substantive sentences, 2 or 3 unique citation URLs, and a citation annotation on every factual sentence.
 
@@ -1048,7 +1064,7 @@ function mechanicalRepairFailureInstructions(rejectionReason) {
     case REJECTION_REASONS.SENTENCE_COUNT:
       return 'SENTENCE_COUNT: combine or split sentences into 3–5 substantive sentences while preserving citation coverage.';
     case REJECTION_REASONS.UNCITED_FACTUAL_CLAIM:
-      return 'UNCITED_FACTUAL_CLAIM: add a valid hosted citation occurrence after every factual sentence, or remove the unsupported factual sentence.';
+      return 'UNCITED_FACTUAL_CLAIM: add a valid hosted citation occurrence after every factual sentence, remove the unsupported factual sentence, or add a source from the named organization, an independent article covering it, or an authoritative destination page that explicitly supports the claim; do not support one commercial organization with another organization\'s citation.';
     case REJECTION_REASONS.CITATION_COUNT:
       return 'CITATION_COUNT: return exactly 2 or 3 valid unique cited URLs. Do not return substantive prose without valid annotations.';
     case REJECTION_REASONS.DOMAIN_DIVERSITY:
@@ -1056,7 +1072,7 @@ function mechanicalRepairFailureInstructions(rejectionReason) {
     case REJECTION_REASONS.STALE_SOURCE_DATE:
       return 'STALE_SOURCE_DATE: do not reuse a stale source unless it qualifies under the existing citation-specific extended-event exception; replace it with a current source or remove the unsupported development.';
     case REJECTION_REASONS.STALE_EVENT_DATE:
-      return 'STALE_EVENT_DATE: remove completed concerts, parties, festivals, matches, dinners, galas, or other fixed events from the current briefing; retain recent openings or programs that travelers can still experience; replace completed events with current or upcoming developments; do not describe a past event as happening now; do not reuse stale factual framing.';
+      return 'STALE_EVENT_DATE: remove completed concerts, parties, festivals, matches, dinners, galas, storytellers nights, or other fixed events from the current briefing; when one sentence mixes a completed dated clause with an ongoing program, remove only the completed clause and retain the valid ongoing development; retain recent openings or programs that travelers can still experience; replace completed events with current or upcoming developments; do not describe a past event as happening now; do not reuse stale factual framing.';
     default:
       return '';
   }
@@ -1493,12 +1509,13 @@ function parseCanonicalDestinationTerms(config) {
         if (!part) continue;
         const aliasMatch = aliasTerms.includes(part.toLowerCase());
         const isMultiWord = /\s/.test(part);
-        if (aliasMatch || isMultiWord || part.length >= 6) {
+        if (aliasMatch || isMultiWord) {
           canonical.add(part);
         }
       }
     } else if (name) {
-      canonical.add(name);
+      const baseName = name.replace(/\s*\([^)]*\)/g, '').trim();
+      if (baseName) canonical.add(baseName);
     }
   }
 
@@ -1720,7 +1737,13 @@ function getSentenceEventFinalDate(sentence, utcDateIso) {
   const finalDate = getEventFinalDateFromText(sentence, utcDateIso);
   if (finalDate) return finalDate;
 
-  if (!/\bevents?\b/i.test(sentence)) return null;
+  const hasDateAnchor =
+    EVENT_ANCHOR_PATTERNS.some((pattern) => pattern.test(sentence)) ||
+    /\bevents?\b/i.test(sentence) ||
+    /\b(?:night|gala|showcase|storyteller|storytellers|performance|gig|set|recital|reading|hosted|hosts|held|headlined|headlines|jazz)\b/i.test(
+      sentence,
+    );
+  if (!hasDateAnchor) return null;
 
   const today = String(utcDateIso).slice(0, 10);
   const currentYear = Number(today.slice(0, 4));
@@ -1761,14 +1784,48 @@ function sentenceDescribesFixedEvent(sentence, utcDateIso) {
   );
 }
 
-function evaluateSentenceCompletedEvent(sentence, utcDateIso, today, recentOpeningCutoff) {
-  const finalDate = getSentenceEventFinalDate(sentence, utcDateIso);
+function splitSentenceDevelopmentClauses(sentence) {
+  const sourceText = typeof sentence === 'string' ? sentence.trim() : '';
+  if (!sourceText) return [];
+  const parts = sourceText
+    .split(/;|(?:,\s*(?:and|while)|\s+(?:and|plus|while|alongside))\s+/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return parts.length > 1 ? parts : [sourceText];
+}
+
+function clauseDescribesDatedSceneDevelopment(clause, utcDateIso) {
+  return (
+    sentenceDescribesFixedEvent(clause, utcDateIso) ||
+    /\b(?:night|gala|showcase|storyteller|storytellers|performance|gig|set|recital|reading)\b/i.test(
+      clause,
+    ) ||
+    /\b(?:hosted|hosts|held|headlined|headlines)\b/i.test(clause)
+  );
+}
+
+function evaluateClauseCompletedEvent(clause, utcDateIso, today, recentOpeningCutoff) {
+  const finalDate = getSentenceEventFinalDate(clause, utcDateIso);
   if (!finalDate || finalDate >= today) return null;
-  if (hasContinuingEventLanguage(sentence, utcDateIso)) return null;
-  if (isExperienceOpeningContext(sentence) && finalDate >= recentOpeningCutoff) return null;
-  if (isHistoricalEventBackground(sentence)) return null;
-  if (!sentenceDescribesFixedEvent(sentence, utcDateIso)) return null;
+  if (hasContinuingEventLanguage(clause, utcDateIso)) return null;
+  if (isExperienceOpeningContext(clause) && finalDate >= recentOpeningCutoff) return null;
+  if (isHistoricalEventBackground(clause)) return null;
+  if (!clauseDescribesDatedSceneDevelopment(clause, utcDateIso)) return null;
   return finalDate;
+}
+
+function evaluateSentenceCompletedEvent(sentence, utcDateIso, today, recentOpeningCutoff) {
+  const clauses = splitSentenceDevelopmentClauses(sentence);
+  for (const clause of clauses) {
+    const completedDate = evaluateClauseCompletedEvent(
+      clause,
+      utcDateIso,
+      today,
+      recentOpeningCutoff,
+    );
+    if (completedDate) return completedDate;
+  }
+  return null;
 }
 
 export function detectCompletedEventContent(cleanBlurb, utcDateIso) {
@@ -1794,13 +1851,10 @@ export function detectCompletedEventContent(cleanBlurb, utcDateIso) {
     );
     if (!completedDate) continue;
 
-    const isLead = i === 0;
-    if (isLead || sentenceHasCurrentEventFraming(sentence)) {
-      return {
-        completed_event_content_detected: true,
-        completed_event_date: completedDate,
-      };
-    }
+    return {
+      completed_event_content_detected: true,
+      completed_event_date: completedDate,
+    };
   }
 
   return { completed_event_content_detected: false, completed_event_date: null };
@@ -2748,6 +2802,22 @@ const PLATFORM_UTILITY_PATH_PATTERNS = [
   /^\/wp-json(?:\/|$)/i,
 ];
 
+const OFFICIAL_UTILITY_PATH_PATTERNS = [
+  ...PLATFORM_UTILITY_PATH_PATTERNS,
+  /^\/careers?(?:\/|$)/i,
+  /^\/jobs?(?:\/|$)/i,
+  /^\/employment(?:\/|$)/i,
+  /^\/governance(?:\/|$)/i,
+  /^\/funding(?:\/|$)/i,
+  /^\/plan(?:-your)?-visit(?:\/|$)/i,
+  /^\/visitor-info(?:\/|$)/i,
+  /^\/planning(?:\/|$)/i,
+  /^\/sitemap(?:\/|$)/i,
+  /^\/cookie(?:s)?(?:\/|$)/i,
+  /^\/legal(?:\/|$)/i,
+  /^\/(?:en|it|fr|de|es)\/?$/i,
+];
+
 const ARTICLE_LIKE_PATH_PATTERNS = [
   /\/20\d{2}\//,
   /\/p\/[a-z0-9-]+/i,
@@ -2817,6 +2887,10 @@ function hasSubstantiveArticleSignals(citation, config = null) {
       return true;
     }
 
+    if (config && isDestinationAuthorityDomain(domain, config) && isUnusableOfficialUtilityPage(citation)) {
+      return false;
+    }
+
     if (!articleLikePath && !substantiveTitle) return false;
     if (config && !textMentionsDestination(relevanceText, config)) return false;
     return true;
@@ -2865,6 +2939,236 @@ function isFerryOperatorDomain(domain) {
 function isAttractionOrMuseumDomain(domain) {
   const normalized = domain.toLowerCase();
   return normalized.includes('museum') || normalized.includes('attraction');
+}
+
+function isDestinationCommercialFirstPartyDomain(domain, config = null) {
+  if (!domain || !config?.destination_id) return false;
+  const allowedDomains = DESTINATION_COMMERCIAL_FIRST_PARTY_DOMAINS[config.destination_id];
+  if (!Array.isArray(allowedDomains) || allowedDomains.length === 0) return false;
+  return domainMatchesAllowlist(domain, new Set(allowedDomains));
+}
+
+export function isCommercialFirstPartyDomain(domain, config = null) {
+  return isDestinationCommercialFirstPartyDomain(domain, config);
+}
+
+function isUnusableOfficialUtilityPage(citation) {
+  const url = citation?.url;
+  if (!url || typeof url !== 'string') return true;
+  try {
+    const parsed = new URL(url);
+    const pathname = parsed.pathname || '/';
+    if (/\.pdf(?:$|[?#])/i.test(pathname)) return true;
+    return OFFICIAL_UTILITY_PATH_PATTERNS.some((pattern) => pattern.test(pathname));
+  } catch {
+    return true;
+  }
+}
+
+function getCommercialOrganizationAliases(config) {
+  if (!config?.destination_id) return [];
+  const orgMap = DESTINATION_COMMERCIAL_FIRST_PARTY_ORGANIZATION_ALIASES[config.destination_id];
+  if (!orgMap || typeof orgMap !== 'object') return [];
+
+  const aliases = [];
+  for (const [domain, names] of Object.entries(orgMap)) {
+    for (const name of names) {
+      const trimmed = String(name).trim();
+      if (trimmed) {
+        aliases.push({ domain, alias: trimmed });
+      }
+    }
+  }
+  return aliases.sort((a, b) => b.alias.length - a.alias.length);
+}
+
+function textMentionsOrganizationAlias(text, alias) {
+  const haystack = String(text).toLowerCase();
+  const needle = String(alias).trim().toLowerCase();
+  if (!needle) return false;
+  const pattern = new RegExp(`\\b${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+  return pattern.test(haystack);
+}
+
+function detectNamedCommercialOrganizations(sentence, config) {
+  const organizations = [];
+  const seen = new Set();
+  for (const { domain, alias } of getCommercialOrganizationAliases(config)) {
+    if (seen.has(alias.toLowerCase())) continue;
+    if (textMentionsOrganizationAlias(sentence, alias)) {
+      seen.add(alias.toLowerCase());
+      organizations.push({ domain, alias });
+    }
+  }
+  return organizations;
+}
+
+function citationSupportsOrganizationClaim(citation, organization, config = null) {
+  const domain = citation?.domain ?? normalizeDomain(citation?.url);
+  if (!domain) return false;
+  const citationText = [citation?.title ?? '', citation?.url ?? ''].join('\n');
+
+  if (domainMatchesAllowlist(domain, new Set([organization.domain]))) {
+    return true;
+  }
+
+  const role = classifySourceRole(citation, config);
+  if (
+    role === SOURCE_ROLE_CLASSIFICATION.INDEPENDENT_EDITORIAL ||
+    role === SOURCE_ROLE_CLASSIFICATION.CREDIBLE_SPECIALIST
+  ) {
+    return textMentionsOrganizationAlias(citationText, organization.alias);
+  }
+
+  if (isDestinationAuthorityDomain(domain, config)) {
+    return textMentionsOrganizationAlias(citationText, organization.alias);
+  }
+
+  return false;
+}
+
+function sentenceHasSceneOrDevelopmentContent(sentence) {
+  return (
+    SCENE_CONTENT_PATTERNS.some((pattern) => pattern.test(sentence)) ||
+    EVENT_ANCHOR_PATTERNS.some((pattern) => pattern.test(sentence)) ||
+    /\b(?:opening|opened|reopening|festival|concert|residency|exhibition|program(?:me)?|event)\b/i.test(
+      sentence,
+    )
+  );
+}
+
+function sentenceHasDestinationRelevanceDevelopmentContent(sentence) {
+  if (sentenceHasSceneOrDevelopmentContent(sentence)) return true;
+  const hasImpactSignal =
+    /\b(?:affect|impact|disrupt|disruption|closure|closed|closing|suspended|suspension|delay|delays|cancel|cancell?ed|restrict|delaying|disrupting)\b/i.test(
+      sentence,
+    );
+  const hasTransportContext =
+    MATERIAL_TRANSPORT_PATTERNS.some((pattern) => pattern.test(sentence)) ||
+    /\b(?:ferry|flight|road|terminal|marina|port|crossing|transfer|access|airport|route)\b/i.test(
+      sentence,
+    );
+  return hasImpactSignal && hasTransportContext;
+}
+
+function accessCityDisruptionExplicitlyAffectsCanonicalDestination(sentence, canonicalTerm) {
+  const escaped = canonicalTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const patterns = [
+    new RegExp(
+      `\\b(?:affect(?:ing|s)?|impact(?:ing|s)?)\\s+(?:service|connections?|transfers?|travel|access)\\s+to\\s+(?:the\\s+)?${escaped}\\b`,
+      'i',
+    ),
+    new RegExp(`\\bdelay(?:ing|s)?\\s+transfers?\\s+to\\s+(?:the\\s+)?${escaped}\\b`, 'i'),
+    new RegExp(
+      `\\b(?:service|transfers?|connections?|access|travel|routes?)\\s+to\\s+(?:the\\s+)?${escaped}\\b`,
+      'i',
+    ),
+    new RegExp(`\\baccess\\s+to\\s+(?:the\\s+)?${escaped}\\b`, 'i'),
+    new RegExp(`\\b${escaped}\\s+access\\b`, 'i'),
+    new RegExp(`\\bconnections?\\s+for\\s+(?:the\\s+)?${escaped}\\b`, 'i'),
+    new RegExp(
+      `\\b(?:disrupt(?:ing|s)?|delay(?:ing|s)?|cancel(?:ling|led)?|suspend(?:ing|ed)?)\\s+(?:.*\\s+)?(?:to|for)\\s+(?:the\\s+)?${escaped}\\b`,
+      'i',
+    ),
+    new RegExp(
+      `\\b(?:disrupt(?:ing|s)?|delay(?:ing|s)?)\\s+(?:.*\\s+)?routes?\\s+to\\s+(?:the\\s+)?${escaped}\\b`,
+      'i',
+    ),
+  ];
+  return patterns.some((pattern) => pattern.test(sentence));
+}
+
+function accessCityReferenceMateriallyAffectsDestination(sentence, config) {
+  const { canonical } = parseCanonicalDestinationTerms(config);
+  const hasImpactSignal =
+    /\b(?:affect|impact|disrupt|disruption|closure|closed|closing|suspended|suspension|delay|cancel|cancell?ed|restrict|delaying|disrupting)\b/i.test(
+      sentence,
+    );
+  const hasTransportContext =
+    MATERIAL_TRANSPORT_PATTERNS.some((pattern) => pattern.test(sentence)) ||
+    /\b(?:ferry|flight|road|terminal|marina|port|crossing|transfer|access|airport|route)\b/i.test(
+      sentence,
+    );
+
+  if (!hasImpactSignal || !hasTransportContext) return false;
+
+  return canonical.some((term) =>
+    accessCityDisruptionExplicitlyAffectsCanonicalDestination(sentence, term),
+  );
+}
+
+export function sentenceFailsDestinationRelevance(sentence, config) {
+  const { canonical, accessOnly } = parseCanonicalDestinationTerms(config);
+  if (!sentenceHasDestinationRelevanceDevelopmentContent(sentence)) return false;
+
+  if (accessOnly.length > 0 && textContainsAnyTerm(sentence, accessOnly)) {
+    return !accessCityReferenceMateriallyAffectsDestination(sentence, config);
+  }
+
+  if (textContainsAnyTerm(sentence, canonical)) return false;
+
+  return false;
+}
+
+export function validateDevelopmentSentenceDestinationRelevance(cleanBlurb, config) {
+  const sentences = getSubstantiveSentenceTexts(cleanBlurb);
+  for (const sentence of sentences) {
+    if (sentenceFailsDestinationRelevance(sentence, config)) {
+      return { passes: false, failing_sentence: sentence };
+    }
+  }
+  return { passes: true, failing_sentence: null };
+}
+
+export function validateClaimSourceOrganizationFit(
+  outputText,
+  citationOccurrences,
+  uniqueCitations,
+  config = null,
+) {
+  const text = typeof outputText === 'string' ? outputText : '';
+  const maskedText = maskCitationRangesForSegmentation(text, citationOccurrences);
+  const sentences = splitIntoSentenceSpans(maskedText);
+
+  for (let sentenceIndex = 0; sentenceIndex < sentences.length; sentenceIndex += 1) {
+    const sentenceSpan = sentences[sentenceIndex];
+    const sentenceText = sentenceSpan.text;
+    const organizations = detectNamedCommercialOrganizations(sentenceText, config);
+    if (organizations.length === 0) continue;
+
+    const sentenceCitationUrls = new Set();
+    for (const citation of citationOccurrences) {
+      if (!Number.isInteger(citation.start_index)) continue;
+      const supportedSentenceIndex = getSupportedSentenceIndexForCitation(
+        citation.start_index,
+        sentences,
+        text.length,
+      );
+      if (supportedSentenceIndex === sentenceIndex) {
+        sentenceCitationUrls.add(citation.url);
+      }
+    }
+
+    const supportingCitations = uniqueCitations.filter((citation) =>
+      sentenceCitationUrls.has(citation.url),
+    );
+    if (supportingCitations.length === 0) continue;
+
+    for (const organization of organizations) {
+      const supported = supportingCitations.some((citation) =>
+        citationSupportsOrganizationClaim(citation, organization, config),
+      );
+      if (!supported) {
+        return {
+          passes: false,
+          unsupported_organization: organization.alias,
+          failing_sentence: sentenceText,
+        };
+      }
+    }
+  }
+
+  return { passes: true, unsupported_organization: null, failing_sentence: null };
 }
 
 function isFirstPartyDomain(domain) {
@@ -2933,6 +3237,7 @@ function qualifiesAsAuthoritativeFirstParty(citation, config = null) {
   const domain = citation?.domain ?? normalizeDomain(url);
   if (!domain) return false;
   if (isPressReleaseDomain(domain)) return false;
+  if (config && isDestinationCommercialFirstPartyDomain(domain, config)) return true;
   if (config && isDestinationAuthorityDomain(domain, config)) return true;
   if (isHospitalityNetAnnouncement(url)) return true;
   if (isFirstPartyDomain(domain)) return true;
@@ -2945,6 +3250,355 @@ function qualifiesAsAuthoritativeFirstParty(citation, config = null) {
   if (isFerryOperatorDomain(domain)) return true;
   if (isAttractionOrMuseumDomain(domain)) return true;
   if (isOperatorDomain(domain) && !isBookingOrTravelSellerDomain(domain)) return true;
+  return false;
+}
+
+function normalizeAuthorityCitationTitle(title) {
+  return String(title ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function stripLanguagePrefixFromUrlPath(pathname) {
+  return String(pathname).replace(/^\/(?:en|de|fr|it|es|pt|nl|ja|zh|ko|ru)(?=\/)/i, '');
+}
+
+function normalizeAuthorityCitationPath(url) {
+  if (!url || typeof url !== 'string') return '';
+  try {
+    const parsed = new URL(url);
+    let path = stripLanguagePrefixFromUrlPath(parsed.pathname).toLowerCase();
+    path = path.replace(/\.(?:html?|php|aspx?)$/i, '');
+    path = path.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
+    return path;
+  } catch {
+    return '';
+  }
+}
+
+function authorityCitationEventSlug(url) {
+  const path = normalizeAuthorityCitationPath(url);
+  const segments = path.split('/').filter(Boolean);
+  if (segments.length === 0) return '';
+  return segments[segments.length - 1]
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+const GENERIC_AUTHORITY_TITLE_EXACT = new Set([
+  'home',
+  'welcome',
+  'accueil',
+  'events',
+  'event',
+  'agenda',
+  'what s on',
+  'calendar',
+  'programme',
+  'programs',
+  'official website',
+  'official site',
+  'official tourism website',
+  'official web site',
+  'tourist information',
+]);
+
+const GENERIC_AUTHORITY_TITLE_PREFIXES = [
+  /^site\s+officiel\b/,
+  /^official\s+(?:website|site|web\s*site)\b/,
+  /^official\s+tourism\s+website\b/,
+  /^welcome\s+to\b/,
+  /^visit\b/,
+  /^tourism\b/,
+];
+
+const GENERIC_AUTHORITY_NAVIGATION_WORDS = new Set([
+  'event',
+  'events',
+  'agenda',
+  'calendar',
+  'programme',
+  'program',
+  'programs',
+  'what',
+  's',
+  'on',
+  'home',
+  'welcome',
+  'visit',
+  'tourism',
+  'official',
+  'website',
+  'site',
+  'web',
+  'city',
+  'town',
+  'destination',
+  'ville',
+  'officiel',
+  'accueil',
+  'de',
+  'la',
+  'du',
+  'des',
+  'the',
+  'of',
+  'to',
+  'st',
+  'saint',
+]);
+
+const GENERIC_AUTHORITY_BRANDING_TERMS = [
+  'official website',
+  'official site',
+  'official tourism website',
+  'official web site',
+  'site officiel de la ville de',
+  'site officiel',
+  'tourist information',
+  'welcome to',
+  'official',
+  'website',
+  'site',
+  'web',
+  'tourism',
+  'visit',
+  'welcome',
+  'home',
+  'city',
+  'town',
+  'destination',
+  'ville',
+  'officiel',
+  'accueil',
+  'the',
+  'of',
+  'to',
+  'de',
+  'la',
+  'du',
+  'des',
+];
+
+function removeNormalizedPhrase(text, phrase) {
+  if (!phrase) return text;
+  const escaped = phrase
+    .trim()
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\s+/g, '\\s+');
+  return text.replace(new RegExp(escaped, 'gi'), ' ');
+}
+
+function expandDestinationTitleStripVariants(normalizedTerm) {
+  const variants = new Set();
+  if (!normalizedTerm) return variants;
+  variants.add(normalizedTerm);
+  if (/\bst\b/.test(normalizedTerm)) {
+    variants.add(normalizedTerm.replace(/\bst\b/g, 'saint'));
+  }
+  if (/\bsaint\b/.test(normalizedTerm)) {
+    variants.add(normalizedTerm.replace(/\bsaint\b/g, 'st'));
+  }
+  const placeCore = normalizedTerm.match(/^(?:st|saint)\s+[a-z]+(?:\s+[a-z]+)?/);
+  if (placeCore) {
+    variants.add(placeCore[0]);
+    if (/\bst\b/.test(placeCore[0])) {
+      variants.add(placeCore[0].replace(/\bst\b/g, 'saint'));
+    }
+    if (/\bsaint\b/.test(placeCore[0])) {
+      variants.add(placeCore[0].replace(/\bsaint\b/g, 'st'));
+    }
+  }
+  return [...variants];
+}
+
+function collectDestinationTitleStripTerms(config) {
+  const stripTerms = new Set();
+  if (!config) return [];
+
+  const { canonical } = parseCanonicalDestinationTerms(config);
+  for (const term of canonical) {
+    for (const variant of expandDestinationTitleStripVariants(normalizeAuthorityCitationTitle(term))) {
+      if (variant.length >= 3) stripTerms.add(variant);
+    }
+  }
+
+  return [...stripTerms].sort((a, b) => b.length - a.length);
+}
+
+function stripGenericAuthorityBrandingRemainder(normalized, config = null, domain = null) {
+  let remainder = normalized;
+
+  const domainLabel = normalizePublisherLabel(domain ?? '');
+  if (domainLabel.length >= 3) {
+    remainder = removeNormalizedPhrase(remainder, domainLabel);
+  }
+
+  for (const term of collectDestinationTitleStripTerms(config)) {
+    remainder = removeNormalizedPhrase(remainder, term);
+  }
+
+  for (const brandingTerm of GENERIC_AUTHORITY_BRANDING_TERMS) {
+    remainder = removeNormalizedPhrase(remainder, brandingTerm);
+  }
+
+  remainder = remainder.replace(/\bwelcome\s+to\b(?:\s+[a-z0-9]+(?:\s+[a-z0-9]+)*)?/gi, ' ');
+
+  return remainder.replace(/\s+/g, ' ').trim();
+}
+
+function normalizedGenericBrandingRemainderIsGenericOnly(remainder) {
+  if (!remainder) return true;
+  if (remainder === 'what s on') return true;
+  const tokens = remainder.split(' ').filter(Boolean);
+  return tokens.every((token) => GENERIC_AUTHORITY_NAVIGATION_WORDS.has(token));
+}
+
+function normalizePublisherLabel(value) {
+  return normalizeAuthorityCitationTitle(value)
+    .replace(/\b(?:www|com|org|net|fr|de|it|es|ch|uk|gov)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function citationTitleHasSpecificDevelopmentSignal(title) {
+  const raw = String(title ?? '');
+  if (!raw.trim()) return false;
+  if (EVENT_ANCHOR_PATTERNS.some((pattern) => pattern.test(raw))) return true;
+  if (SCENE_CONTENT_PATTERNS.some((pattern) => pattern.test(raw))) return true;
+  return /\b(?:live|showcase|gala|night|doors|film|food|market|jazz|storyteller|storytellers|opening|exhibition|concert|festival|regatta|performance)\b/i.test(
+    raw,
+  );
+}
+
+function isGenericAuthorityCitationTitle(title, config = null, domain = null) {
+  const normalized = normalizeAuthorityCitationTitle(title);
+  if (!normalized) return true;
+  if (citationTitleHasSpecificDevelopmentSignal(title)) return false;
+  if (GENERIC_AUTHORITY_TITLE_EXACT.has(normalized)) return true;
+
+  for (const pattern of GENERIC_AUTHORITY_TITLE_PREFIXES) {
+    if (pattern.test(normalized)) return true;
+  }
+
+  const domainLabel = normalizePublisherLabel(domain ?? '');
+  if (domainLabel.length >= 4) {
+    if (normalized === domainLabel) return true;
+    const domainTokens = domainLabel.split(' ').filter((token) => token.length >= 4);
+    if (
+      domainTokens.length > 0 &&
+      domainTokens.every((token) => normalized.includes(token)) &&
+      normalized.length <= domainLabel.length + 20
+    ) {
+      return true;
+    }
+  }
+
+  if (config) {
+    const { canonical } = parseCanonicalDestinationTerms(config);
+    for (const term of canonical) {
+      const normalizedTerm = normalizeAuthorityCitationTitle(term);
+      if (normalizedTerm.length < 4) continue;
+      if (normalized === normalizedTerm) return true;
+
+      const escapedTerm = normalizedTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const brandingPatterns = [
+        new RegExp(`^welcome\\s+to\\s+${escapedTerm}$`),
+        new RegExp(`^visit\\s+${escapedTerm}$`),
+        new RegExp(`^tourism\\s+${escapedTerm}$`),
+        new RegExp(`^official\\s+(?:website|site)\\s+(?:of\\s+)?${escapedTerm}$`),
+      ];
+      if (brandingPatterns.some((pattern) => pattern.test(normalized))) return true;
+
+      if (normalized.includes(normalizedTerm)) {
+        const remainder = normalized.replace(normalizedTerm, ' ').replace(/\s+/g, ' ').trim();
+        if (
+          remainder &&
+          /^(?:official|website|site|tourism|visit|welcome|home|city|ville|de|la|du|des|the|of|to|st|saint|-)+$/i.test(
+            remainder,
+          )
+        ) {
+          return true;
+        }
+      }
+    }
+
+    const genericBrandingRemainder = stripGenericAuthorityBrandingRemainder(
+      normalized,
+      config,
+      domain,
+    );
+    if (normalizedGenericBrandingRemainderIsGenericOnly(genericBrandingRemainder)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function authorityCitationStableEventId(url) {
+  const path = normalizeAuthorityCitationPath(url);
+  if (!path || path === '/') return '';
+
+  const segments = path.split('/').filter(Boolean);
+  const lastSegment = segments[segments.length - 1] ?? '';
+  const trailingMatch = lastSegment.match(/-(\d{5,})$/);
+  if (trailingMatch) return trailingMatch[1];
+
+  const embeddedMatch = lastSegment.match(/(\d{5,})/);
+  if (embeddedMatch) return embeddedMatch[1];
+
+  const pathMatch = path.match(/(?:^|\/)(\d{5,})(?:\/|$)/);
+  if (pathMatch) return pathMatch[1];
+
+  return '';
+}
+
+function citationsAreSameUnderlyingDevelopment(citationA, citationB, config = null) {
+  const domainA = citationA?.domain ?? normalizeDomain(citationA?.url);
+  const domainB = citationB?.domain ?? normalizeDomain(citationB?.url);
+  const titleA = normalizeAuthorityCitationTitle(citationA?.title);
+  const titleB = normalizeAuthorityCitationTitle(citationB?.title);
+  const titleAIsGeneric = isGenericAuthorityCitationTitle(citationA?.title, config, domainA);
+  const titleBIsGeneric = isGenericAuthorityCitationTitle(citationB?.title, config, domainB);
+  if (
+    titleA.length >= 12 &&
+    titleB.length >= 12 &&
+    titleA === titleB &&
+    !titleAIsGeneric &&
+    !titleBIsGeneric
+  ) {
+    return true;
+  }
+
+  const eventIdA = authorityCitationStableEventId(citationA?.url);
+  const eventIdB = authorityCitationStableEventId(citationB?.url);
+  if (eventIdA && eventIdB && eventIdA === eventIdB) return true;
+
+  const pathA = normalizeAuthorityCitationPath(citationA?.url);
+  const pathB = normalizeAuthorityCitationPath(citationB?.url);
+  if (pathA && pathB && pathA === pathB) return true;
+
+  const slugA = authorityCitationEventSlug(citationA?.url);
+  const slugB = authorityCitationEventSlug(citationB?.url);
+  if (slugA.length >= 10 && slugB.length >= 10 && slugA === slugB) return true;
+
+  return false;
+}
+
+function sourceSetContainsDuplicateDevelopments(citations, config = null) {
+  for (let i = 0; i < citations.length; i += 1) {
+    for (let j = i + 1; j < citations.length; j += 1) {
+      if (citationsAreSameUnderlyingDevelopment(citations[i], citations[j], config)) {
+        return true;
+      }
+    }
+  }
   return false;
 }
 
@@ -2971,6 +3625,9 @@ export function qualifiesForSingleDomainDestinationAuthorityFallback(citations, 
   }
 
   for (const citation of citations) {
+    if (isUnusableOfficialUtilityPage(citation)) {
+      return false;
+    }
     const role = classifySourceRole(citation, config);
     if (
       role === SOURCE_ROLE_CLASSIFICATION.PRESS_RELEASE ||
@@ -2982,6 +3639,10 @@ export function qualifiesForSingleDomainDestinationAuthorityFallback(citations, 
     if (!isDestinationAuthorityDomain(citation.domain ?? normalizeDomain(citation.url), config)) {
       return false;
     }
+  }
+
+  if (sourceSetContainsDuplicateDevelopments(citations, config)) {
+    return false;
   }
 
   return true;
@@ -3052,6 +3713,7 @@ function qualifiesAsPublicSocialCreatorPost(citation, config = null) {
 function qualifiesAsCredibleSpecialist(citation, config = null) {
   const domain = citation?.domain ?? normalizeDomain(citation?.url);
   if (!domain || isLowConfidenceSource(citation, config)) return false;
+  if (config && isDestinationCommercialFirstPartyDomain(domain, config)) return false;
   if (qualifiesAsAuthoritativeFirstParty(citation, config)) return false;
   if (isPublicSocialPlatformDomain(domain)) {
     return qualifiesAsPublicSocialCreatorPost(citation, config);
@@ -3109,6 +3771,13 @@ export function classifySourceRole(citation, config = null) {
   }
 
   if (config && isDestinationAuthorityDomain(domain, config)) {
+    if (isUnusableOfficialUtilityPage(citation)) {
+      return SOURCE_ROLE_CLASSIFICATION.UNKNOWN;
+    }
+    return SOURCE_ROLE_CLASSIFICATION.AUTHORITATIVE_FIRST_PARTY;
+  }
+
+  if (config && isDestinationCommercialFirstPartyDomain(domain, config)) {
     return SOURCE_ROLE_CLASSIFICATION.AUTHORITATIVE_FIRST_PARTY;
   }
 
@@ -3165,6 +3834,7 @@ export function qualifiesForSingleDomainEditorialFallback(citations, config = nu
   if (
     isPublicSocialPlatformDomain(domain) ||
     isPressReleaseDomain(domain) ||
+    (config && isDestinationCommercialFirstPartyDomain(domain, config)) ||
     isLowConfidenceSource({ url: `https://${domain}/`, domain }, config)
   ) {
     return false;
@@ -3616,6 +4286,33 @@ export function validateBlurb(outputText, rawCitations, config, utcDateIso) {
     });
   }
 
+  const claimSourceFit = validateClaimSourceOrganizationFit(
+    original,
+    citationOccurrences,
+    uniqueCitations,
+    config,
+  );
+  if (!claimSourceFit.passes) {
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.UNCITED_FACTUAL_CLAIM,
+      validationWarnings: [
+        ...validationWarnings,
+        'claim_source_organization_mismatch',
+        claimSourceFit.unsupported_organization ?? 'unsupported_organization',
+      ],
+      wordCount,
+      distinctDomainCount: domains.size,
+      cleanBlurbWordCount: wordCount,
+      citationMarkupRemoved,
+      sentenceCount: sentenceCoverage.sentence_count,
+      factualSentenceCount: sentenceCoverage.factual_sentence_count,
+      citedSentenceCount: sentenceCoverage.cited_sentence_count,
+      citationCoverageComplete: sentenceCoverage.citation_coverage_complete,
+      citationDateChecks: citationDateResult.citation_date_checks,
+      uniqueCitations,
+    });
+  }
+
   if (
     sentenceCoverage.sentence_count < NEWS_BLURB_MIN_SENTENCES ||
     sentenceCoverage.sentence_count > NEWS_BLURB_MAX_SENTENCES
@@ -3697,6 +4394,22 @@ export function validateBlurb(outputText, rawCitations, config, utcDateIso) {
     return buildValidationFailure({
       rejectionReason: REJECTION_REASONS.DESTINATION_MISMATCH,
       validationWarnings,
+      ...sharedDiagnostics,
+    });
+  }
+
+  const sentenceDestinationRelevance = validateDevelopmentSentenceDestinationRelevance(
+    cleaned,
+    config,
+  );
+  if (!sentenceDestinationRelevance.passes) {
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.DESTINATION_MISMATCH,
+      validationWarnings: [
+        ...validationWarnings,
+        'sentence_destination_mismatch',
+        sentenceDestinationRelevance.failing_sentence ?? 'failing_sentence',
+      ],
       ...sharedDiagnostics,
     });
   }
@@ -4233,13 +4946,24 @@ export function selectSecondAttemptType(validation) {
   return null;
 }
 
-export function hasTimeForSecondAttempt(functionStartMs, nowMs = Date.now()) {
+export function hasTimeForMechanicalRepair(functionStartMs, nowMs = Date.now()) {
   const remaining = HARD_EXECUTION_DEADLINE_MS - (nowMs - functionStartMs);
-  return remaining > SECOND_ATTEMPT_MIN_REMAINING_MS;
+  return remaining > MECHANICAL_REPAIR_MIN_REMAINING_MS;
 }
 
 export function hasTimeForEventFallback(functionStartMs, nowMs = Date.now()) {
-  return hasTimeForSecondAttempt(functionStartMs, nowMs);
+  const remaining = HARD_EXECUTION_DEADLINE_MS - (nowMs - functionStartMs);
+  return remaining > EVENT_FALLBACK_MIN_REMAINING_MS;
+}
+
+export function hasTimeForSecondAttempt(functionStartMs, attemptType, nowMs = Date.now()) {
+  if (attemptType === 'mechanical_repair') {
+    return hasTimeForMechanicalRepair(functionStartMs, nowMs);
+  }
+  if (attemptType === 'event_fallback') {
+    return hasTimeForEventFallback(functionStartMs, nowMs);
+  }
+  return false;
 }
 
 function addTokenUsage(base, addition) {
@@ -4473,7 +5197,7 @@ export async function processDestinationNews({
 
   const selectedSecondAttemptType = selectSecondAttemptType(firstAttempt.validation);
   if (!firstAttempt.validation.publishable && selectedSecondAttemptType) {
-    if (hasTimeForSecondAttempt(functionStartMs)) {
+    if (hasTimeForSecondAttempt(functionStartMs, selectedSecondAttemptType)) {
       generationAttemptCount = 2;
       secondAttemptType = selectedSecondAttemptType;
 
@@ -4495,7 +5219,9 @@ export async function processDestinationNews({
       } else if (selectedSecondAttemptType === 'event_fallback') {
         eventFallbackAttempted = true;
         const fallbackAttempt = await runGenerationAttempt(
-          buildEventFallbackPrompt(config, generatedAt),
+          buildEventFallbackPrompt(config, generatedAt, {
+            initialRejectionReason: firstAttempt.validation.rejection_reason,
+          }),
           EVENT_FALLBACK_MAX_TOOL_CALLS,
         );
         fallbackRejectionReason = fallbackAttempt.validation.rejection_reason;

@@ -39,7 +39,13 @@ export const DESTINATION_TRUSTED_EDITORIAL_DOMAINS = {
 };
 
 export const DESTINATION_AUTHORITY_DOMAINS = {
-  'st-tropez': ['sainttropeztourisme.com', 'portsainttropez.com'],
+  'st-tropez': [
+    'saint-tropez.fr',
+    'sainttropeztourisme.com',
+    'portsainttropez.com',
+    'golfe-sainttropez-tourisme.fr',
+  ],
+  'st-moritz': ['stmoritz.com', 'engadin.ch'],
   'jackson-hole': ['jacksonhole.com', 'jacksonholechamber.com', 'visitjacksonhole.com'],
   'cabo-san-lucas': ['visitloscabos.travel'],
   'casa-de-campo': ['casadecampo.com.do', 'cigarsinparadise.com'],
@@ -48,13 +54,27 @@ export const DESTINATION_AUTHORITY_DOMAINS = {
   'sun-valley': ['visitsunvalley.com'],
   'destin-30a': ['seasidefl.com', '30a.com'],
   'puerto-vallarta': ['visitpuertovallarta.com'],
+  'amalfi-salerno': ['comune.amalfi.sa.it'],
+  'capri-naples': ['capri.it', 'capri.com'],
+  'dubai-private': ['visitdubai.com'],
   bali: ['visitbali.com', 'bbtf.co.id'],
 };
 
 export const DESTINATION_SPECIALIST_EDITORIAL_DOMAINS = {
   mallorca: ['majorcadailybulletin.com'],
-  bali: ['balipost.com', 'thebaliguideline.com'],
+  bali: ['balipost.com', 'thebaliguideline.com', 'nowbali.co.id'],
   'amalfi-salerno': ['amalficoast-travel.com', 'amalfinotizie.it'],
+};
+
+export const DESTINATION_COMMERCIAL_FIRST_PARTY_DOMAINS = {
+  nassau: ['atlantisbahamas.com', 'bahamar.com'],
+};
+
+export const DESTINATION_COMMERCIAL_FIRST_PARTY_ORGANIZATION_ALIASES = {
+  nassau: {
+    'atlantisbahamas.com': ['atlantis', 'atlantis bahamas', 'atlantis paradise island'],
+    'bahamar.com': ['baha mar', 'bahamar'],
+  },
 };
 
 export const ACCESS_CITY_SEARCH_ONLY_ALIASES = {
