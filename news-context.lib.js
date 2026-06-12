@@ -14,6 +14,9 @@ import {
   PILOT_DESTINATION_COUNT,
   PILOT_DESTINATION_IDS,
   DESTINATION_TRUSTED_EDITORIAL_DOMAINS,
+  DESTINATION_AUTHORITY_DOMAINS,
+  DESTINATION_SPECIALIST_EDITORIAL_DOMAINS,
+  ACCESS_CITY_SEARCH_ONLY_ALIASES,
   NEWS_SOURCE_MAX_AGE_DAYS,
   NEWS_EVENT_SOURCE_MAX_AGE_DAYS,
   NEWS_UPCOMING_EVENT_WINDOW_DAYS,
@@ -426,6 +429,8 @@ export const NEWS_BLURB_MAX_SENTENCES = 5;
 export const NEWS_BLURB_TARGET_MIN_WORDS = 95;
 export const NEWS_BLURB_TARGET_MAX_WORDS = 115;
 export const EVENT_FALLBACK_MAX_TOOL_CALLS = 4;
+export const MECHANICAL_REPAIR_MAX_TOOL_CALLS = 2;
+export const SECOND_ATTEMPT_MIN_REMAINING_MS = DESTINATION_OPENAI_TIMEOUT_MS + 3_000;
 const MAX_DIAGNOSTIC_ERROR_MESSAGE_LENGTH = 200;
 const MAX_STORED_CONSULTED_SOURCES = 20;
 const PRESS_RELEASE_DOMAINS = new Set([
@@ -551,6 +556,48 @@ const GENERIC_DESTINATION_PRAISE_PATTERNS = [
   /\bworld[- ]class\b/i,
   /\bvibrant\b/i,
 ];
+
+const INDUSTRY_ONLY_EVENT_PATTERNS = [
+  /\btrade\s+fair\b/i,
+  /\btrade\s+show\b/i,
+  /\bindustry\s+conference\b/i,
+  /\bsupplier\s+expo\b/i,
+  /\bhospitality[- ]operator\s+convention\b/i,
+  /\bB2B\s+event\b/i,
+  /\bprofessional\s+buyers?\b/i,
+  /\bcommercial\s+exhibitors?\b/i,
+  /\bindustry\s+delegates?\b/i,
+  /\bhotel\s+and\s+restaurant\s+suppliers?\b/i,
+  /\btravel[- ]industry\s+networking\b/i,
+  /\bhospitality\s+trade\s+fair\b/i,
+  /\bprofessional\s+trade\s+fair\b/i,
+  /\bsupplier\s+conference\b/i,
+  /\bbusiness\s+convention\b/i,
+];
+
+const PUBLIC_LEISURE_EVENT_EXCEPTION_PATTERNS = [
+  /\bfood\s+festival\b/i,
+  /\bwine\s+(?:event|festival)\b/i,
+  /\bpublic\s+boat\s+show\b/i,
+  /\bart\s+fair\b/i,
+  /\bcultural\s+convention\b/i,
+  /\bconsumer\s+fashion\b/i,
+  /\bculinary\s+expo\b/i,
+  /\bmusic\s+festival\b/i,
+  /\bpublic\s+sporting\s+event\b/i,
+  /\bboat\s+show\b/i,
+  /\bfood\s+and\s+wine\b/i,
+];
+
+const MECHANICAL_REPAIR_TRIGGER_REASONS = new Set([
+  REJECTION_REASONS.WORD_COUNT,
+  REJECTION_REASONS.SENTENCE_COUNT,
+  REJECTION_REASONS.UNCITED_FACTUAL_CLAIM,
+  REJECTION_REASONS.CITATION_COUNT,
+  REJECTION_REASONS.DOMAIN_DIVERSITY,
+  REJECTION_REASONS.STALE_SOURCE_DATE,
+  REJECTION_REASONS.STALE_EVENT_DATE,
+]);
 const STANDALONE_CONTINUATION_ABBREVIATIONS = ['St.', 'Mr.', 'Mrs.', 'Ms.', 'Dr.'];
 const SENTENCE_INTERNAL_ABBREVIATIONS = ['U.S.', 'U.K.'];
 const ENGLISH_MONTH_NAMES = [
@@ -970,10 +1017,15 @@ export function buildEventFallbackPrompt(config, utcDateIso) {
 
   return `The first search did not produce a publishable destination-scene brief for ${config.destination_name}.
 
-Search specifically for current or upcoming parties, music, concerts, nightlife, sports, restaurant openings, hotel openings, exhibitions, culinary events, cultural programming, beach clubs, marina events, and seasonal visitor experiences in ${config.search_city}.
+Search specifically for current or upcoming leisure-facing developments in ${config.search_city}: concerts, nightlife, festivals, sports, restaurant openings, hotel openings, exhibitions, cultural programming, beach clubs, marina events, parties, and seasonal visitor experiences.
 
-Bloggers, local specialists, creators, organizers, venues, and first-party event sources are allowed.
+Focus on the canonical destination ${config.destination_name} and its genuinely included subdestinations. Use search aliases only as research aids. The selected developments themselves must occur in ${config.destination_name} or a valid combined destination. Do not lead with unrelated events from an airport or access city — for example, do not use a Naples event for Capri, Sion for Verbier, Vancouver for Whistler, or an unrelated Cancún event for Tulum. Preserve legitimate combined destinations such as Coronado / San Diego, Megève / Chamonix, Sardinia / Olbia, and Amalfi / Salerno.
+
+Bloggers, local specialists, creators, organizers, venues, tourism authorities, and appropriate first-party event sources are allowed.
 Do not return routine airport or airline operations unless they concern a material disruption.
+Do not return industry-only trade fairs, hospitality expos, or business conferences as the primary traveler development.
+Do not describe completed concerts, parties, festivals, matches, dinners, galas, or other fixed events as current or upcoming.
+Do not use unrelated access-city events when the canonical destination has its own scene.
 
 Use hosted web search with category-focused queries. Prefer event, dining, culture, nightlife, sport, and opening content over transportation news.
 
@@ -982,9 +1034,122 @@ Return exactly one plain-text paragraph of ${NEWS_BLURB_MIN_WORDS}–${NEWS_BLUR
 Current generation date: ${utcDate}
 Earliest normally permitted source date: ${earliestPermittedSourceDate}
 
+Compare every event date with today before writing. Do not describe an event as upcoming, underway, current, or ongoing when its final date is earlier than today.
+
 If no publishable destination-scene material can be found, return exactly NO_RELEVANT_TRAVEL_NEWS.
 
 ${destinationBlock}`;
+}
+
+function mechanicalRepairFailureInstructions(rejectionReason) {
+  switch (rejectionReason) {
+    case REJECTION_REASONS.WORD_COUNT:
+      return 'WORD_COUNT: preserve useful facts and compress or expand naturally into 85–125 words.';
+    case REJECTION_REASONS.SENTENCE_COUNT:
+      return 'SENTENCE_COUNT: combine or split sentences into 3–5 substantive sentences while preserving citation coverage.';
+    case REJECTION_REASONS.UNCITED_FACTUAL_CLAIM:
+      return 'UNCITED_FACTUAL_CLAIM: add a valid hosted citation occurrence after every factual sentence, or remove the unsupported factual sentence.';
+    case REJECTION_REASONS.CITATION_COUNT:
+      return 'CITATION_COUNT: return exactly 2 or 3 valid unique cited URLs. Do not return substantive prose without valid annotations.';
+    case REJECTION_REASONS.DOMAIN_DIVERSITY:
+      return 'DOMAIN_DIVERSITY: use another credible domain when reasonably available; otherwise use only a permitted controlled single-domain fallback.';
+    case REJECTION_REASONS.STALE_SOURCE_DATE:
+      return 'STALE_SOURCE_DATE: do not reuse a stale source unless it qualifies under the existing citation-specific extended-event exception; replace it with a current source or remove the unsupported development.';
+    case REJECTION_REASONS.STALE_EVENT_DATE:
+      return 'STALE_EVENT_DATE: remove completed concerts, parties, festivals, matches, dinners, galas, or other fixed events from the current briefing; retain recent openings or programs that travelers can still experience; replace completed events with current or upcoming developments; do not describe a past event as happening now; do not reuse stale factual framing.';
+    default:
+      return '';
+  }
+}
+
+export function buildMechanicalRepairPrompt(config, utcDateIso, firstAttemptContext) {
+  const utcDate = utcDateIso.slice(0, 10);
+  const earliestPermittedSourceDate = computeEarliestPermittedSourceDate(utcDateIso);
+  const validation = firstAttemptContext.validation ?? {};
+  const parsed = firstAttemptContext.parsed ?? {};
+  const citationOccurrences = parseCitationOccurrences(parsed.citations ?? []);
+  const { cleaned: candidateCleanText } = cleanBlurbFromCitationMarkup(
+    parsed.output_text ?? '',
+    citationOccurrences,
+  );
+  const uniqueCitations = dedupeCitations(parsed.citations ?? []);
+  const sentenceCoverage = validateSentenceCitationCoverage(
+    parsed.output_text ?? '',
+    citationOccurrences,
+  );
+  const consultedSources = dedupeConsultedSources(firstAttemptContext.consultedSources ?? [])
+    .slice(0, 10)
+    .map((source) => ({
+      title: source.title ?? '',
+      domain: source.domain ?? normalizeDomain(source.url),
+      url: source.url ?? '',
+    }));
+
+  const citationSummary = uniqueCitations
+    .map((citation) => {
+      const domain = citation.domain ?? normalizeDomain(citation.url);
+      const title = citation.title ? String(citation.title) : '';
+      return `- ${title || '(untitled)'} | ${domain} | ${citation.url}`;
+    })
+    .join('\n');
+
+  const consultedSummary = consultedSources
+    .map((source) => `- ${source.title || '(untitled)'} | ${source.domain} | ${source.url}`)
+    .join('\n');
+
+  const failureInstructions = mechanicalRepairFailureInstructions(validation.rejection_reason);
+
+  return `You already found useful destination material. Correct only the failed publication requirement while preserving the strongest current or upcoming events, openings, dining, nightlife, sports, culture, art, hospitality, and visitor-experience details.
+
+Produce one final paragraph, not an explanation of the repair.
+
+Destination context:
+- Destination ID: ${config.destination_id}
+- Public destination name: ${config.destination_name}
+- Country: ${config.country}
+- Region: ${config.region}
+- Search city: ${config.search_city}
+- Aliases: ${config.aliases.join(', ')}
+- Excluded meanings: ${config.excluded_meanings.length ? config.excluded_meanings.join('; ') : '(none)'}
+
+Generation timestamp: ${utcDateIso}
+Current UTC generation date: ${utcDate}
+Earliest normally permitted source date: ${earliestPermittedSourceDate}
+Controlled extended-event source rule: sources older than ${earliestPermittedSourceDate} may survive only when they support a current or upcoming dated event within the controlled ${NEWS_EVENT_SOURCE_MAX_AGE_DAYS}-day event exception.
+
+First-attempt rejection reason: ${validation.rejection_reason}
+Failure-specific instruction: ${failureInstructions}
+
+First candidate clean text:
+${candidateCleanText || '(none)'}
+
+Candidate citations:
+${citationSummary || '(none)'}
+
+Sentence diagnostics:
+- sentence_count: ${sentenceCoverage.sentence_count}
+- factual_sentence_count: ${sentenceCoverage.factual_sentence_count}
+- cited_sentence_count: ${sentenceCoverage.cited_sentence_count}
+- citation_coverage_complete: ${sentenceCoverage.citation_coverage_complete}
+- citation_count: ${uniqueCitations.length}
+- distinct_domain_count: ${validation.distinct_domain_count ?? 0}
+
+Useful consulted sources:
+${consultedSummary || '(none)'}
+
+Requirements:
+- target length approximately ${NEWS_BLURB_TARGET_MIN_WORDS}–${NEWS_BLURB_TARGET_MAX_WORDS} clean words
+- accepted range ${NEWS_BLURB_MIN_WORDS}–${NEWS_BLURB_MAX_WORDS} words
+- preferably 3 or 4 sentences, no more than 5 substantive sentences
+- 2 or 3 unique hosted citation URLs
+- every factual sentence ending with at least one hosted citation annotation
+- no bare URLs, no Markdown source list, no generic promotional language
+- no unsupported demand, crowd, pricing, or popularity claims
+- no completed event presented as current
+- no unrelated access-city event
+- no industry-only event as the primary traveler development
+
+Return exactly one plain-text paragraph meeting the failed requirement above.`;
 }
 
 export function buildResponsesApiRequest(prompt, { maxToolCalls = 5 } = {}) {
@@ -1305,9 +1470,91 @@ function destinationRelevanceTerms(config) {
     .sort((a, b) => b.length - a.length);
 }
 
-function textMentionsDestination(text, config) {
+function parseCanonicalDestinationTerms(config) {
+  const canonical = new Set();
+  const accessOnly = new Set();
+  const name = String(config.destination_name ?? '').trim();
+
+  const viaMatch = name.match(/^(.+?)\s*\(via\s+([^)]+)\)/i);
+  if (viaMatch) {
+    canonical.add(viaMatch[1].trim());
+    accessOnly.add(viaMatch[2].trim());
+  } else {
+    const slashParts = name.split('/').map((part) => part.replace(/\([^)]*\)/g, '').trim());
+    if (slashParts.length > 1) {
+      for (const part of slashParts) {
+        if (part) canonical.add(part);
+      }
+    } else if (name.includes('&')) {
+      const strippedName = name.replace(/\([^)]*\)/g, '').trim();
+      if (strippedName) canonical.add(strippedName);
+      const aliasTerms = (config.aliases ?? []).map((alias) => String(alias).trim().toLowerCase());
+      for (const part of strippedName.split('&').map((part) => part.trim())) {
+        if (!part) continue;
+        const aliasMatch = aliasTerms.includes(part.toLowerCase());
+        const isMultiWord = /\s/.test(part);
+        if (aliasMatch || isMultiWord || part.length >= 6) {
+          canonical.add(part);
+        }
+      }
+    } else if (name) {
+      canonical.add(name);
+    }
+  }
+
+  if (config.search_city) canonical.add(config.search_city);
+
+  const configuredAccessOnly = ACCESS_CITY_SEARCH_ONLY_ALIASES[config.destination_id] ?? [];
+  for (const alias of configuredAccessOnly) {
+    accessOnly.add(String(alias).trim());
+  }
+
+  for (const alias of config.aliases ?? []) {
+    const trimmed = String(alias).trim();
+    if (!trimmed) continue;
+    const lower = trimmed.toLowerCase();
+    const isAccessOnly = [...accessOnly].some((term) => term.toLowerCase() === lower);
+    if (!isAccessOnly) canonical.add(trimmed);
+  }
+
+  return {
+    canonical: [...canonical]
+      .map((term) => String(term).trim())
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length),
+    accessOnly: [...accessOnly]
+      .map((term) => String(term).trim())
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length),
+  };
+}
+
+function textContainsAnyTerm(text, terms) {
   const haystack = String(text).toLowerCase();
-  return destinationRelevanceTerms(config).some((term) => haystack.includes(term.toLowerCase()));
+  return terms.some((term) => haystack.includes(term.toLowerCase()));
+}
+
+function textMentionsDestination(text, config) {
+  return textContainsAnyTerm(text, destinationRelevanceTerms(config));
+}
+
+export function textReferencesCanonicalDestination(text, config) {
+  const { canonical } = parseCanonicalDestinationTerms(config);
+  return textContainsAnyTerm(text, canonical);
+}
+
+export function contentLedByAccessCityOnly(text, config) {
+  const { canonical, accessOnly } = parseCanonicalDestinationTerms(config);
+  if (accessOnly.length === 0) return false;
+
+  const sentences = String(text)
+    .split(/[.!?]+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+  const leadSentence = sentences[0] ?? String(text);
+  const leadMentionsAccess = textContainsAnyTerm(leadSentence, accessOnly);
+  const leadMentionsCanonical = textContainsAnyTerm(leadSentence, canonical);
+  return leadMentionsAccess && !leadMentionsCanonical;
 }
 
 function validateCitationOffsets(citations, outputTextLength) {
@@ -1421,6 +1668,142 @@ export function detectStaleEventEndDate(cleanedBlurb, utcDateIso) {
   }
 
   return null;
+}
+
+export function getEventFinalDateFromText(text, utcDateIso) {
+  const sourceText = typeof text === 'string' ? text : '';
+  if (!sourceText) return null;
+
+  const ranges = extractEventDateRanges(sourceText, utcDateIso);
+  if (ranges.length > 0) {
+    return ranges.reduce((latest, range) => (range.end > latest ? range.end : latest), ranges[0].end);
+  }
+
+  const explicitDates = extractExplicitEventDates(sourceText, utcDateIso);
+  if (explicitDates.length > 0) {
+    return explicitDates.reduce((latest, date) => (date > latest ? date : latest), explicitDates[0]);
+  }
+
+  return detectStaleEventEndDate(sourceText, utcDateIso);
+}
+
+export function isEventCompletedOnGenerationDate(eventFinalDate, utcDateIso) {
+  if (!eventFinalDate) return false;
+  const today = String(utcDateIso).slice(0, 10);
+  return String(eventFinalDate).slice(0, 10) < today;
+}
+
+const CURRENT_EVENT_FRAMING_PATTERNS = [
+  /\bthis\s+week\b/i,
+  /\bnow\b/i,
+  /\bcurrently\b/i,
+  /\bupcoming\b/i,
+  /\bunderway\b/i,
+  /\btaking\s+place\b/i,
+  /\bhappening\b/i,
+  /\b(?:current|fresh)\s+highlight\b/i,
+  /\balready\s+in\s+full\s+summer\s+mode\b/i,
+];
+
+const HISTORICAL_EVENT_BACKGROUND_PATTERNS = [
+  /\b(?:last\s+year|previous\s+season|years?\s+ago|historically)\b/i,
+  /\b(?:was\s+held|took\s+place|had\s+been|previously\s+held)\b/i,
+];
+
+function getSubstantiveSentenceTexts(text) {
+  return splitIntoSentenceSpans(String(text))
+    .map((span) => span.text)
+    .filter(isSubstantiveSentenceSpan);
+}
+
+function getSentenceEventFinalDate(sentence, utcDateIso) {
+  const finalDate = getEventFinalDateFromText(sentence, utcDateIso);
+  if (finalDate) return finalDate;
+
+  if (!/\bevents?\b/i.test(sentence)) return null;
+
+  const today = String(utcDateIso).slice(0, 10);
+  const currentYear = Number(today.slice(0, 4));
+  const monthDayPattern = new RegExp(
+    `\\b(${ENGLISH_MONTH_NAMES.join('|')})\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b`,
+    'gi',
+  );
+  const dates = [];
+  let match = monthDayPattern.exec(sentence);
+  while (match) {
+    const parsed = parseEnglishMonthDayYear(match[0], currentYear);
+    if (parsed) dates.push(parsed);
+    match = monthDayPattern.exec(sentence);
+  }
+  if (dates.length === 0) return null;
+  return dates.reduce((latest, date) => (date > latest ? date : latest), dates[0]);
+}
+
+function sentenceHasCurrentEventFraming(sentence) {
+  return (
+    CURRENT_EVENT_FRAMING_PATTERNS.some((pattern) => pattern.test(sentence)) &&
+    !/\b(?:ended|concluded|wrapped|took\s+place|was\s+held|held\s+on)\b/i.test(sentence)
+  );
+}
+
+function isHistoricalEventBackground(sentence) {
+  return (
+    HISTORICAL_EVENT_BACKGROUND_PATTERNS.some((pattern) => pattern.test(sentence)) &&
+    !sentenceHasCurrentEventFraming(sentence)
+  );
+}
+
+function sentenceDescribesFixedEvent(sentence, utcDateIso) {
+  return (
+    isCompletedOneNightEventContext(sentence, utcDateIso) ||
+    EVENT_ANCHOR_PATTERNS.some((pattern) => pattern.test(sentence)) ||
+    (/\bevents?\b/i.test(sentence) && getSentenceEventFinalDate(sentence, utcDateIso) != null)
+  );
+}
+
+function evaluateSentenceCompletedEvent(sentence, utcDateIso, today, recentOpeningCutoff) {
+  const finalDate = getSentenceEventFinalDate(sentence, utcDateIso);
+  if (!finalDate || finalDate >= today) return null;
+  if (hasContinuingEventLanguage(sentence, utcDateIso)) return null;
+  if (isExperienceOpeningContext(sentence) && finalDate >= recentOpeningCutoff) return null;
+  if (isHistoricalEventBackground(sentence)) return null;
+  if (!sentenceDescribesFixedEvent(sentence, utcDateIso)) return null;
+  return finalDate;
+}
+
+export function detectCompletedEventContent(cleanBlurb, utcDateIso) {
+  const text = typeof cleanBlurb === 'string' ? cleanBlurb.trim() : '';
+  if (!text) {
+    return { completed_event_content_detected: false, completed_event_date: null };
+  }
+
+  const today = String(utcDateIso).slice(0, 10);
+  const recentOpeningCutoff = subtractCalendarDays(today, NEWS_RECENT_OPENING_MAX_AGE_DAYS);
+  const sentences = getSubstantiveSentenceTexts(text);
+  if (sentences.length === 0) {
+    return { completed_event_content_detected: false, completed_event_date: null };
+  }
+
+  for (let i = 0; i < sentences.length; i += 1) {
+    const sentence = sentences[i];
+    const completedDate = evaluateSentenceCompletedEvent(
+      sentence,
+      utcDateIso,
+      today,
+      recentOpeningCutoff,
+    );
+    if (!completedDate) continue;
+
+    const isLead = i === 0;
+    if (isLead || sentenceHasCurrentEventFraming(sentence)) {
+      return {
+        completed_event_content_detected: true,
+        completed_event_date: completedDate,
+      };
+    }
+  }
+
+  return { completed_event_content_detected: false, completed_event_date: null };
 }
 
 function isValidCalendarDate(year, month, day) {
@@ -2002,6 +2385,55 @@ function countPatternMatches(text, patterns) {
   return count;
 }
 
+function publicLeisureNeutralizesIndustrySentence(sentence) {
+  if (/\b(?:alongside|unrelated|separate\s+from)\b/i.test(sentence)) {
+    return false;
+  }
+
+  const stronglyPublic =
+    /\bpublic\s+(?:food\s+festival|art\s+fair|boat\s+show|sporting\s+event)\b/i.test(sentence) ||
+    /\bconsumer\s+culinary\s+expo\b/i.test(sentence) ||
+    /\bmusic\s+festival\b/i.test(sentence) ||
+    (/\b(?:open\s+to\s+the\s+public|welcomes?\s+visitors)\b/i.test(sentence) &&
+      /\b(?:expo|festival|fair|show)\b/i.test(sentence) &&
+      !/\b(?:trade|supplier|industry|B2B|commercial\s+exhibitors?|professional\s+buyers?)\b/i.test(
+        sentence,
+      ));
+
+  if (stronglyPublic) return true;
+
+  return (
+    PUBLIC_LEISURE_EVENT_EXCEPTION_PATTERNS.some((pattern) => pattern.test(sentence)) &&
+    !INDUSTRY_ONLY_EVENT_PATTERNS.some((pattern) => pattern.test(sentence))
+  );
+}
+
+function sentenceIsIndustryOnlyEvent(sentence) {
+  const hasIndustrySignal = INDUSTRY_ONLY_EVENT_PATTERNS.some((pattern) => pattern.test(sentence));
+  if (!hasIndustrySignal) return false;
+  return !publicLeisureNeutralizesIndustrySentence(sentence);
+}
+
+export function detectIndustryOnlyEventContent(cleanBlurb) {
+  const text = typeof cleanBlurb === 'string' ? cleanBlurb.trim() : '';
+  if (!text) {
+    return { industry_only_event_content_detected: false };
+  }
+
+  const sentences = getSubstantiveSentenceTexts(text);
+  if (sentences.length === 0) {
+    return { industry_only_event_content_detected: false };
+  }
+
+  for (let i = 0; i < sentences.length; i += 1) {
+    if (sentenceIsIndustryOnlyEvent(sentences[i])) {
+      return { industry_only_event_content_detected: true };
+    }
+  }
+
+  return { industry_only_event_content_detected: false };
+}
+
 export function evaluateTravelValue(cleanBlurb) {
   const text = typeof cleanBlurb === 'string' ? cleanBlurb.trim() : '';
   if (!text || text === NO_RELEVANT_MARKER) {
@@ -2480,11 +2912,28 @@ function isRestaurantNightclubOrBeachClubDomain(domain) {
   );
 }
 
-function qualifiesAsAuthoritativeFirstParty(citation) {
+function isDestinationAuthorityDomain(domain, config = null) {
+  if (!domain || !config?.destination_id) return false;
+  const allowedDomains = DESTINATION_AUTHORITY_DOMAINS[config.destination_id];
+  if (!Array.isArray(allowedDomains) || allowedDomains.length === 0) return false;
+  return domainMatchesAllowlist(domain, new Set(allowedDomains));
+}
+
+function isSingleCommercialOperatorDomain(domain) {
+  if (!domain) return false;
+  return (
+    isHotelOrResortDomain(domain) ||
+    isAirportOrAirlineOperatorDomain(domain) ||
+    isRestaurantNightclubOrBeachClubDomain(domain)
+  );
+}
+
+function qualifiesAsAuthoritativeFirstParty(citation, config = null) {
   const url = citation?.url;
   const domain = citation?.domain ?? normalizeDomain(url);
   if (!domain) return false;
   if (isPressReleaseDomain(domain)) return false;
+  if (config && isDestinationAuthorityDomain(domain, config)) return true;
   if (isHospitalityNetAnnouncement(url)) return true;
   if (isFirstPartyDomain(domain)) return true;
   if (isFirstPartyPath(url)) return true;
@@ -2497,6 +2946,45 @@ function qualifiesAsAuthoritativeFirstParty(citation) {
   if (isAttractionOrMuseumDomain(domain)) return true;
   if (isOperatorDomain(domain) && !isBookingOrTravelSellerDomain(domain)) return true;
   return false;
+}
+
+export function qualifiesForSingleDomainDestinationAuthorityFallback(citations, config = null) {
+  if (!Array.isArray(citations) || citations.length < 2 || !config?.destination_id) return false;
+
+  const uniqueUrls = new Set(citations.map((citation) => citation.url).filter(Boolean));
+  if (uniqueUrls.size < 2) return false;
+
+  const domains = new Set(
+    citations.map((citation) => citation.domain ?? normalizeDomain(citation.url)).filter(Boolean),
+  );
+  if (domains.size !== 1) return false;
+
+  const domain = [...domains][0];
+  if (
+    !isDestinationAuthorityDomain(domain, config) ||
+    isPublicSocialPlatformDomain(domain) ||
+    isPressReleaseDomain(domain) ||
+    isSingleCommercialOperatorDomain(domain) ||
+    isLowConfidenceSource({ url: `https://${domain}/`, domain }, config)
+  ) {
+    return false;
+  }
+
+  for (const citation of citations) {
+    const role = classifySourceRole(citation, config);
+    if (
+      role === SOURCE_ROLE_CLASSIFICATION.PRESS_RELEASE ||
+      role === SOURCE_ROLE_CLASSIFICATION.LOW_CONFIDENCE ||
+      role === SOURCE_ROLE_CLASSIFICATION.UNKNOWN
+    ) {
+      return false;
+    }
+    if (!isDestinationAuthorityDomain(citation.domain ?? normalizeDomain(citation.url), config)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function isPublicSocialPlatformDomain(domain) {
@@ -2564,7 +3052,7 @@ function qualifiesAsPublicSocialCreatorPost(citation, config = null) {
 function qualifiesAsCredibleSpecialist(citation, config = null) {
   const domain = citation?.domain ?? normalizeDomain(citation?.url);
   if (!domain || isLowConfidenceSource(citation, config)) return false;
-  if (qualifiesAsAuthoritativeFirstParty(citation)) return false;
+  if (qualifiesAsAuthoritativeFirstParty(citation, config)) return false;
   if (isPublicSocialPlatformDomain(domain)) {
     return qualifiesAsPublicSocialCreatorPost(citation, config);
   }
@@ -2609,9 +3097,22 @@ export function classifySourceRole(citation, config = null) {
     ) {
       return SOURCE_ROLE_CLASSIFICATION.INDEPENDENT_EDITORIAL;
     }
+
+    const specialistDomains = DESTINATION_SPECIALIST_EDITORIAL_DOMAINS[destinationId];
+    if (
+      Array.isArray(specialistDomains) &&
+      specialistDomains.length > 0 &&
+      domainMatchesAllowlist(domain, new Set(specialistDomains))
+    ) {
+      return SOURCE_ROLE_CLASSIFICATION.CREDIBLE_SPECIALIST;
+    }
   }
 
-  if (qualifiesAsAuthoritativeFirstParty(citation)) {
+  if (config && isDestinationAuthorityDomain(domain, config)) {
+    return SOURCE_ROLE_CLASSIFICATION.AUTHORITATIVE_FIRST_PARTY;
+  }
+
+  if (qualifiesAsAuthoritativeFirstParty(citation, config)) {
     return SOURCE_ROLE_CLASSIFICATION.AUTHORITATIVE_FIRST_PARTY;
   }
 
@@ -2743,6 +3244,7 @@ export function validateSourceQuality(citations, config = null) {
       first_party_source_count: 0,
       source_quality_passed: false,
       single_domain_editorial_fallback_used: false,
+      single_domain_destination_authority_fallback_used: false,
       passes: false,
     };
   }
@@ -2760,6 +3262,8 @@ export function validateSourceQuality(citations, config = null) {
 
   const multiDomainCredibleMix =
     counts.credibleSourceCount >= 2 && credibleDomains.size >= 2;
+  const singleDomainDestinationAuthorityFallbackUsed =
+    qualifiesForSingleDomainDestinationAuthorityFallback(citations, config);
   const singleDomainEditorialFallbackUsed = qualifiesForSingleDomainEditorialFallback(
     citations,
     config,
@@ -2776,10 +3280,13 @@ export function validateSourceQuality(citations, config = null) {
   const sameDomainFirstPartyOnly =
     credibleDomains.size <= 1 &&
     counts.authoritativeFirstPartySourceCount === citations.length &&
-    citations.length >= 2;
+    citations.length >= 2 &&
+    !singleDomainDestinationAuthorityFallbackUsed;
 
   const sourceQualityPassed =
-    (multiDomainCredibleMix || singleDomainEditorialFallbackUsed) &&
+    (multiDomainCredibleMix ||
+      singleDomainEditorialFallbackUsed ||
+      singleDomainDestinationAuthorityFallbackUsed) &&
     !onlyLowConfidenceOrPress &&
     !onlyUnknownEstablishing &&
     !sameDomainFirstPartyOnly;
@@ -2795,6 +3302,8 @@ export function validateSourceQuality(citations, config = null) {
     first_party_source_count: counts.authoritativeFirstPartySourceCount,
     source_quality_passed: sourceQualityPassed,
     single_domain_editorial_fallback_used: singleDomainEditorialFallbackUsed,
+    single_domain_destination_authority_fallback_used:
+      singleDomainDestinationAuthorityFallbackUsed,
     passes: sourceQualityPassed,
   };
 }
@@ -2822,6 +3331,7 @@ export function evaluateDomainDiversity(uniqueCitations, config = null) {
       passes: true,
       distinctDomainCount: domains.size,
       single_domain_editorial_fallback_used: false,
+      single_domain_destination_authority_fallback_used: false,
     };
   }
   if (domains.size === 0) {
@@ -2829,6 +3339,15 @@ export function evaluateDomainDiversity(uniqueCitations, config = null) {
       passes: false,
       distinctDomainCount: 0,
       single_domain_editorial_fallback_used: false,
+      single_domain_destination_authority_fallback_used: false,
+    };
+  }
+  if (qualifiesForSingleDomainDestinationAuthorityFallback(uniqueCitations, config)) {
+    return {
+      passes: true,
+      distinctDomainCount: 1,
+      single_domain_editorial_fallback_used: false,
+      single_domain_destination_authority_fallback_used: true,
     };
   }
   if (qualifiesForSingleDomainEditorialFallback(uniqueCitations, config)) {
@@ -2836,12 +3355,14 @@ export function evaluateDomainDiversity(uniqueCitations, config = null) {
       passes: true,
       distinctDomainCount: 1,
       single_domain_editorial_fallback_used: true,
+      single_domain_destination_authority_fallback_used: false,
     };
   }
   return {
     passes: false,
     distinctDomainCount: 1,
     single_domain_editorial_fallback_used: false,
+    single_domain_destination_authority_fallback_used: false,
   };
 }
 
@@ -2921,6 +3442,9 @@ function buildValidationFailure({
   upcomingEventDate = null,
   extendedEventSourceWindowUsed = false,
   singleDomainEditorialFallbackUsed = false,
+  singleDomainDestinationAuthorityFallbackUsed = false,
+  completedEventContentDetected = false,
+  industryOnlyEventContentDetected = false,
   uniqueCitations = [],
 }) {
   return {
@@ -2933,6 +3457,10 @@ function buildValidationFailure({
     word_count: wordCount,
     distinct_domain_count: distinctDomainCount,
     single_domain_editorial_fallback_used: singleDomainEditorialFallbackUsed,
+    single_domain_destination_authority_fallback_used:
+      singleDomainDestinationAuthorityFallbackUsed,
+    completed_event_content_detected: completedEventContentDetected,
+    industry_only_event_content_detected: industryOnlyEventContentDetected,
     clean_blurb_word_count: cleanBlurbWordCount,
     citation_markup_removed: citationMarkupRemoved,
     stale_event_date_detected: staleEventDateDetected,
@@ -3020,6 +3548,8 @@ export function validateBlurb(outputText, rawCitations, config, utcDateIso) {
       validationWarnings,
       distinctDomainCount: domainDiversity.distinctDomainCount,
       singleDomainEditorialFallbackUsed: domainDiversity.single_domain_editorial_fallback_used,
+      singleDomainDestinationAuthorityFallbackUsed:
+        domainDiversity.single_domain_destination_authority_fallback_used,
       uniqueCitations,
     });
   }
@@ -3034,6 +3564,8 @@ export function validateBlurb(outputText, rawCitations, config, utcDateIso) {
       validationWarnings,
       distinctDomainCount: domainDiversity.distinctDomainCount,
       singleDomainEditorialFallbackUsed: domainDiversity.single_domain_editorial_fallback_used,
+      singleDomainDestinationAuthorityFallbackUsed:
+        domainDiversity.single_domain_destination_authority_fallback_used,
       staleSourceDateDetected: citationDateResult.stale_source_date_detected,
       citationDateChecks: citationDateResult.citation_date_checks,
       extendedEventSourceWindowUsed: citationDateResult.extended_event_source_window_used,
@@ -3109,10 +3641,17 @@ export function validateBlurb(outputText, rawCitations, config, utcDateIso) {
   const selectedContentCategories = detectSelectedContentCategories(cleaned);
   const eventDetection = detectCurrentOrUpcomingEvent(cleaned, utcDateIso);
 
+  const completedEvent = detectCompletedEventContent(cleaned, utcDateIso);
+  const industryOnlyEvent = detectIndustryOnlyEventContent(cleaned);
+
   const sharedDiagnostics = {
     wordCount,
     distinctDomainCount: domainDiversity.distinctDomainCount,
     singleDomainEditorialFallbackUsed: domainDiversity.single_domain_editorial_fallback_used,
+    singleDomainDestinationAuthorityFallbackUsed:
+      domainDiversity.single_domain_destination_authority_fallback_used,
+    completedEventContentDetected: completedEvent.completed_event_content_detected,
+    industryOnlyEventContentDetected: industryOnlyEvent.industry_only_event_content_detected,
     cleanBlurbWordCount: wordCount,
     citationMarkupRemoved,
     sentenceCount: sentenceCoverage.sentence_count,
@@ -3154,10 +3693,18 @@ export function validateBlurb(outputText, rawCitations, config, utcDateIso) {
 
   const relevanceText = [cleaned, ...uniqueCitations.map((citation) => citation.title || '')].join('\n');
 
-  if (!textMentionsDestination(relevanceText, config)) {
+  if (!textReferencesCanonicalDestination(relevanceText, config)) {
     return buildValidationFailure({
       rejectionReason: REJECTION_REASONS.DESTINATION_MISMATCH,
       validationWarnings,
+      ...sharedDiagnostics,
+    });
+  }
+
+  if (contentLedByAccessCityOnly(cleaned, config)) {
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.DESTINATION_MISMATCH,
+      validationWarnings: [...validationWarnings, 'access_city_only_lead'],
       ...sharedDiagnostics,
     });
   }
@@ -3192,6 +3739,30 @@ export function validateBlurb(outputText, rawCitations, config, utcDateIso) {
       rejectionReason: REJECTION_REASONS.STALE_EVENT_DATE,
       validationWarnings: [...validationWarnings, staleEventDateDetected],
       staleEventDateDetected,
+      completedEventContentDetected: true,
+      ...sharedDiagnostics,
+    });
+  }
+
+  if (completedEvent.completed_event_content_detected) {
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.STALE_EVENT_DATE,
+      validationWarnings: [
+        ...validationWarnings,
+        completedEvent.completed_event_date ?? 'completed_event',
+      ],
+      staleEventDateDetected: completedEvent.completed_event_date,
+      completedEventContentDetected: true,
+      ...sharedDiagnostics,
+    });
+  }
+
+  if (industryOnlyEvent.industry_only_event_content_detected) {
+    return buildValidationFailure({
+      rejectionReason: REJECTION_REASONS.LOW_TRAVEL_VALUE,
+      validationWarnings: [...validationWarnings, 'industry_only_event_content'],
+      lowTravelValueDetected: true,
+      industryOnlyEventContentDetected: true,
       ...sharedDiagnostics,
     });
   }
@@ -3225,6 +3796,10 @@ export function validateBlurb(outputText, rawCitations, config, utcDateIso) {
     word_count: wordCount,
     distinct_domain_count: domainDiversity.distinctDomainCount,
     single_domain_editorial_fallback_used: domainDiversity.single_domain_editorial_fallback_used,
+    single_domain_destination_authority_fallback_used:
+      domainDiversity.single_domain_destination_authority_fallback_used,
+    completed_event_content_detected: false,
+    industry_only_event_content_detected: false,
     clean_blurb_word_count: wordCount,
     citation_markup_removed: citationMarkupRemoved,
     stale_event_date_detected: null,
@@ -3362,6 +3937,14 @@ export function buildDestinationResult({
   initialRejectionReason = null,
   fallbackRejectionReason = null,
   singleDomainEditorialFallbackUsed = false,
+  singleDomainDestinationAuthorityFallbackUsed = false,
+  mechanicalRepairAttempted = false,
+  mechanicalRepairSucceeded = false,
+  mechanicalRepairSkippedDeadline = false,
+  mechanicalRepairRejectionReason = null,
+  secondAttemptType = null,
+  completedEventContentDetected = false,
+  industryOnlyEventContentDetected = false,
   uniqueCitationSources = [],
   error = null,
 }) {
@@ -3434,6 +4017,14 @@ export function buildDestinationResult({
     initial_rejection_reason: initialRejectionReason,
     fallback_rejection_reason: fallbackRejectionReason,
     single_domain_editorial_fallback_used: singleDomainEditorialFallbackUsed,
+    single_domain_destination_authority_fallback_used: singleDomainDestinationAuthorityFallbackUsed,
+    mechanical_repair_attempted: mechanicalRepairAttempted,
+    mechanical_repair_succeeded: mechanicalRepairSucceeded,
+    mechanical_repair_skipped_deadline: mechanicalRepairSkippedDeadline,
+    mechanical_repair_rejection_reason: mechanicalRepairRejectionReason,
+    second_attempt_type: secondAttemptType,
+    completed_event_content_detected: completedEventContentDetected,
+    industry_only_event_content_detected: industryOnlyEventContentDetected,
     generator_version: GENERATOR_VERSION,
     duration_ms: durationMs,
     error,
@@ -3614,26 +4205,41 @@ export async function callResponsesApi({
   };
 }
 
-const EVENT_FALLBACK_TRIGGER_REASONS = new Set([
-  REJECTION_REASONS.NO_RELEVANT_TRAVEL_NEWS,
-  REJECTION_REASONS.SOURCE_QUALITY,
-  REJECTION_REASONS.LOW_TRAVEL_VALUE,
-]);
+export function shouldTriggerMechanicalRepair(validation) {
+  if (!validation || validation.publishable) return false;
+  return MECHANICAL_REPAIR_TRIGGER_REASONS.has(validation.rejection_reason);
+}
 
 export function shouldTriggerEventFallback(validation) {
   if (!validation || validation.publishable) return false;
+  if (shouldTriggerMechanicalRepair(validation)) return false;
   const reason = validation.rejection_reason;
   if (reason === REJECTION_REASONS.LOW_TRAVEL_VALUE) {
     return Boolean(
-      validation.operational_content_dominant || validation.transportation_only_subject,
+      validation.operational_content_dominant ||
+        validation.transportation_only_subject ||
+        validation.industry_only_event_content_detected,
     );
   }
-  return EVENT_FALLBACK_TRIGGER_REASONS.has(reason);
+  if (reason === REJECTION_REASONS.SOURCE_QUALITY) return true;
+  if (reason === REJECTION_REASONS.DESTINATION_MISMATCH) return true;
+  return reason === REJECTION_REASONS.NO_RELEVANT_TRAVEL_NEWS;
+}
+
+export function selectSecondAttemptType(validation) {
+  if (!validation || validation.publishable) return null;
+  if (shouldTriggerMechanicalRepair(validation)) return 'mechanical_repair';
+  if (shouldTriggerEventFallback(validation)) return 'event_fallback';
+  return null;
+}
+
+export function hasTimeForSecondAttempt(functionStartMs, nowMs = Date.now()) {
+  const remaining = HARD_EXECUTION_DEADLINE_MS - (nowMs - functionStartMs);
+  return remaining > SECOND_ATTEMPT_MIN_REMAINING_MS;
 }
 
 export function hasTimeForEventFallback(functionStartMs, nowMs = Date.now()) {
-  const remaining = HARD_EXECUTION_DEADLINE_MS - (nowMs - functionStartMs);
-  return remaining > EVENT_FALLBACK_MIN_REMAINING_MS;
+  return hasTimeForSecondAttempt(functionStartMs, nowMs);
 }
 
 function addTokenUsage(base, addition) {
@@ -3739,6 +4345,10 @@ function buildAttemptDestinationResult({
     hasNonPressReleaseSource: validation.has_non_press_release_source ?? false,
     hasIndependentEditorialSource: validation.has_independent_editorial_source ?? false,
     singleDomainEditorialFallbackUsed: validation.single_domain_editorial_fallback_used ?? false,
+    singleDomainDestinationAuthorityFallbackUsed:
+      validation.single_domain_destination_authority_fallback_used ?? false,
+    completedEventContentDetected: validation.completed_event_content_detected ?? false,
+    industryOnlyEventContentDetected: validation.industry_only_event_content_detected ?? false,
     travelValueSignalCount: validation.travel_value_signal_count ?? 0,
     practicalImplicationCount: validation.practical_implication_count ?? 0,
     genericOperationalStatementCount: validation.generic_operational_statement_count ?? 0,
@@ -3853,49 +4463,70 @@ export async function processDestinationNews({
   let eventFallbackAttempted = false;
   let eventFallbackSucceeded = false;
   let eventFallbackSkippedDeadline = false;
+  let mechanicalRepairAttempted = false;
+  let mechanicalRepairSucceeded = false;
+  let mechanicalRepairSkippedDeadline = false;
+  let mechanicalRepairRejectionReason = null;
+  let secondAttemptType = null;
   const initialRejectionReason = firstAttempt.validation.rejection_reason;
   let fallbackRejectionReason = null;
 
-  if (!firstAttempt.validation.publishable && shouldTriggerEventFallback(firstAttempt.validation)) {
-    if (hasTimeForEventFallback(functionStartMs)) {
-      eventFallbackAttempted = true;
+  const selectedSecondAttemptType = selectSecondAttemptType(firstAttempt.validation);
+  if (!firstAttempt.validation.publishable && selectedSecondAttemptType) {
+    if (hasTimeForSecondAttempt(functionStartMs)) {
       generationAttemptCount = 2;
-      const fallbackAttempt = await runGenerationAttempt(
-        buildEventFallbackPrompt(config, generatedAt),
-        EVENT_FALLBACK_MAX_TOOL_CALLS,
-      );
-      fallbackRejectionReason = fallbackAttempt.validation.rejection_reason;
-      if (fallbackAttempt.validation.publishable) {
-        eventFallbackSucceeded = true;
-        finalAttempt = fallbackAttempt;
-      } else {
+      secondAttemptType = selectedSecondAttemptType;
+
+      if (selectedSecondAttemptType === 'mechanical_repair') {
+        mechanicalRepairAttempted = true;
+        const repairAttempt = await runGenerationAttempt(
+          buildMechanicalRepairPrompt(config, generatedAt, {
+            validation: firstAttempt.validation,
+            parsed: firstAttempt.apiResult.metrics?.parsed ?? {},
+            consultedSources: firstAttempt.consultedSources,
+          }),
+          MECHANICAL_REPAIR_MAX_TOOL_CALLS,
+        );
+        mechanicalRepairRejectionReason = repairAttempt.validation.rejection_reason;
+        if (repairAttempt.validation.publishable) {
+          mechanicalRepairSucceeded = true;
+        }
+        finalAttempt = repairAttempt;
+      } else if (selectedSecondAttemptType === 'event_fallback') {
+        eventFallbackAttempted = true;
+        const fallbackAttempt = await runGenerationAttempt(
+          buildEventFallbackPrompt(config, generatedAt),
+          EVENT_FALLBACK_MAX_TOOL_CALLS,
+        );
+        fallbackRejectionReason = fallbackAttempt.validation.rejection_reason;
+        if (fallbackAttempt.validation.publishable) {
+          eventFallbackSucceeded = true;
+        }
         finalAttempt = fallbackAttempt;
       }
-    } else {
+    } else if (selectedSecondAttemptType === 'mechanical_repair') {
+      mechanicalRepairSkippedDeadline = true;
+    } else if (selectedSecondAttemptType === 'event_fallback') {
       eventFallbackSkippedDeadline = true;
     }
   }
 
-  const aggregatedTokenUsage =
-    generationAttemptCount === 2 && eventFallbackAttempted
-      ? addTokenUsage(firstAttempt.tokenUsage, finalAttempt.tokenUsage)
-      : finalAttempt.tokenUsage;
-  const aggregatedWebSearchActions =
-    generationAttemptCount === 2 && eventFallbackAttempted
-      ? addWebSearchActions(firstAttempt.webSearchActions, finalAttempt.webSearchActions)
-      : finalAttempt.webSearchActions;
-  const aggregatedWebSearchCalls =
-    generationAttemptCount === 2 && eventFallbackAttempted
-      ? firstAttempt.webSearchCalls + finalAttempt.webSearchCalls
-      : finalAttempt.webSearchCalls;
-  const aggregatedBillableWebSearchCalls =
-    generationAttemptCount === 2 && eventFallbackAttempted
-      ? firstAttempt.billableWebSearchCalls + finalAttempt.billableWebSearchCalls
-      : finalAttempt.billableWebSearchCalls;
-  const aggregatedConsultedSources =
-    generationAttemptCount === 2 && eventFallbackAttempted
-      ? [...firstAttempt.consultedSources, ...finalAttempt.consultedSources]
-      : finalAttempt.consultedSources;
+  const secondAttemptMade = generationAttemptCount === 2 && secondAttemptType != null;
+  const aggregatedTokenUsage = secondAttemptMade
+    ? addTokenUsage(firstAttempt.tokenUsage, finalAttempt.tokenUsage)
+    : finalAttempt.tokenUsage;
+  const aggregatedWebSearchActions = secondAttemptMade
+    ? addWebSearchActions(firstAttempt.webSearchActions, finalAttempt.webSearchActions)
+    : finalAttempt.webSearchActions;
+  const aggregatedWebSearchCalls = secondAttemptMade
+    ? firstAttempt.webSearchCalls + finalAttempt.webSearchCalls
+    : finalAttempt.webSearchCalls;
+  const aggregatedBillableWebSearchCalls = secondAttemptMade
+    ? firstAttempt.billableWebSearchCalls + finalAttempt.billableWebSearchCalls
+    : finalAttempt.billableWebSearchCalls;
+  const aggregatedConsultedSources = secondAttemptMade
+    ? [...firstAttempt.consultedSources, ...finalAttempt.consultedSources]
+    : finalAttempt.consultedSources;
   const aggregatedCostEstimates = estimateCosts({
     model: finalAttempt.attemptModel ?? model,
     tokenUsage: aggregatedTokenUsage,
@@ -3916,6 +4547,11 @@ export async function processDestinationNews({
       eventFallbackAttempted,
       eventFallbackSucceeded,
       eventFallbackSkippedDeadline,
+      mechanicalRepairAttempted,
+      mechanicalRepairSucceeded,
+      mechanicalRepairSkippedDeadline,
+      mechanicalRepairRejectionReason,
+      secondAttemptType,
       initialRejectionReason,
       fallbackRejectionReason,
       tokenUsageOverride: aggregatedTokenUsage,

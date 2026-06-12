@@ -38,6 +38,31 @@ export const DESTINATION_TRUSTED_EDITORIAL_DOMAINS = {
   maldives: ['edition.mv'],
 };
 
+export const DESTINATION_AUTHORITY_DOMAINS = {
+  'st-tropez': ['sainttropeztourisme.com', 'portsainttropez.com'],
+  'jackson-hole': ['jacksonhole.com', 'jacksonholechamber.com', 'visitjacksonhole.com'],
+  'cabo-san-lucas': ['visitloscabos.travel'],
+  'casa-de-campo': ['casadecampo.com.do', 'cigarsinparadise.com'],
+  verbier: ['verbier.ch'],
+  whistler: ['whistler.com', 'content.whistler.com', 'whistlerblackcomb.com'],
+  'sun-valley': ['visitsunvalley.com'],
+  'destin-30a': ['seasidefl.com', '30a.com'],
+  'puerto-vallarta': ['visitpuertovallarta.com'],
+  bali: ['visitbali.com', 'bbtf.co.id'],
+};
+
+export const DESTINATION_SPECIALIST_EDITORIAL_DOMAINS = {
+  mallorca: ['majorcadailybulletin.com'],
+  bali: ['balipost.com', 'thebaliguideline.com'],
+  'amalfi-salerno': ['amalficoast-travel.com', 'amalfinotizie.it'],
+};
+
+export const ACCESS_CITY_SEARCH_ONLY_ALIASES = {
+  'capri-naples': ['Naples'],
+  verbier: ['Sion'],
+  whistler: ['Vancouver'],
+};
+
 export const DEFAULT_EVENT_SCENE_SEARCH_HINTS = [
   'events',
   'upcoming events',
