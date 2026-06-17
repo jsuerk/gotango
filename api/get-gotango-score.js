@@ -3,6 +3,8 @@ import { DESTINATIONS } from '../destinations.config.js';
 import {
   computeGoTangoScoreResponse,
   GOTANGO_SCORE_VERSION,
+  SCORE_MODEL,
+  CATEGORY_MODEL_VERSION,
 } from '../gotango-score-v2.lib.js';
 
 const HISTORY_KEY = 'gotango:arrivals:history';
@@ -27,6 +29,8 @@ export default async function handler(req, res) {
       return res.status(200).json({
         ok: false,
         go_tango_score_version: GOTANGO_SCORE_VERSION,
+        score_model: SCORE_MODEL,
+        category_model_version: CATEGORY_MODEL_VERSION,
         error: 'No cached arrivals data available yet.',
         cache_status: 'empty',
       });
@@ -50,6 +54,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: false,
       go_tango_score_version: GOTANGO_SCORE_VERSION,
+      score_model: SCORE_MODEL,
+      category_model_version: CATEGORY_MODEL_VERSION,
       error: message,
       cache_status: 'error',
     });
