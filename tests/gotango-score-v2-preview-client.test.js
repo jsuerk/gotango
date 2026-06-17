@@ -380,7 +380,7 @@ test('index.html contains v2.1 preview client wiring', () => {
   assert.match(html, /Cooling has slowed, and activity picked up today\./);
   assert.match(html, /card-signal-line/);
   assert.match(html, /destination-info/);
-  assert.match(html, /grid-template-columns: auto minmax\(0, 1fr\) auto/);
+  assert.match(html, /grid-template-columns: auto minmax\(0, 1fr\) min-content/);
   assert.doesNotMatch(html, /day\$\{streak === 1 \? '' : 's'\} strengthening/);
 });
 
@@ -842,4 +842,46 @@ test('Heating Up pending-exit day 1 wording is consistent across surfaces', () =
     }),
     'Cooling has slowed, and activity picked up today.',
   );
+});
+
+test('Now card signal line uses destination-info width bleed without copy changes', () => {
+  const html = readFileSync(INDEX_HTML, 'utf8');
+  assert.match(html, /grid-template-columns: auto minmax\(0, 1fr\) min-content/);
+  assert.match(html, /#tab-now \.card-signal-line[\s\S]*?margin-right: calc\(-10px - 5\.75rem\)/);
+  assert.match(html, /#tab-now \.dest-score-main[\s\S]*?min-width: 0/);
+  assert.match(html, /main\.className = 'dest-main destination-info'/);
+  assert.match(html, /className = 'card-signal-line'/);
+  assert.doesNotMatch(html, /now-card-signal-read/);
+  assert.equal(
+    buildGoTangoSignalRead({
+      confirmed_category: 'heating_up',
+      pending_exit: true,
+      contrary_days: 1,
+      candidate_direction: 'easing',
+    }),
+    'The recent rise in arrivals has slowed slightly today but still shows signs of heating up.',
+  );
+});
+
+test('Movers action controls keep handlers and hit area while removing visible circles', () => {
+  const html = readFileSync(INDEX_HTML, 'utf8');
+  const moversBtnBlock = html.match(/#tab-movers \.mover-action-btn-circle\s*\{[\s\S]*?\}/);
+  assert.ok(moversBtnBlock, 'Movers action button rule exists');
+  assert.match(moversBtnBlock[0], /width: 34px/);
+  assert.match(moversBtnBlock[0], /height: 34px/);
+  assert.match(moversBtnBlock[0], /min-width: 34px/);
+  assert.match(moversBtnBlock[0], /min-height: 34px/);
+  assert.match(moversBtnBlock[0], /border: none/);
+  assert.match(moversBtnBlock[0], /background: transparent/);
+  assert.match(moversBtnBlock[0], /box-shadow: none/);
+  assert.doesNotMatch(moversBtnBlock[0], /border-radius: 50%/);
+  assert.match(html, /watchBtn\.className = 'mover-action-btn-circle mover-action-btn-circle--watch'/);
+  assert.match(html, /shareBtn\.className = 'mover-action-btn-circle mover-action-btn-circle--share'/);
+  assert.match(html, /data-mover-action', 'watch'/);
+  assert.match(html, /data-mover-action', 'share'/);
+  assert.match(html, /_applyMoverWatchButtonState\(watchBtn, destId\)/);
+  assert.match(html, /shareDestinationBrief\(dest\)/);
+  assert.match(html, /#tab-movers \.mover-action-btn-circle--watch\.is-watched[\s\S]*?color: var\(--signal-up\)/);
+  assert.match(html, /#tab-movers \.mover-action-btn-circle:focus-visible/);
+  assert.doesNotMatch(html, /#tab-watch \.mover-action-btn-circle/);
 });
