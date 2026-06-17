@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "node --test tests/gotango-score-v2.test.js"
+    "test": "node --test tests/gotango-score-v2.test.js tests/gotango-score-v2-preview-client.test.js"
   },
   "dependencies": {
     "@vercel/kv": "^3.0.0"
