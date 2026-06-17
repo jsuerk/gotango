@@ -844,8 +844,8 @@
   }
   #tab-now .now-dest-title .dest-name {
     display: block;
+    min-width: 0;
     max-width: 100%;
-    overflow-wrap: break-word;
   }
   #tab-now .now-dest-title .card-meta-row {
     display: flex;
@@ -867,6 +867,91 @@
   #tab-now .dest-list .dest-private-support__label,
   #tab-now .cooling-list .dest-private-support__label {
     white-space: nowrap;
+  }
+  #tab-now {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  #tab-now .dest-list,
+  #tab-now .cooling-list {
+    width: calc(100% - 40px);
+    max-width: calc(100% - 40px);
+    box-sizing: border-box;
+  }
+  #tab-now .section-head:has(#heating-up-meta),
+  #tab-now .section-head:has(#cooling-down-meta) {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 6px;
+    overflow-wrap: break-word;
+  }
+  #tab-now .section-head:has(#heating-up-meta) .section-title,
+  #tab-now .section-head:has(#cooling-down-meta) .section-title {
+    min-width: 0;
+    flex-shrink: 0;
+    text-align: left;
+    line-height: 1.1;
+    max-width: 100%;
+  }
+  #tab-now #heating-up-meta,
+  #tab-now #cooling-down-meta {
+    white-space: normal;
+    text-align: left;
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    box-sizing: border-box;
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+  }
+  #tab-now .dest-card,
+  #tab-now .cooling-card.cooling-card--ranked {
+    grid-template-columns: auto minmax(0, 1fr) min-content;
+    align-items: start;
+    column-gap: 10px;
+  }
+  #tab-now .dest-main {
+    min-width: 0;
+    overflow-wrap: normal;
+  }
+  .card-signal-line {
+    font-size: var(--fs-label);
+    color: var(--text-dim);
+    margin-top: 4px;
+    margin-bottom: 0;
+    line-height: 1.35;
+    font-style: italic;
+    max-width: 100%;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+  #tab-now .card-signal-line {
+    margin-right: calc(-10px - 5.75rem);
+    position: relative;
+    z-index: 1;
+  }
+  #tab-now .now-dest-title .dest-name {
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+  #tab-now .dest-private-support__value {
+    white-space: nowrap;
+  }
+  #tab-now .dest-score-main {
+    flex-shrink: 0;
+    align-self: start;
+    min-width: 0;
+    position: relative;
+    z-index: 2;
   }
   .sleeper-code {
     font-family: 'Geist Mono', monospace;
@@ -1362,40 +1447,37 @@
     height: 34px;
     min-width: 34px;
     min-height: 34px;
-    border-radius: 50%;
-    border: 1.5px solid rgba(232, 163, 23, 0.55);
-    background: var(--surface-2);
+    border: none;
+    border-radius: 0;
+    background: transparent;
     color: var(--amber);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 0 10px rgba(232, 163, 23, 0.1);
-    transition: border-color 0.15s, box-shadow 0.15s, color 0.15s;
+    box-shadow: none;
+    transition: color 0.15s;
     flex-shrink: 0;
     padding: 0;
   }
   #tab-movers .mover-action-btn-circle:hover {
-    border-color: var(--amber);
-    box-shadow: 0 0 14px rgba(232, 163, 23, 0.2);
+    color: var(--amber-bright);
   }
   #tab-movers .mover-action-btn-circle:focus-visible {
     outline: 2px solid var(--amber);
     outline-offset: 2px;
+    border-radius: 4px;
   }
   #tab-movers .mover-action-btn-circle--watch.is-watched {
-    border-color: rgba(127, 176, 105, 0.55);
     color: var(--signal-up);
-    box-shadow: 0 0 10px rgba(127, 176, 105, 0.12);
     cursor: default;
   }
   #tab-movers .mover-action-btn-circle--watch.is-watched:hover {
-    border-color: var(--signal-up);
-    box-shadow: 0 0 14px rgba(127, 176, 105, 0.2);
+    color: var(--signal-up);
   }
   #tab-movers .mover-action-btn-circle__icon {
     font-family: 'Geist Mono', monospace;
-    font-size: 17px;
+    font-size: 22px;
     line-height: 1;
     font-weight: 400;
     margin-top: -1px;
@@ -4439,6 +4521,39 @@
     #tab-movers .section-meta {
       font-size: calc(var(--fs-label) * 0.85);
     }
+    /* Now: prevent horizontal overflow from long Heating Up / Cooling Watch subtitles */
+    #tab-now .section-head:has(#heating-up-meta),
+    #tab-now .section-head:has(#cooling-down-meta) {
+      padding-left: 16px;
+      padding-right: 16px;
+      gap: 4px;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-start;
+      min-width: 0;
+      max-width: 100%;
+      overflow-wrap: break-word;
+    }
+    #tab-now .section-head:has(#heating-up-meta) .section-title,
+    #tab-now .section-head:has(#cooling-down-meta) .section-title {
+      min-width: 0;
+      flex-shrink: 0;
+      text-align: left;
+      line-height: 1.1;
+      max-width: 100%;
+    }
+    #tab-now #heating-up-meta,
+    #tab-now #cooling-down-meta {
+      white-space: normal;
+      text-align: left;
+      flex-shrink: 1;
+      min-width: 0;
+      max-width: 100%;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      box-sizing: border-box;
+      font-size: calc(var(--fs-label) * 0.85);
+    }
     #tab-now .dest-list .mover-badge,
     #tab-now .cooling-list .mover-badge {
       margin-left: 0;
@@ -4537,14 +4652,16 @@
 
     <!-- HOT LIST -->
     <div class="section-head">
-      <h2 class="section-title">Heating <em>Up Today</em></h2>
+      <h2 class="section-title">Heating <em>Up</em></h2>
+      <span class="section-meta" id="heating-up-meta">Confirmed 2+ days · strongest private-travel momentum</span>
     </div>
 
     <div class="dest-list" id="heating-up-list"></div>
 
     <!-- COOLING -->
     <div class="section-head">
-      <h2 class="section-title">Cooling <em>Down Today</em></h2>
+      <h2 class="section-title">Cooling <em>Watch</em></h2>
+      <span class="section-meta" id="cooling-down-meta">Confirmed 2+ days · meaningful easing in new arrivals</span>
     </div>
 
     <div class="cooling-list" id="cooling-down-list"></div>
@@ -5245,6 +5362,40 @@
 </div>
 
 <script>
+  // ============ GOTANGO SCORE V2 FEATURE SWITCH ============
+  const USE_GOTANGO_SCORE_V2 = typeof window !== 'undefined' && window.USE_GOTANGO_SCORE_V2 !== false;
+  let _goTangoScoreV2Data = null;
+  let _goTangoScoreV2Active = false;
+
+  const GOTANGO_SCORE_V2_VERSION = 'gotango_score_v2_1_activity_led';
+  const GOTANGO_SCORE_V2_MODEL = 'B_ORIGINAL_cap_15';
+  const NOW_MIN_PUBLIC_SCORE = 60;
+  const MOVERS_V2_SECTION_ORDER = ['heating_up', 'in_season', 'steady', 'cooling'];
+  const MOVERS_V2_SECTION_META = {
+    heating_up: {
+      label: 'Heating Up',
+      description: 'Confirmed for at least two days. Private-travel activity is meaningfully strengthening.',
+    },
+    in_season: {
+      label: 'In Season',
+      description: 'Private-travel activity is established and holding near the upper part of its recent range.',
+    },
+    steady: {
+      label: 'Steady',
+      description: 'Activity is stable or mixed, with no confirmed multi-day rise or decline.',
+    },
+    cooling: {
+      label: 'Cooling',
+      description: 'New private arrivals have meaningfully eased for at least two days. Cooling does not mean the destination is inactive.',
+    },
+  };
+  const MOVERS_V2_BADGE_META = {
+    heating_up: { label: 'HEATING UP', className: 'mover-badge--rising', sparkColor: '#7FB069' },
+    in_season: { label: 'IN SEASON', className: 'mover-badge--steady', sparkColor: '#5B9EA8' },
+    steady: { label: 'STEADY', className: 'mover-badge--steady', sparkColor: '#5B9EA8' },
+    cooling: { label: 'COOLING', className: 'mover-badge--cooling', sparkColor: '#E07856' },
+  };
+
   // ============ HERO DATA (PHASE 5A PASS 1) ============
   async function loadArrivalsData() {
     try {
@@ -5272,6 +5423,360 @@
       console.warn('Error fetching movers index:', error);
       return null;
     }
+  }
+
+  async function loadGoTangoScoreV2() {
+    if (!USE_GOTANGO_SCORE_V2) return null;
+    try {
+      const response = await fetch('/api/get-gotango-score');
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function _getPublicDestinationIdsFromPayload(payload) {
+    if (!payload || !Array.isArray(payload.destinations)) return [];
+    return payload.destinations
+      .filter((d) => d && typeof d.id === 'string' && d.id)
+      .map((d) => d.id);
+  }
+
+  function goTangoScoreBand(score) {
+    if (score == null || !Number.isFinite(score)) return 'unknown';
+    if (score >= 90) return 'exceptional';
+    if (score >= 75) return 'strong_and_highly_relevant';
+    if (score >= 60) return 'meaningful_activity';
+    if (score >= 40) return 'moderate_or_developing';
+    if (score >= 20) return 'quiet';
+    if (score >= 0) return 'very_limited';
+    return 'unknown';
+  }
+
+  function validateGoTangoScoreV2Client(data, arrivalsPayload) {
+    const fatal = [];
+    if (!data || typeof data !== 'object') fatal.push('invalid_response');
+    if (!data || data.ok !== true) fatal.push('endpoint_not_ok');
+    if (!data || data.go_tango_score_version !== GOTANGO_SCORE_V2_VERSION) fatal.push('invalid_version');
+    if (!data || data.score_model !== GOTANGO_SCORE_V2_MODEL) fatal.push('invalid_score_model');
+
+    const sourceSavedAt = arrivalsPayload && arrivalsPayload.saved_at;
+    if (sourceSavedAt && data.source_saved_at !== sourceSavedAt) fatal.push('source_saved_at_mismatch');
+    if (data.total_destinations !== 51) fatal.push('total_destinations_mismatch');
+
+    const publicIds = _getPublicDestinationIdsFromPayload(arrivalsPayload);
+    const seen = new Set();
+    for (const dest of data.destinations || []) {
+      if (!dest || !dest.id) {
+        fatal.push('missing_destination_id');
+        continue;
+      }
+      if (seen.has(dest.id)) fatal.push(`duplicate_id:${dest.id}`);
+      seen.add(dest.id);
+      for (const field of [
+        'go_tango_score',
+        'go_tango_score_version',
+        'score_model',
+        'score_band',
+        'daily_signal_score',
+        'confirmed_category',
+        'candidate_direction',
+        'direction_streak_days',
+        'go_tango_score_points_7d',
+      ]) {
+        if (!(field in dest)) fatal.push(`missing_field:${dest.id}:${field}`);
+      }
+    }
+
+    for (const id of publicIds) {
+      if (!seen.has(id)) fatal.push(`missing_public_destination:${id}`);
+    }
+
+    const counts = data.category_counts || {};
+    const categoryTotal =
+      (counts.heating_up || 0) +
+      (counts.in_season || 0) +
+      (counts.steady || 0) +
+      (counts.cooling || 0);
+    if (categoryTotal !== 51) fatal.push('category_total_mismatch');
+
+    for (const warning of data.validation_warnings || []) {
+      if (String(warning).startsWith('fatal:')) fatal.push(String(warning));
+    }
+
+    return { ok: fatal.length === 0, fatal };
+  }
+
+  function activateGoTangoScoreV2(data, arrivalsPayload) {
+    const validation = validateGoTangoScoreV2Client(data, arrivalsPayload);
+    if (!validation.ok) {
+      console.warn('[GoTango] GoTango Score v2 unavailable; using legacy signals.');
+      _goTangoScoreV2Data = null;
+      _goTangoScoreV2Active = false;
+      return false;
+    }
+    _goTangoScoreV2Data = data;
+    _goTangoScoreV2Active = true;
+    return true;
+  }
+
+  function _goTangoScoreV2Map() {
+    const map = new Map();
+    if (!_goTangoScoreV2Active || !_goTangoScoreV2Data) return map;
+    for (const dest of _goTangoScoreV2Data.destinations || []) {
+      if (dest && dest.id) map.set(dest.id, dest);
+    }
+    return map;
+  }
+
+  function enrichDestinationsWithGoTangoScoreV2(destinations) {
+    if (!_goTangoScoreV2Active) return destinations;
+    const v2Map = _goTangoScoreV2Map();
+    return destinations.map((dest) => {
+      const v2 = v2Map.get(dest.id);
+      if (!v2) return dest;
+      const scorePoints = Array.isArray(v2.go_tango_score_points_7d)
+        ? v2.go_tango_score_points_7d.map((score) => ({ signal_score: score }))
+        : [];
+      return {
+        ...dest,
+        go_tango_score: v2.go_tango_score,
+        go_tango_score_version: v2.go_tango_score_version,
+        score_model: v2.score_model,
+        score_band: v2.score_band,
+        daily_signal_score: v2.daily_signal_score,
+        confirmed_category: v2.confirmed_category,
+        candidate_direction: v2.candidate_direction,
+        direction_streak_days: v2.direction_streak_days,
+        pending_exit: v2.pending_exit,
+        now_heating_eligible: v2.now_heating_eligible,
+        now_cooling_eligible: v2.now_cooling_eligible,
+        contrary_days: v2.contrary_days,
+        data_confidence: v2.data_confidence,
+        activity_3d: v2.activity_3d,
+        activity_baseline_7d: v2.activity_baseline_7d,
+        activity_ratio: v2.activity_ratio,
+        truncation_status: v2.truncation_status,
+        _gotango_v2: v2,
+        score_points_7d: scorePoints,
+        latest_signal_score: v2.go_tango_score,
+      };
+    });
+  }
+
+  function buildGoTangoSignalRead(v2) {
+    if (!v2) return null;
+    const category = v2.confirmed_category;
+    const dir = String(v2.candidate_direction || 'stable');
+    const pendingExit = v2.pending_exit === true;
+    const contraryDays = Number(v2.contrary_days || 0);
+    const ratio = Number(v2.activity_ratio);
+    const baseline = Number(v2.activity_baseline_7d);
+    const isModestBase =
+      (Number.isFinite(ratio) && ratio < 1.2) ||
+      (Number.isFinite(baseline) && baseline <= 7);
+
+    if (category === 'heating_up') {
+      if (pendingExit && contraryDays === 1) {
+        return 'Arrivals slowed today but still signal heating up.';
+      }
+      if (dir === 'strengthening') {
+        return isModestBase
+          ? 'Arrivals are picking up after a quieter stretch.'
+          : 'Private arrivals are building.';
+      }
+      return 'Private arrivals are building.';
+    }
+    if (category === 'in_season') {
+      if (dir === 'strengthening') return 'Already active and picking up.';
+      if (dir === 'easing') return 'Still active after a softer day.';
+      return 'Busy and holding.';
+    }
+    if (category === 'steady') {
+      if (dir === 'strengthening') {
+        return 'Activity picked up, but the broader trend is not confirmed.';
+      }
+      if (dir === 'easing') {
+        return 'Activity softened, but the broader slowdown is not confirmed.';
+      }
+      return 'Holding near its recent pace.';
+    }
+    if (category === 'cooling') {
+      if (pendingExit && contraryDays === 1) {
+        return 'Cooling has slowed, and activity picked up today.';
+      }
+      if (dir === 'easing') return 'New arrivals are continuing to ease.';
+      if (pendingExit) return 'Cooling has slowed, and activity picked up today.';
+      return 'New arrivals are continuing to ease.';
+    }
+    return null;
+  }
+
+  function _v2DirectionCopy(dest) {
+    return buildGoTangoSignalRead(dest && dest._gotango_v2);
+  }
+
+  function _isValidGoTangoV2Record(v2) {
+    if (!v2 || v2.go_tango_score_version !== GOTANGO_SCORE_V2_VERSION) return false;
+    if (!Number.isFinite(Number(v2.go_tango_score))) return false;
+    if (!v2.confirmed_category) return false;
+    if (!Array.isArray(v2.go_tango_score_points_7d)) return false;
+    return true;
+  }
+
+  function _destinationHasValidGoTangoV2(dest) {
+    if (!_goTangoScoreV2Active || !dest) return false;
+    const v2 = dest._gotango_v2 || _goTangoScoreV2Map().get(dest.id);
+    return _isValidGoTangoV2Record(v2);
+  }
+
+  function _modalUsesGoTangoV2Score(dest, allDestinations) {
+    if (!_destinationHasValidGoTangoV2(dest)) return false;
+    const peerIds = Array.isArray(dest.peers) ? dest.peers : [];
+    const v2Map = _goTangoScoreV2Map();
+    for (const id of peerIds) {
+      const peer = Array.isArray(allDestinations)
+        ? allDestinations.find((d) => d && d.id === id)
+        : null;
+      const v2 = (peer && peer._gotango_v2) || v2Map.get(id);
+      if (!_isValidGoTangoV2Record(v2)) return false;
+    }
+    return true;
+  }
+
+  function _v2Truncated(v2) {
+    return v2 && v2.truncation_status === 'truncated';
+  }
+
+  function _isNowHeatingDisplayEligible(v2) {
+    if (!v2 || v2.confirmed_category !== 'heating_up') return false;
+    if (v2.data_confidence !== 'high') return false;
+    if (_v2Truncated(v2)) return false;
+    if (Number(v2.activity_3d || 0) < 5) return false;
+    const activelyMoving = v2.now_heating_eligible === true;
+    const pendingFirstDay =
+      v2.pending_exit === true && Number(v2.contrary_days) === 1;
+    return activelyMoving || pendingFirstDay;
+  }
+
+  function _isNowCoolingDisplayEligible(v2) {
+    if (!v2 || v2.confirmed_category !== 'cooling') return false;
+    if (v2.data_confidence !== 'high') return false;
+    if (_v2Truncated(v2)) return false;
+    if (Number(v2.activity_baseline_7d || 0) < 5) return false;
+    const activelyMoving = v2.now_cooling_eligible === true;
+    const pendingFirstDay =
+      v2.pending_exit === true && Number(v2.contrary_days) === 1;
+    return activelyMoving || pendingFirstDay;
+  }
+
+  function _v2InternalGoTangoScore(v2) {
+    const internal = Number(v2.go_tango_score_internal);
+    if (Number.isFinite(internal)) return internal;
+    return Number(v2.go_tango_score ?? 0);
+  }
+
+  function _destWeightedPrivateSignal24h(dest, v2) {
+    const n = Number(
+      dest.weighted_private_signal_24h ??
+        dest.qualified_private_arrivals_24h ??
+        v2.weighted_private_signal_24h ??
+        v2.qualified_private_arrivals_24h,
+    );
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function _sortNowHeatingShortlist(a, b) {
+    const aV2 = a._gotango_v2 || a;
+    const bV2 = b._gotango_v2 || b;
+    const scoreDiff = _v2InternalGoTangoScore(bV2) - _v2InternalGoTangoScore(aV2);
+    if (scoreDiff !== 0) return scoreDiff;
+    const activeDiff =
+      (bV2.now_heating_eligible === true ? 1 : 0) -
+      (aV2.now_heating_eligible === true ? 1 : 0);
+    if (activeDiff !== 0) return activeDiff;
+    const a3Diff = (bV2.activity_3d ?? 0) - (aV2.activity_3d ?? 0);
+    if (a3Diff !== 0) return a3Diff;
+    const signalDiff =
+      _destWeightedPrivateSignal24h(b, bV2) - _destWeightedPrivateSignal24h(a, aV2);
+    if (signalDiff !== 0) return signalDiff;
+    return String(aV2.name || a.name || '').localeCompare(
+      String(bV2.name || b.name || ''),
+      undefined,
+      { sensitivity: 'base' },
+    );
+  }
+
+  function _sortNowCoolingShortlist(a, b) {
+    const aV2 = a._gotango_v2 || a;
+    const bV2 = b._gotango_v2 || b;
+    const scoreDiff = _v2InternalGoTangoScore(bV2) - _v2InternalGoTangoScore(aV2);
+    if (scoreDiff !== 0) return scoreDiff;
+    const activeDiff =
+      (bV2.now_cooling_eligible === true ? 1 : 0) -
+      (aV2.now_cooling_eligible === true ? 1 : 0);
+    if (activeDiff !== 0) return activeDiff;
+    const a3Diff = (bV2.activity_3d ?? 0) - (aV2.activity_3d ?? 0);
+    if (a3Diff !== 0) return a3Diff;
+    const signalDiff =
+      _destWeightedPrivateSignal24h(b, bV2) - _destWeightedPrivateSignal24h(a, aV2);
+    if (signalDiff !== 0) return signalDiff;
+    return String(aV2.name || a.name || '').localeCompare(
+      String(bV2.name || b.name || ''),
+      undefined,
+      { sensitivity: 'base' },
+    );
+  }
+
+  function _passesNowMinimumPublicScore(v2) {
+    return Number(v2 && v2.go_tango_score) >= NOW_MIN_PUBLIC_SCORE;
+  }
+
+  function _buildNowHeatingShortlist(destinations) {
+    const eligible = destinations.filter((d) => {
+      const v2 = d && d._gotango_v2;
+      return v2 && _isNowHeatingDisplayEligible(v2) && _passesNowMinimumPublicScore(v2);
+    });
+    eligible.sort(_sortNowHeatingShortlist);
+    return eligible.slice(0, 6);
+  }
+
+  function _buildNowCoolingShortlist(destinations) {
+    const eligible = destinations.filter((d) => {
+      const v2 = d && d._gotango_v2;
+      return v2 && _isNowCoolingDisplayEligible(v2) && _passesNowMinimumPublicScore(v2);
+    });
+    eligible.sort(_sortNowCoolingShortlist);
+    return eligible.slice(0, 3);
+  }
+
+  function _buildV2ScorePointsForChart(dest) {
+    const v2 = dest && dest._gotango_v2;
+    const scores = v2 && Array.isArray(v2.go_tango_score_points_7d)
+      ? v2.go_tango_score_points_7d
+      : [];
+    const today = _utcTodayIso();
+    return scores.map((score, i) => ({
+      signal_score: score,
+      date: _shiftCalendarDateUtc(today, -(scores.length - 1 - i)),
+    }));
+  }
+
+  function getPublicSignalBadgeV2(dest) {
+    const category = dest && dest.confirmed_category;
+    const meta = MOVERS_V2_BADGE_META[category] || MOVERS_V2_BADGE_META.steady;
+    const vibeClass =
+      category === 'heating_up' ? 'surge'
+        : category === 'cooling' ? 'cool'
+          : 'steady';
+    return {
+      label: meta.label,
+      className: meta.className,
+      badgeKey: category || 'steady',
+      vibeClass,
+      sparkColor: meta.sparkColor,
+    };
   }
 
   function updateClock() {
@@ -5586,6 +6091,10 @@
   }
 
   function _destSignalScoreLabel(dest) {
+    if (_goTangoScoreV2Active && dest && dest.go_tango_score != null) {
+      const score = Number(dest.go_tango_score);
+      return Number.isFinite(score) ? String(score) : '—';
+    }
     const signalScore = Number(dest.signal_score);
     return Number.isFinite(signalScore) ? String(signalScore) : '—';
   }
@@ -5619,16 +6128,24 @@
     scoreLbl.className = 'dest-score-main__label';
     scoreLbl.textContent = 'GoTango Score';
 
-    const trend = document.createElement('div');
-    const wowPts = _getSignalScoreWoWPoints(dest);
-    const movementText = _formatSignalScorePointChange(wowPts);
-    const signedVal = wowPts;
-    trend.textContent = movementText || 'Trend building';
-    _applyDestTrendClasses(trend, movementText, signedVal);
-
     col.appendChild(scoreVal);
     col.appendChild(scoreLbl);
-    col.appendChild(trend);
+
+    const hasV2SignalRow =
+      _goTangoScoreV2Active &&
+      _destinationHasValidGoTangoV2(dest) &&
+      buildGoTangoSignalRead(dest._gotango_v2);
+    if (!hasV2SignalRow) {
+      const trend = document.createElement('div');
+      const v2Copy = _v2DirectionCopy(dest);
+      const wowPts = _getSignalScoreWoWPoints(dest);
+      const movementText = v2Copy || _formatSignalScorePointChange(wowPts);
+      const signedVal = v2Copy ? null : wowPts;
+      trend.textContent = movementText || 'Trend building';
+      _applyDestTrendClasses(trend, movementText, signedVal);
+      col.appendChild(trend);
+    }
+
     return col;
   }
 
@@ -5665,10 +6182,23 @@
     return titleBlock;
   }
 
+  function _buildNowCardCompactSignal(dest) {
+    if (!_goTangoScoreV2Active || !_destinationHasValidGoTangoV2(dest)) return null;
+    const text = buildGoTangoSignalRead(dest._gotango_v2);
+    if (!text) return null;
+
+    const line = document.createElement('p');
+    line.className = 'card-signal-line';
+    line.textContent = text;
+    return line;
+  }
+
   function _buildCoolingCardMain(dest, sectionHint) {
     const main = document.createElement('div');
-    main.className = 'dest-main';
+    main.className = 'dest-main destination-info';
     main.appendChild(_buildNowCardTitleBlock(dest, 'cooling-name', sectionHint || 'cooling'));
+    const signalLine = _buildNowCardCompactSignal(dest);
+    if (signalLine) main.appendChild(signalLine);
     return main;
   }
 
@@ -5821,6 +6351,7 @@
     updateDestinationCounts(payload);
 
     const totals = payload.homepage && payload.homepage.totals;
+    const okDestinations = destinations.filter((d) => d && d.ok === true);
 
     try {
       const arrivalsEl = document.getElementById('stat-arrivals');
@@ -5842,7 +6373,12 @@
     try {
       const heatingEl = document.getElementById('stat-heating');
       let heatingVal = null;
-      if (totals && Number.isFinite(Number(totals.heating_count))) {
+      if (_goTangoScoreV2Active && _goTangoScoreV2Data) {
+        const enriched = enrichDestinationsWithGoTangoScoreV2(
+          okDestinations.length ? okDestinations : destinations.filter((d) => d && d.ok === true),
+        );
+        heatingVal = _buildNowHeatingShortlist(enriched).length;
+      } else if (totals && Number.isFinite(Number(totals.heating_count))) {
         heatingVal = Number(totals.heating_count);
       } else if (payload.homepage && Array.isArray(payload.homepage.heating_up)) {
         heatingVal = payload.homepage.heating_up.length;
@@ -5857,7 +6393,12 @@
     try {
       const coolingEl = document.getElementById('stat-cooling');
       let coolingVal = null;
-      if (totals && Number.isFinite(Number(totals.cooling_count))) {
+      if (_goTangoScoreV2Active && _goTangoScoreV2Data) {
+        const enriched = enrichDestinationsWithGoTangoScoreV2(
+          okDestinations.length ? okDestinations : destinations.filter((d) => d && d.ok === true),
+        );
+        coolingVal = _buildNowCoolingShortlist(enriched).length;
+      } else if (totals && Number.isFinite(Number(totals.cooling_count))) {
         coolingVal = Number(totals.cooling_count);
       } else if (payload.homepage && Array.isArray(payload.homepage.cooling_down)) {
         coolingVal = payload.homepage.cooling_down.length;
@@ -5870,7 +6411,6 @@
     }
 
     const heroDeltaFallback = 'Trend building';
-    const okDestinations = destinations.filter((d) => d && d.ok === true);
 
     try {
       const arrivalsDeltaEl = document.getElementById('stat-arrivals-delta');
@@ -5956,26 +6496,42 @@
     try {
       const romans = ['I', 'II', 'III', 'IV', 'V', 'VI'];
       const payload = data.data;
-      const homepageHeating = payload.homepage && Array.isArray(payload.homepage.heating_up)
-        ? payload.homepage.heating_up
-        : undefined;
+      let destinations = payload.destinations.filter((d) => d && d.ok === true);
+      destinations = enrichDestinationsWithGoTangoScoreV2(destinations);
 
       container.innerHTML = '';
 
-      if (homepageHeating !== undefined && homepageHeating.length === 0) {
+      let top6;
+      if (_goTangoScoreV2Active && _goTangoScoreV2Data) {
+        top6 = _buildNowHeatingShortlist(destinations);
+      } else {
+        const homepageHeating = payload.homepage && Array.isArray(payload.homepage.heating_up)
+          ? payload.homepage.heating_up
+          : undefined;
+
+        if (homepageHeating !== undefined && homepageHeating.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'dest-card';
+          empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No clear heating signal today.<br>Private baseline building.</div>';
+          container.appendChild(empty);
+          return;
+        }
+
+        top6 = homepageHeating !== undefined
+          ? homepageHeating
+          : destinations
+            .filter(dest => _integerArrivals24h(dest) > 0)
+            .sort((a, b) => Number(b.signal_score || 0) - Number(a.signal_score || 0))
+            .slice(0, 6);
+      }
+
+      if (!top6.length) {
         const empty = document.createElement('div');
         empty.className = 'dest-card';
-        empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No clear heating signal today.<br>Private baseline building.</div>';
+        empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No confirmed heating signal today.<br>Private baseline building.</div>';
         container.appendChild(empty);
         return;
       }
-
-      const top6 = homepageHeating !== undefined
-        ? homepageHeating
-        : payload.destinations
-          .filter(dest => _integerArrivals24h(dest) > 0)
-          .sort((a, b) => Number(b.signal_score || 0) - Number(a.signal_score || 0))
-          .slice(0, 6);
 
       top6.forEach((dest, i) => {
         const card = document.createElement('div');
@@ -5988,9 +6544,11 @@
         rank.textContent = romans[i] || String(i + 1);
 
         const main = document.createElement('div');
-        main.className = 'dest-main';
+        main.className = 'dest-main destination-info';
 
         main.appendChild(_buildNowCardTitleBlock(dest, null, 'heating'));
+        const signalLine = _buildNowCardCompactSignal(dest);
+        if (signalLine) main.appendChild(signalLine);
         main.appendChild(_buildDestPrivateSupport(dest));
 
         card.appendChild(rank);
@@ -6013,6 +6571,28 @@
       if (!data || !data.data || !Array.isArray(data.data.destinations)) return;
 
       const payload = data.data;
+      let destinations = payload.destinations.filter((d) => d && d.ok === true);
+      destinations = enrichDestinationsWithGoTangoScoreV2(destinations);
+
+      if (_goTangoScoreV2Active && _goTangoScoreV2Data) {
+        setCoolingDownSectionMeta('Confirmed 2+ days · meaningful easing in new arrivals');
+        const coolingPicks = _buildNowCoolingShortlist(destinations);
+
+        if (coolingPicks.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'cooling-card';
+          empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No confirmed cooling signal today.<br>Private baseline building.</div>';
+          container.appendChild(empty);
+          return;
+        }
+
+        coolingPicks.forEach((dest, i) => {
+          const whyLine = _v2DirectionCopy(dest) || 'Private signal easing';
+          renderCoolingDestinationCard(dest, container, whyLine, i);
+        });
+        return;
+      }
+
       const homepageCooling = payload.homepage && payload.homepage.cooling_down;
 
       if (homepageCooling !== undefined) {
@@ -6043,7 +6623,7 @@
 
       setCoolingDownSectionMeta('Last 7 days');
 
-      const destinations = payload.destinations;
+      destinations = payload.destinations;
       const coolingPicks = destinations
         .filter(dest => dest.status === 'cooling' || dest.status === 'softening')
         .sort((a, b) => Number(a.signal_score || 0) - Number(b.signal_score || 0))
@@ -6293,6 +6873,10 @@
   }
 
   function getPublicSignalBadge(dest, options) {
+    const forceLegacy = options && options.forceLegacy;
+    if (!forceLegacy && _goTangoScoreV2Active && dest && dest.confirmed_category) {
+      return getPublicSignalBadgeV2(dest);
+    }
     const d = _destWithMoversContext(dest);
     const section = options && options.section;
     const sectionHint = options && options.sectionHint;
@@ -6424,6 +7008,8 @@
   }
 
   function getMoverReason(dest, section) {
+    const v2Copy = _v2DirectionCopy(dest);
+    if (_goTangoScoreV2Active && v2Copy) return v2Copy;
     const maxLen = 140;
     const editorial = dest.editorial && String(dest.editorial).trim();
     if (editorial) {
@@ -6533,7 +7119,9 @@
     const points = getMoversScorePoints(dest);
     const days = Number(dest.index_days_count);
     const hasWeekly = Number.isFinite(days) && days >= 2;
-    const todayScore = Number(dest.latest_signal_score ?? dest.signal_score ?? 0);
+    const todayScore = Number(
+      dest.go_tango_score ?? dest.latest_signal_score ?? dest.signal_score ?? 0,
+    );
     const todayDisplay = Number.isFinite(todayScore) && todayScore > 0
       ? String(Math.round(todayScore))
       : '—';
@@ -6582,8 +7170,9 @@
 
     titleBlock.appendChild(metaRow);
 
-    const reasonEl = document.createElement('div');
-    reasonEl.className = 'mover-reason';
+    const v2Copy = _goTangoScoreV2Active ? _v2DirectionCopy(dest) : null;
+    const reasonEl = document.createElement(v2Copy ? 'p' : 'div');
+    reasonEl.className = v2Copy ? 'card-signal-line' : 'mover-reason';
     reasonEl.textContent = getMoverReason(dest, section);
 
     info.appendChild(titleBlock);
@@ -6684,7 +7273,14 @@
 
     const metricsEl = document.createElement('div');
     metricsEl.className = 'mover-history-meta';
-    if (hasWeekly) {
+    if (_goTangoScoreV2Active && points.length >= 2) {
+      const scores = points.map((p) => Number(p.signal_score)).filter(Number.isFinite);
+      const avg = Math.round(scores.reduce((s, v) => s + v, 0) / scores.length);
+      const peak = Math.round(Math.max(...scores));
+      metricsEl.innerHTML =
+        `<span>7D avg </span><span class="mover-history-meta__avg">${avg}</span>` +
+        `<span> · Peak </span><span class="mover-history-meta__peak">${peak}</span>`;
+    } else if (hasWeekly) {
       const avg = Math.round(Number(dest.index_7d_avg));
       const peak = Math.round(Number(dest.index_7d_high));
       metricsEl.innerHTML =
@@ -6711,7 +7307,93 @@
     if (fallbackEl) fallbackEl.hidden = false;
   }
 
+  function sortMoversDestinationsV2(a, b) {
+    const scoreDiff = Number(b.go_tango_score ?? b.signal_score ?? 0) - Number(a.go_tango_score ?? a.signal_score ?? 0);
+    if (scoreDiff !== 0) return scoreDiff;
+    const arrDiff = _moverPrivateArrivals24h(b) - _moverPrivateArrivals24h(a);
+    if (arrDiff !== 0) return arrDiff;
+    return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+  }
+
+  function assignMoverSectionsV2(destinations) {
+    const sections = {
+      heating_up: [],
+      in_season: [],
+      steady: [],
+      cooling: [],
+    };
+    for (const dest of destinations) {
+      const key = dest.confirmed_category || 'steady';
+      if (sections[key]) sections[key].push(dest);
+      else sections.steady.push(dest);
+    }
+    MOVERS_V2_SECTION_ORDER.forEach((key) => {
+      sections[key].sort(sortMoversDestinationsV2);
+    });
+    return sections;
+  }
+
+  function renderMoversIndexV2(arrivalsData) {
+    const indexEl = document.getElementById('movers-index');
+    const fallbackEl = document.getElementById('movers-static-fallback');
+    if (!indexEl) return;
+
+    if (fallbackEl) fallbackEl.hidden = true;
+
+    const payload = getArrivalsPayload(arrivalsData);
+    if (!payload || !Array.isArray(payload.destinations)) {
+      showMoversStaticFallback();
+      return;
+    }
+
+    let destinations = payload.destinations.filter((d) => d && d.ok === true);
+    destinations = enrichDestinationsWithGoTangoScoreV2(destinations);
+    const grouped = assignMoverSectionsV2(destinations);
+
+    indexEl.innerHTML = '';
+    let renderedDestinations = 0;
+
+    MOVERS_V2_SECTION_ORDER.forEach((sectionKey) => {
+      const list = grouped[sectionKey];
+      const meta = MOVERS_V2_SECTION_META[sectionKey];
+      const countLabel = list.length === 1 ? '1 destination' : `${list.length} destinations`;
+
+      const head = document.createElement('div');
+      head.className = 'section-head';
+
+      const title = document.createElement('h2');
+      title.className = 'section-title';
+      title.innerHTML = `<em>${meta.label}</em>`;
+
+      const sectionMeta = document.createElement('span');
+      sectionMeta.className = 'section-meta';
+      sectionMeta.textContent = `${meta.description} · ${countLabel}`;
+
+      head.appendChild(title);
+      head.appendChild(sectionMeta);
+      indexEl.appendChild(head);
+
+      const group = document.createElement('div');
+      group.className = 'movers-group';
+
+      list.forEach((dest, i) => {
+        renderedDestinations += 1;
+        group.appendChild(renderMoverRow(dest, i + 1, sectionKey, { showActions: true }));
+      });
+
+      indexEl.appendChild(group);
+    });
+
+    if (renderedDestinations === 0) {
+      indexEl.innerHTML = '<p class="movers-loading">No destinations available in the index yet.</p>';
+    }
+  }
+
   function renderMoversIndex(arrivalsData, moversIndexData) {
+    if (_goTangoScoreV2Active) {
+      renderMoversIndexV2(arrivalsData);
+      return;
+    }
     const indexEl = document.getElementById('movers-index');
     const fallbackEl = document.getElementById('movers-static-fallback');
     if (!indexEl) return;
@@ -8438,6 +9120,7 @@
 
   let _modalCurrentDestId = null;
   let _modalArrivalsData = null;
+  let _modalUsesV2Score = false;
   let _modalMoversIndexData = null;
   let _modalHistoryRequestId = 0;
   const _destinationNewsCache = new Map();
@@ -8659,13 +9342,17 @@
 
     // Find the destination in the cached data
     const data = _modalArrivalsData;
-    const destinations = data && Array.isArray(data.destinations)
+    const rawDestinations = data && Array.isArray(data.destinations)
       ? data.destinations
       : (data && data.data && Array.isArray(data.data.destinations) ? data.data.destinations : null);
-    if (!destinations) {
+    if (!rawDestinations) {
       console.warn('[modal] No arrivals data available yet');
       return;
     }
+
+    const destinations = _goTangoScoreV2Active
+      ? enrichDestinationsWithGoTangoScoreV2(rawDestinations)
+      : rawDestinations;
 
     const dest = destinations.find(d => d.id === destinationId);
     if (!dest) {
@@ -8674,11 +9361,12 @@
     }
 
     _modalCurrentDestId = destinationId;
+    _modalUsesV2Score = _modalUsesGoTangoV2Score(dest, destinations);
     _clearDestinationNewsSection();
 
     const bodyEl = document.getElementById('dest-modal-body');
     if (bodyEl) {
-      bodyEl.innerHTML = renderDestinationCard(dest, destinations);
+      bodyEl.innerHTML = renderDestinationCard(dest, destinations, { useV2: _modalUsesV2Score });
     }
 
     // Show modal
@@ -8751,13 +9439,21 @@
       ? data.destinations
       : (data.data && Array.isArray(data.data.destinations) ? data.data.destinations : null);
     if (!destinations) return null;
-    return destinations.find((d) => d && d.id === _modalCurrentDestId) || null;
+    const dest = destinations.find((d) => d && d.id === _modalCurrentDestId) || null;
+    if (!dest) return null;
+    if (_goTangoScoreV2Active) {
+      const [enriched] = enrichDestinationsWithGoTangoScoreV2([dest]);
+      return enriched;
+    }
+    return dest;
   }
 
   function applyModalHistoryError() {
     const indexEl = document.querySelector('[data-modal-section="index-7d"]');
     if (indexEl) {
-      indexEl.innerHTML = renderModalIndexUnavailable(_lookupModalDest());
+      indexEl.innerHTML = renderModalIndexUnavailable(_lookupModalDest(), {
+        useV2: _modalUsesV2Score,
+      });
     }
   }
 
@@ -8767,17 +9463,20 @@
     const pulseEl = document.querySelector('[data-modal-section="pulse"]');
     if (!indexEl && !trajectoryEl && !pulseEl) return;
 
+    const useV2 = _modalUsesV2Score;
+    const scorePoints = useV2 ? _buildV2ScorePointsForChart(dest) : points;
     const historyCtx = _prepareArrivalHistoryContext(dest, points);
-    const n = points.length;
+    const n = scorePoints.length;
     const historyOpts = {
       arrivalHistoryUsable: historyCtx.arrivalHistoryUsable,
       chartablePoints: historyCtx.chartablePoints,
       currentTruncated: historyCtx.currentTruncated,
       legacyFlat45: historyCtx.legacyFlat45,
+      useV2,
     };
 
     if (indexEl) {
-      indexEl.innerHTML = renderModalIndexSection(dest, points, n, historyOpts);
+      indexEl.innerHTML = renderModalIndexSection(dest, scorePoints, n, historyOpts);
     }
     if (trajectoryEl) {
       trajectoryEl.innerHTML = renderModalTrajectorySection(dest, points, n, historyOpts);
@@ -9278,7 +9977,10 @@
   }
 
   function renderSignalReadBlock(dest, scorePoints, options = {}) {
-    const text = buildSignalRead(dest, scorePoints, options);
+    const useV2 = !!(options && options.useV2);
+    const text = useV2
+      ? buildGoTangoSignalRead(dest && dest._gotango_v2)
+      : buildSignalRead(dest, scorePoints, options);
     if (!text) return '';
     return `
       <div class="signal-read" aria-label="Signal read">
@@ -9288,7 +9990,7 @@
     `;
   }
 
-  function buildIndexScoreChart(scores, dates, { gradId = 'areaGradIndex' } = {}) {
+  function buildIndexScoreChart(scores, dates, { gradId = 'areaGradIndex', useV2 = false } = {}) {
     if (!scores || scores.length < 2) return '';
     const w = 440;
     const h = 140;
@@ -9351,9 +10053,10 @@
         : '';
       return `${glow}<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}">${title}</circle>`;
     }).join('');
+    const scoreTerm = useV2 ? 'GoTango Score' : 'GoTango Index';
     const mono = "font-family: 'Geist Mono', monospace";
     return `
-      <svg class="d-index-sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="GoTango Index seven-day signal score chart">
+      <svg class="d-index-sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${_escapeHtml(scoreTerm)} seven-day chart">
         <defs>
           <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#E8A317" stop-opacity="0.28"/>
@@ -9376,6 +10079,9 @@
   }
 
   function renderModalIndexSection(dest, points, count, options = {}) {
+    const useV2 = !!(options && options.useV2);
+    const sectionLabel = useV2 ? 'GoTango Score · 7d' : 'GoTango Index · 7d';
+    const dailyMeta = useV2 ? 'Daily GoTango Score' : 'Daily Signal Score';
     const scorePts = _indexScorePoints(points);
     const n = scorePts.length;
     const signalReadHtml = renderSignalReadBlock(dest, points, options);
@@ -9383,13 +10089,13 @@
     if (n < 2) {
       return `
         <div class="d-section-head">
-          <span class="d-section-label">GoTango Index · 7d</span>
-          <span class="d-section-meta">Daily Signal Score</span>
+          <span class="d-section-label">${_escapeHtml(sectionLabel)}</span>
+          <span class="d-section-meta">${_escapeHtml(dailyMeta)}</span>
         </div>
         <div class="d-trajectory-placeholder">
           <div class="d-placeholder-msg">
             <div class="d-placeholder-icon">GT</div>
-            <div class="d-placeholder-title">Index trend building</div>
+            <div class="d-placeholder-title">${useV2 ? 'Score trend building' : 'Index trend building'}</div>
             <div class="d-placeholder-text">More daily score history needed.${n > 0 ? ` ${n} ${n === 1 ? 'day' : 'days'} collected.` : ''}</div>
           </div>
         </div>
@@ -9408,18 +10114,18 @@
     const latestDateIso = dates[dates.length - 1] || '';
     const todayMetricLabel = latestDateIso === _utcTodayIso() ? 'Today' : 'Latest';
     const metaLabel = windowN >= 7
-      ? 'Daily Signal Score · Last 7 days'
-      : `Daily Signal Score · ${windowN} ${windowN === 1 ? 'day' : 'days'}`;
+      ? `${dailyMeta} · Last 7 days`
+      : `${dailyMeta} · ${windowN} ${windowN === 1 ? 'day' : 'days'}`;
     const highLabel = windowN >= 7 ? '7-day high' : 'High';
     const avgLabel = windowN >= 7 ? '7-day avg' : 'Avg';
 
     return `
       <div class="d-section-head">
-        <span class="d-section-label">GoTango Index · 7d</span>
-        <span class="d-section-meta">${metaLabel}</span>
+        <span class="d-section-label">${_escapeHtml(sectionLabel)}</span>
+        <span class="d-section-meta">${_escapeHtml(metaLabel)}</span>
       </div>
       <div class="d-history-chart-wrap">
-        ${buildIndexScoreChart(scores, dates, { gradId })}
+        ${buildIndexScoreChart(scores, dates, { gradId, useV2 })}
       </div>
       ${signalReadHtml}
       <div class="d-index-metrics">
@@ -9439,14 +10145,17 @@
     `;
   }
 
-  function renderModalIndexUnavailable(dest) {
-    const signalReadHtml = renderSignalReadBlock(dest, null);
+  function renderModalIndexUnavailable(dest, options = {}) {
+    const useV2 = !!(options && options.useV2);
+    const sectionLabel = useV2 ? 'GoTango Score · 7d' : 'GoTango Index · 7d';
+    const sectionMeta = useV2 ? 'Daily GoTango Score' : 'Daily Signal Score';
+    const signalReadHtml = renderSignalReadBlock(dest, null, options);
     return `
       <div class="d-section-head">
-        <span class="d-section-label">GoTango Index · 7d</span>
-        <span class="d-section-meta">Daily Signal Score</span>
+        <span class="d-section-label">${_escapeHtml(sectionLabel)}</span>
+        <span class="d-section-meta">${_escapeHtml(sectionMeta)}</span>
       </div>
-      <div class="d-index-status">Index trend unavailable.</div>
+      <div class="d-index-status">${useV2 ? 'Score trend unavailable.' : 'Index trend unavailable.'}</div>
       ${signalReadHtml}
     `;
   }
@@ -10028,10 +10737,15 @@
     `;
   }
 
-  function renderModalStats(dest) {
+  function renderModalStats(dest, options = {}) {
     const arrivals = _integerArrivals24h(dest);
-    const signalScore = _safeNum(dest.signal_score);
-    const pvtStr = signalScore > 0 ? String(signalScore) : '—';
+    const useV2 = !!(options && options.useV2);
+    const signalScore = useV2
+      ? Number(dest.go_tango_score)
+      : _safeNum(dest.signal_score);
+    const pvtStr = Number.isFinite(signalScore) && signalScore > 0 ? String(Math.round(signalScore)) : '—';
+    const scoreLabel = useV2 ? 'GOTANGO SCORE' : 'SIGNAL SCORE';
+    const scoreSub = useV2 ? '0–100 GoTango Score' : '0–100 GoTango Index';
   const wowVal = _parsePercentChange(dest.display_wow_change);
   const dodVal = _parsePercentChange(dest.display_dod_change);
   let movementWindow = null;
@@ -10098,9 +10812,9 @@
             <div class="d-stat-sub">${arrivals === 1 ? 'private arrival' : 'private arrivals'}</div>
           </div>
           <div class="d-stat">
-            <div class="d-stat-label">SIGNAL SCORE</div>
+            <div class="d-stat-label">${_escapeHtml(scoreLabel)}</div>
             <div class="d-stat-value accent">${pvtStr}</div>
-            <div class="d-stat-sub">0–100 GoTango Index</div>
+            <div class="d-stat-sub">${_escapeHtml(scoreSub)}</div>
           </div>
           <div class="d-stat">
             <div class="d-stat-label">Top type</div>
@@ -10113,12 +10827,15 @@
     `;
   }
 
-  function renderIndexPlaceholder() {
+  function renderIndexPlaceholder(options = {}) {
+    const useV2 = !!(options && options.useV2);
+    const sectionLabel = useV2 ? 'GoTango Score · 7d' : 'GoTango Index · 7d';
+    const sectionMeta = useV2 ? 'Daily GoTango Score' : 'Daily Signal Score';
     return `
       <div class="d-section" data-modal-section="index-7d">
         <div class="d-section-head">
-          <span class="d-section-label">GoTango Index · 7d</span>
-          <span class="d-section-meta">Daily Signal Score</span>
+          <span class="d-section-label">${_escapeHtml(sectionLabel)}</span>
+          <span class="d-section-meta">${_escapeHtml(sectionMeta)}</span>
         </div>
         <div class="d-index-status">Index trend loading…</div>
       </div>
@@ -10615,8 +11332,12 @@
     return `${num}th`;
   }
 
-  function _validComparisonScore(dest) {
+  function _validComparisonScore(dest, useV2) {
     if (!dest) return null;
+    if (useV2) {
+      const score = Number(dest.go_tango_score);
+      return Number.isFinite(score) ? score : null;
+    }
     const score = Number(dest.signal_score);
     if (!Number.isFinite(score)) return null;
     return score;
@@ -10654,21 +11375,40 @@
     return median.toFixed(1).replace(/\.0$/, '');
   }
 
-  function renderModalPeers(dest, allDestinations) {
+  function _stackStatusToneV2(category) {
+    if (category === 'heating_up') return 'up';
+    if (category === 'cooling') return 'down';
+    if (category === 'quiet') return 'quiet';
+    return 'steady';
+  }
+
+  function renderModalPeers(dest, allDestinations, options = {}) {
+    const useV2 = !!(options && options.useV2);
     const peerIds = Array.isArray(dest.peers) ? dest.peers : [];
     if (peerIds.length === 0 || !Array.isArray(allDestinations)) {
       return '';
     }
 
+    const v2Map = useV2 ? _goTangoScoreV2Map() : null;
     const peerObjects = peerIds
-      .map((id) => allDestinations.find((d) => d.id === id))
+      .map((id) => {
+        const found = allDestinations.find((d) => d.id === id);
+        if (!found) return null;
+        if (!useV2) return found;
+        if (found._gotango_v2) return found;
+        const v2 = v2Map && v2Map.get(id);
+        if (!v2) return null;
+        return enrichDestinationsWithGoTangoScoreV2([found])[0];
+      })
       .filter(Boolean);
 
     if (peerObjects.length === 0) return '';
 
-    const comparisonPool = [dest, ...peerObjects];
+    const comparisonPool = useV2
+      ? [dest, ...peerObjects]
+      : [dest, ...peerObjects];
     const scored = comparisonPool
-      .map((item) => ({ dest: item, score: _validComparisonScore(item) }))
+      .map((item) => ({ dest: item, score: _validComparisonScore(item, useV2) }))
       .filter((item) => item.score != null);
 
     if (scored.length < 2) {
@@ -10689,7 +11429,8 @@
     const median = _computePeerMedian(allScores);
     const currentRank = sorted.findIndex((item) => item.dest.id === dest.id) + 1;
     const relativePhrase = _stackRelativePhrase(currentRank, totalCount, sorted[currentRank - 1].score, median);
-    const rankSummary = `${_escapeHtml(dest.name || 'This destination')} ranks ${_formatOrdinal(currentRank)} of ${totalCount} by today\u2019s GoTango Index \u2014 ${relativePhrase}.`;
+    const scoreTerm = useV2 ? 'GoTango Score' : 'GoTango Index';
+    const rankSummary = `${_escapeHtml(dest.name || 'This destination')} ranks ${_formatOrdinal(currentRank)} of ${totalCount} by today\u2019s ${scoreTerm} \u2014 ${relativePhrase}.`;
 
     const withoutCurrent = sorted.filter((item) => item.dest.id !== dest.id);
     const displayRows = [...withoutCurrent.slice(0, 4)];
@@ -10698,8 +11439,12 @@
     displayRows.sort((a, b) => b.score - a.score);
     const rows = displayRows.map((item) => {
       const isCurrent = item.dest.id === dest.id;
-      const badge = getPublicSignalBadge(item.dest);
-      const tone = _stackStatusTone(badge.badgeKey);
+      const badge = useV2
+        ? getPublicSignalBadgeV2(item.dest)
+        : getPublicSignalBadge(item.dest, { forceLegacy: true });
+      const tone = useV2
+        ? _stackStatusToneV2(badge.badgeKey)
+        : _stackStatusTone(badge.badgeKey);
       const barWidth = Math.max(0, Math.min(100, Math.round(item.score)));
       const scoreDisplay = String(Math.round(item.score));
       const rowInner = `
@@ -10720,6 +11465,9 @@
     }).join('');
 
     const medianDisplay = _formatPeerMedianScore(median);
+    const medianLabel = useV2
+      ? `Peer median ${medianDisplay} · today\u2019s GoTango Score across ${totalCount} comparable destinations.`
+      : `Peer median ${medianDisplay} · today\u2019s Index across ${totalCount} comparable destinations.`;
 
     return `
     <div class="d-section">
@@ -10729,22 +11477,25 @@
       </div>
       <p class="d-stacks-summary">${rankSummary}</p>
       <div class="d-stacks-rows">${rows}</div>
-      <p class="d-stacks-median">Peer median ${medianDisplay} · today\u2019s Index across ${totalCount} comparable destinations.</p>
+      <p class="d-stacks-median">${medianLabel}</p>
     </div>
   `;
   }
 
-  function renderDestinationCard(dest, allDestinations) {
+  function renderDestinationCard(dest, allDestinations, options = {}) {
     if (!dest) return '<div class="dest-modal__body"><p>Destination not found.</p></div>';
-    const badge = getPublicSignalBadge(dest);
+    const useV2 = !!(options && options.useV2);
+    const badge = useV2
+      ? getPublicSignalBadgeV2(dest)
+      : getPublicSignalBadge(dest, { forceLegacy: true });
 
     return [
       renderModalHero(dest, badge),
       renderEditorial(dest),
-      renderModalStats(dest),
+      renderModalStats(dest, { useV2 }),
       renderModalWatchControl(dest),
-      renderIndexPlaceholder(),
-      renderModalPeers(dest, allDestinations),
+      renderIndexPlaceholder({ useV2 }),
+      renderModalPeers(dest, allDestinations, { useV2 }),
       renderTrajectoryPlaceholder(),
       renderPulsePlaceholder(),
       renderModalAircraft(dest),
@@ -10757,12 +11508,17 @@
     updateClock();
     setInterval(updateClock, 60000);
     updateDate();
-    const [arrivalsData, moversIndexData] = await Promise.all([
+    const [arrivalsData, moversIndexData, goTangoScoreV2Data] = await Promise.all([
       loadArrivalsData(),
       loadMoversIndex(),
+      loadGoTangoScoreV2(),
     ]);
     _modalArrivalsData = arrivalsData;
     _modalMoversIndexData = moversIndexData;
+    const arrivalsPayload = getArrivalsPayload(arrivalsData);
+    if (goTangoScoreV2Data) {
+      activateGoTangoScoreV2(goTangoScoreV2Data, arrivalsPayload);
+    }
     updateStats(arrivalsData);
     updateTodaysPick(arrivalsData);
     renderHeatingUp(arrivalsData);
