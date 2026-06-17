@@ -5574,7 +5574,7 @@
 
     if (category === 'heating_up') {
       if (pendingExit && contraryDays === 1) {
-        return 'The recent rise in arrivals has slowed slightly today.';
+        return 'The recent rise in arrivals has slowed slightly today but still shows signs of heating up.';
       }
       if (dir === 'strengthening') {
         return isModestBase
@@ -5666,41 +5666,62 @@
     return activelyMoving || pendingFirstDay;
   }
 
+  function _v2InternalGoTangoScore(v2) {
+    const internal = Number(v2.go_tango_score_internal);
+    if (Number.isFinite(internal)) return internal;
+    return Number(v2.go_tango_score ?? 0);
+  }
+
+  function _destWeightedPrivateSignal24h(dest, v2) {
+    const n = Number(
+      dest.weighted_private_signal_24h ??
+        dest.qualified_private_arrivals_24h ??
+        v2.weighted_private_signal_24h ??
+        v2.qualified_private_arrivals_24h,
+    );
+    return Number.isFinite(n) ? n : 0;
+  }
+
   function _sortNowHeatingShortlist(a, b) {
     const aV2 = a._gotango_v2 || a;
     const bV2 = b._gotango_v2 || b;
-    const ratioDiff = (bV2.activity_ratio ?? 0) - (aV2.activity_ratio ?? 0);
-    if (ratioDiff !== 0) return ratioDiff;
-    const deltaDiff =
-      (bV2.activity_3d ?? 0) -
-      (bV2.activity_baseline_7d ?? 0) -
-      ((aV2.activity_3d ?? 0) - (aV2.activity_baseline_7d ?? 0));
-    if (deltaDiff !== 0) return deltaDiff;
+    const scoreDiff = _v2InternalGoTangoScore(bV2) - _v2InternalGoTangoScore(aV2);
+    if (scoreDiff !== 0) return scoreDiff;
+    const activeDiff =
+      (bV2.now_heating_eligible === true ? 1 : 0) -
+      (aV2.now_heating_eligible === true ? 1 : 0);
+    if (activeDiff !== 0) return activeDiff;
     const a3Diff = (bV2.activity_3d ?? 0) - (aV2.activity_3d ?? 0);
     if (a3Diff !== 0) return a3Diff;
-    const scoreDiff = (bV2.go_tango_score ?? 0) - (aV2.go_tango_score ?? 0);
-    if (scoreDiff !== 0) return scoreDiff;
-    return String(aV2.name || '').localeCompare(String(bV2.name || ''), undefined, {
-      sensitivity: 'base',
-    });
+    const signalDiff =
+      _destWeightedPrivateSignal24h(b, bV2) - _destWeightedPrivateSignal24h(a, aV2);
+    if (signalDiff !== 0) return signalDiff;
+    return String(aV2.name || a.name || '').localeCompare(
+      String(bV2.name || b.name || ''),
+      undefined,
+      { sensitivity: 'base' },
+    );
   }
 
   function _sortNowCoolingShortlist(a, b) {
     const aV2 = a._gotango_v2 || a;
     const bV2 = b._gotango_v2 || b;
-    const ratioDiff = (aV2.activity_ratio ?? 0) - (bV2.activity_ratio ?? 0);
-    if (ratioDiff !== 0) return ratioDiff;
-    const deltaDiff =
-      (bV2.activity_baseline_7d ?? 0) -
-      (bV2.activity_3d ?? 0) -
-      ((aV2.activity_baseline_7d ?? 0) - (aV2.activity_3d ?? 0));
-    if (deltaDiff !== 0) return deltaDiff;
-    const baselineDiff =
-      (bV2.activity_baseline_7d ?? 0) - (aV2.activity_baseline_7d ?? 0);
-    if (baselineDiff !== 0) return baselineDiff;
-    return String(aV2.name || '').localeCompare(String(bV2.name || ''), undefined, {
-      sensitivity: 'base',
-    });
+    const scoreDiff = _v2InternalGoTangoScore(bV2) - _v2InternalGoTangoScore(aV2);
+    if (scoreDiff !== 0) return scoreDiff;
+    const activeDiff =
+      (bV2.now_cooling_eligible === true ? 1 : 0) -
+      (aV2.now_cooling_eligible === true ? 1 : 0);
+    if (activeDiff !== 0) return activeDiff;
+    const a3Diff = (bV2.activity_3d ?? 0) - (aV2.activity_3d ?? 0);
+    if (a3Diff !== 0) return a3Diff;
+    const signalDiff =
+      _destWeightedPrivateSignal24h(b, bV2) - _destWeightedPrivateSignal24h(a, aV2);
+    if (signalDiff !== 0) return signalDiff;
+    return String(aV2.name || a.name || '').localeCompare(
+      String(bV2.name || b.name || ''),
+      undefined,
+      { sensitivity: 'base' },
+    );
   }
 
   function _passesNowMinimumPublicScore(v2) {
@@ -5712,14 +5733,8 @@
       const v2 = d && d._gotango_v2;
       return v2 && _isNowHeatingDisplayEligible(v2) && _passesNowMinimumPublicScore(v2);
     });
-    const active = eligible.filter((d) => d._gotango_v2.now_heating_eligible);
-    const pending = eligible.filter((d) => {
-      const v2 = d._gotango_v2;
-      return !v2.now_heating_eligible && v2.pending_exit && Number(v2.contrary_days) === 1;
-    });
-    active.sort(_sortNowHeatingShortlist);
-    pending.sort(_sortNowHeatingShortlist);
-    return [...active, ...pending].slice(0, 6);
+    eligible.sort(_sortNowHeatingShortlist);
+    return eligible.slice(0, 6);
   }
 
   function _buildNowCoolingShortlist(destinations) {
@@ -5727,14 +5742,8 @@
       const v2 = d && d._gotango_v2;
       return v2 && _isNowCoolingDisplayEligible(v2) && _passesNowMinimumPublicScore(v2);
     });
-    const active = eligible.filter((d) => d._gotango_v2.now_cooling_eligible);
-    const pending = eligible.filter((d) => {
-      const v2 = d._gotango_v2;
-      return !v2.now_cooling_eligible && v2.pending_exit && Number(v2.contrary_days) === 1;
-    });
-    active.sort(_sortNowCoolingShortlist);
-    pending.sort(_sortNowCoolingShortlist);
-    return [...active, ...pending].slice(0, 3);
+    eligible.sort(_sortNowCoolingShortlist);
+    return eligible.slice(0, 3);
   }
 
   function _buildV2ScorePointsForChart(dest) {
