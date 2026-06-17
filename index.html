@@ -4439,6 +4439,39 @@
     #tab-movers .section-meta {
       font-size: calc(var(--fs-label) * 0.85);
     }
+    /* Now: prevent horizontal overflow from long Heating Up / Cooling Watch subtitles */
+    #tab-now .section-head:has(#heating-up-meta),
+    #tab-now .section-head:has(#cooling-down-meta) {
+      padding-left: 16px;
+      padding-right: 16px;
+      gap: 4px;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-start;
+      min-width: 0;
+      max-width: 100%;
+      overflow-wrap: break-word;
+    }
+    #tab-now .section-head:has(#heating-up-meta) .section-title,
+    #tab-now .section-head:has(#cooling-down-meta) .section-title {
+      min-width: 0;
+      flex-shrink: 0;
+      text-align: left;
+      line-height: 1.1;
+      max-width: 100%;
+    }
+    #tab-now #heating-up-meta,
+    #tab-now #cooling-down-meta {
+      white-space: normal;
+      text-align: left;
+      flex-shrink: 1;
+      min-width: 0;
+      max-width: 100%;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      box-sizing: border-box;
+      font-size: calc(var(--fs-label) * 0.85);
+    }
     #tab-now .dest-list .mover-badge,
     #tab-now .cooling-list .mover-badge {
       margin-left: 0;
@@ -6283,7 +6316,7 @@
 
       setCoolingDownSectionMeta('Last 7 days');
 
-      const destinations = payload.destinations;
+      destinations = payload.destinations;
       const coolingPicks = destinations
         .filter(dest => dest.status === 'cooling' || dest.status === 'softening')
         .sort((a, b) => Number(a.signal_score || 0) - Number(b.signal_score || 0))
