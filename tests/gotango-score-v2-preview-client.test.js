@@ -271,5 +271,8 @@ test('index.html contains v2 preview client wiring', () => {
   assert.match(html, /label: 'HEATING UP'/);
   assert.match(html, /GOTANGO SCORE/);
   assert.match(html, /Cooling has slowed, and activity picked up today\./);
+  assert.match(html, /now-card-signal-read/);
+  assert.match(html, /dest-card--has-signal/);
+  assert.match(html, /grid-template-columns: auto minmax\(0, 1fr\) auto/);
   assert.doesNotMatch(html, /day\$\{streak === 1 \? '' : 's'\} strengthening/);
 });
