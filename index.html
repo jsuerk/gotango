@@ -913,9 +913,9 @@
   }
   #tab-now .dest-card,
   #tab-now .cooling-card.cooling-card--ranked {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) min-content;
     align-items: start;
-    gap: 14px;
+    column-gap: 10px;
   }
   #tab-now .dest-main {
     min-width: 0;
@@ -933,6 +933,11 @@
     white-space: normal;
     overflow-wrap: break-word;
   }
+  #tab-now .card-signal-line {
+    margin-right: calc(-10px - 5.75rem);
+    position: relative;
+    z-index: 1;
+  }
   #tab-now .now-dest-title .dest-name {
     white-space: normal;
     word-break: normal;
@@ -944,6 +949,9 @@
   #tab-now .dest-score-main {
     flex-shrink: 0;
     align-self: start;
+    min-width: 0;
+    position: relative;
+    z-index: 2;
   }
   .sleeper-code {
     font-family: 'Geist Mono', monospace;
@@ -1439,36 +1447,33 @@
     height: 34px;
     min-width: 34px;
     min-height: 34px;
-    border-radius: 50%;
-    border: 1.5px solid rgba(232, 163, 23, 0.55);
-    background: var(--surface-2);
+    border: none;
+    border-radius: 0;
+    background: transparent;
     color: var(--amber);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 0 10px rgba(232, 163, 23, 0.1);
-    transition: border-color 0.15s, box-shadow 0.15s, color 0.15s;
+    box-shadow: none;
+    transition: color 0.15s;
     flex-shrink: 0;
     padding: 0;
   }
   #tab-movers .mover-action-btn-circle:hover {
-    border-color: var(--amber);
-    box-shadow: 0 0 14px rgba(232, 163, 23, 0.2);
+    color: var(--amber-bright);
   }
   #tab-movers .mover-action-btn-circle:focus-visible {
     outline: 2px solid var(--amber);
     outline-offset: 2px;
+    border-radius: 4px;
   }
   #tab-movers .mover-action-btn-circle--watch.is-watched {
-    border-color: rgba(127, 176, 105, 0.55);
     color: var(--signal-up);
-    box-shadow: 0 0 10px rgba(127, 176, 105, 0.12);
     cursor: default;
   }
   #tab-movers .mover-action-btn-circle--watch.is-watched:hover {
-    border-color: var(--signal-up);
-    box-shadow: 0 0 14px rgba(127, 176, 105, 0.2);
+    color: var(--signal-up);
   }
   #tab-movers .mover-action-btn-circle__icon {
     font-family: 'Geist Mono', monospace;
