@@ -41,7 +41,7 @@ function buildGoTangoSignalRead(v2) {
 
   if (category === 'heating_up') {
     if (pendingExit && contraryDays === 1) {
-      return 'The recent rise in arrivals has slowed slightly today but still shows signs of heating up.';
+      return 'Arrivals slowed today but still signal heating up.';
     }
     if (dir === 'strengthening') {
       return isModestBase
@@ -363,7 +363,7 @@ test('heating pending-exit first contrary day remains Now-eligible', () => {
     candidate_direction: 'easing',
   };
   assert.equal(isNowHeatingDisplayEligible(v2), true);
-  assert.equal(buildGoTangoSignalRead(v2), 'The recent rise in arrivals has slowed slightly today but still shows signs of heating up.');
+  assert.equal(buildGoTangoSignalRead(v2), 'Arrivals slowed today but still signal heating up.');
 });
 
 test('index.html contains v2.1 preview client wiring', () => {
@@ -390,7 +390,8 @@ test('Now cards use compact destination-info signal line without SIGNAL READ hea
   assert.match(html, /className = 'card-signal-line'/);
   assert.match(html, /reasonEl\.className = v2Copy \? 'card-signal-line' : 'mover-reason'/);
   assert.match(html, /main\.className = 'dest-main destination-info'/);
-  assert.match(html, /The recent rise in arrivals has slowed slightly today but still shows signs of heating up\./);
+  assert.match(html, /Arrivals slowed today but still signal heating up\./);
+  assert.doesNotMatch(html, /The recent rise in arrivals has slowed slightly today but still shows signs of heating up\./);
   assert.doesNotMatch(html, /now-card-signal-read/);
   assert.doesNotMatch(html, /dest-card--has-signal/);
   assert.doesNotMatch(html, /cooling-card--has-signal/);
@@ -452,7 +453,7 @@ test('low-activity heating copy uses natural phrasing without analytical terms',
       contrary_days: 1,
       candidate_direction: 'easing',
     }),
-    'The recent rise in arrivals has slowed slightly today but still shows signs of heating up.',
+    'Arrivals slowed today but still signal heating up.',
   );
   assert.equal(
     buildGoTangoSignalRead({
@@ -526,6 +527,8 @@ test('client score band boundaries are gap-free', () => {
 });
 
 const HEATING_UP_PENDING_EXIT_COPY =
+  'Arrivals slowed today but still signal heating up.';
+const HEATING_UP_PENDING_EXIT_COPY_PREVIOUS =
   'The recent rise in arrivals has slowed slightly today but still shows signs of heating up.';
 
 function makeHeatingDest({
@@ -820,8 +823,12 @@ test('Heating Up pending-exit day 1 wording is consistent across surfaces', () =
   assert.match(html, new RegExp(HEATING_UP_PENDING_EXIT_COPY.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.doesNotMatch(
     html,
-    /The recent rise in arrivals has slowed slightly today\.(?! but still shows signs of heating up\.)/,
+    new RegExp(HEATING_UP_PENDING_EXIT_COPY_PREVIOUS.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
   );
+  assert.match(html, /function _buildNowCardCompactSignal\(/);
+  assert.match(html, /function getMoverReason\(/);
+  assert.match(html, /function renderSignalReadBlock\(/);
+  assert.match(html, /useV2[\s\S]*buildGoTangoSignalRead\(dest && dest\._gotango_v2\)/);
   assert.equal(
     buildGoTangoSignalRead({
       confirmed_category: 'heating_up',
@@ -859,7 +866,7 @@ test('Now card signal line uses destination-info width bleed without copy change
       contrary_days: 1,
       candidate_direction: 'easing',
     }),
-    'The recent rise in arrivals has slowed slightly today but still shows signs of heating up.',
+    'Arrivals slowed today but still signal heating up.',
   );
 });
 
@@ -875,6 +882,10 @@ test('Movers action controls keep handlers and hit area while removing visible c
   assert.match(moversBtnBlock[0], /background: transparent/);
   assert.match(moversBtnBlock[0], /box-shadow: none/);
   assert.doesNotMatch(moversBtnBlock[0], /border-radius: 50%/);
+  const watchIconBlock = html.match(/#tab-movers \.mover-action-btn-circle__icon\s*\{[\s\S]*?\}/);
+  assert.ok(watchIconBlock, 'Movers watch + icon rule exists');
+  assert.match(watchIconBlock[0], /font-size: 22px/);
+  assert.doesNotMatch(watchIconBlock[0], /font-size: 17px/);
   assert.match(html, /watchBtn\.className = 'mover-action-btn-circle mover-action-btn-circle--watch'/);
   assert.match(html, /shareBtn\.className = 'mover-action-btn-circle mover-action-btn-circle--share'/);
   assert.match(html, /data-mover-action', 'watch'/);
@@ -884,4 +895,8 @@ test('Movers action controls keep handlers and hit area while removing visible c
   assert.match(html, /#tab-movers \.mover-action-btn-circle--watch\.is-watched[\s\S]*?color: var\(--signal-up\)/);
   assert.match(html, /#tab-movers \.mover-action-btn-circle:focus-visible/);
   assert.doesNotMatch(html, /#tab-watch \.mover-action-btn-circle/);
+  const shareIconBlock = html.match(/#tab-movers \.mover-action-btn-circle__share-icon\s*\{[\s\S]*?\}/);
+  assert.ok(shareIconBlock, 'Movers share icon rule exists');
+  assert.match(shareIconBlock[0], /width: 15px/);
+  assert.match(shareIconBlock[0], /height: 15px/);
 });
