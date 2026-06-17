@@ -4537,14 +4537,16 @@
 
     <!-- HOT LIST -->
     <div class="section-head">
-      <h2 class="section-title">Heating <em>Up Today</em></h2>
+      <h2 class="section-title">Heating <em>Up</em></h2>
+      <span class="section-meta" id="heating-up-meta">Confirmed 2+ days · strongest private-travel momentum</span>
     </div>
 
     <div class="dest-list" id="heating-up-list"></div>
 
     <!-- COOLING -->
     <div class="section-head">
-      <h2 class="section-title">Cooling <em>Down Today</em></h2>
+      <h2 class="section-title">Cooling <em>Watch</em></h2>
+      <span class="section-meta" id="cooling-down-meta">Confirmed 2+ days · meaningful easing in new arrivals</span>
     </div>
 
     <div class="cooling-list" id="cooling-down-list"></div>
@@ -5245,6 +5247,38 @@
 </div>
 
 <script>
+  // ============ GOTANGO SCORE V2 FEATURE SWITCH ============
+  const USE_GOTANGO_SCORE_V2 = typeof window !== 'undefined' && window.USE_GOTANGO_SCORE_V2 !== false;
+  let _goTangoScoreV2Data = null;
+  let _goTangoScoreV2Active = false;
+
+  const GOTANGO_SCORE_V2_VERSION = 'gotango_score_v2';
+  const MOVERS_V2_SECTION_ORDER = ['heating_up', 'in_season', 'steady', 'cooling'];
+  const MOVERS_V2_SECTION_META = {
+    heating_up: {
+      label: 'Heating Up',
+      description: 'Confirmed for at least two days. Private-travel activity is meaningfully strengthening.',
+    },
+    in_season: {
+      label: 'In Season',
+      description: 'Private-travel activity is established and holding near the upper part of its recent range.',
+    },
+    steady: {
+      label: 'Steady',
+      description: 'Activity is stable or mixed, with no confirmed multi-day rise or decline.',
+    },
+    cooling: {
+      label: 'Cooling',
+      description: 'New private arrivals have meaningfully eased for at least two days. Cooling does not mean the destination is inactive.',
+    },
+  };
+  const MOVERS_V2_BADGE_META = {
+    heating_up: { label: 'Heating Up', className: 'mover-badge--rising', sparkColor: '#7FB069' },
+    in_season: { label: 'In Season', className: 'mover-badge--steady', sparkColor: '#5B9EA8' },
+    steady: { label: 'Steady', className: 'mover-badge--steady', sparkColor: '#5B9EA8' },
+    cooling: { label: 'Cooling', className: 'mover-badge--cooling', sparkColor: '#E07856' },
+  };
+
   // ============ HERO DATA (PHASE 5A PASS 1) ============
   async function loadArrivalsData() {
     try {
@@ -5272,6 +5306,157 @@
       console.warn('Error fetching movers index:', error);
       return null;
     }
+  }
+
+  async function loadGoTangoScoreV2() {
+    if (!USE_GOTANGO_SCORE_V2) return null;
+    try {
+      const response = await fetch('/api/get-gotango-score');
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function _getPublicDestinationIdsFromPayload(payload) {
+    if (!payload || !Array.isArray(payload.destinations)) return [];
+    return payload.destinations
+      .filter((d) => d && typeof d.id === 'string' && d.id)
+      .map((d) => d.id);
+  }
+
+  function validateGoTangoScoreV2Client(data, arrivalsPayload) {
+    const fatal = [];
+    if (!data || typeof data !== 'object') fatal.push('invalid_response');
+    if (!data || data.ok !== true) fatal.push('endpoint_not_ok');
+    if (!data || data.go_tango_score_version !== GOTANGO_SCORE_V2_VERSION) fatal.push('invalid_version');
+
+    const sourceSavedAt = arrivalsPayload && arrivalsPayload.saved_at;
+    if (sourceSavedAt && data.source_saved_at !== sourceSavedAt) fatal.push('source_saved_at_mismatch');
+    if (data.total_destinations !== 51) fatal.push('total_destinations_mismatch');
+
+    const publicIds = _getPublicDestinationIdsFromPayload(arrivalsPayload);
+    const seen = new Set();
+    for (const dest of data.destinations || []) {
+      if (!dest || !dest.id) {
+        fatal.push('missing_destination_id');
+        continue;
+      }
+      if (seen.has(dest.id)) fatal.push(`duplicate_id:${dest.id}`);
+      seen.add(dest.id);
+      for (const field of [
+        'go_tango_score',
+        'go_tango_score_version',
+        'daily_signal_score',
+        'confirmed_category',
+        'candidate_direction',
+        'direction_streak_days',
+        'go_tango_score_points_7d',
+      ]) {
+        if (!(field in dest)) fatal.push(`missing_field:${dest.id}:${field}`);
+      }
+    }
+
+    for (const id of publicIds) {
+      if (!seen.has(id)) fatal.push(`missing_public_destination:${id}`);
+    }
+
+    const counts = data.category_counts || {};
+    const categoryTotal =
+      (counts.heating_up || 0) +
+      (counts.in_season || 0) +
+      (counts.steady || 0) +
+      (counts.cooling || 0);
+    if (categoryTotal !== 51) fatal.push('category_total_mismatch');
+
+    for (const warning of data.validation_warnings || []) {
+      if (String(warning).startsWith('fatal:')) fatal.push(String(warning));
+    }
+
+    return { ok: fatal.length === 0, fatal };
+  }
+
+  function activateGoTangoScoreV2(data, arrivalsPayload) {
+    const validation = validateGoTangoScoreV2Client(data, arrivalsPayload);
+    if (!validation.ok) {
+      console.warn('[GoTango] GoTango Score v2 unavailable; using legacy signals.');
+      _goTangoScoreV2Data = null;
+      _goTangoScoreV2Active = false;
+      return false;
+    }
+    _goTangoScoreV2Data = data;
+    _goTangoScoreV2Active = true;
+    return true;
+  }
+
+  function _goTangoScoreV2Map() {
+    const map = new Map();
+    if (!_goTangoScoreV2Active || !_goTangoScoreV2Data) return map;
+    for (const dest of _goTangoScoreV2Data.destinations || []) {
+      if (dest && dest.id) map.set(dest.id, dest);
+    }
+    return map;
+  }
+
+  function enrichDestinationsWithGoTangoScoreV2(destinations) {
+    if (!_goTangoScoreV2Active) return destinations;
+    const v2Map = _goTangoScoreV2Map();
+    return destinations.map((dest) => {
+      const v2 = v2Map.get(dest.id);
+      if (!v2) return dest;
+      const scorePoints = Array.isArray(v2.go_tango_score_points_7d)
+        ? v2.go_tango_score_points_7d.map((score) => ({ signal_score: score }))
+        : [];
+      return {
+        ...dest,
+        go_tango_score: v2.go_tango_score,
+        go_tango_score_version: v2.go_tango_score_version,
+        daily_signal_score: v2.daily_signal_score,
+        confirmed_category: v2.confirmed_category,
+        candidate_direction: v2.candidate_direction,
+        direction_streak_days: v2.direction_streak_days,
+        pending_exit: v2.pending_exit,
+        now_heating_eligible: v2.now_heating_eligible,
+        now_cooling_eligible: v2.now_cooling_eligible,
+        _gotango_v2: v2,
+        score_points_7d: scorePoints,
+        latest_signal_score: v2.go_tango_score,
+      };
+    });
+  }
+
+  function _v2DirectionCopy(dest) {
+    const v2 = dest && dest._gotango_v2;
+    if (!v2) return null;
+    const streak = Number(v2.direction_streak_days || 0);
+    const dir = String(v2.candidate_direction || '');
+    if (dir === 'strengthening' && streak >= 1) {
+      return `${streak} day${streak === 1 ? '' : 's'} strengthening`;
+    }
+    if (dir === 'easing' && streak >= 1) {
+      return `${streak} day${streak === 1 ? '' : 's'} easing`;
+    }
+    if (v2.confirmed_category === 'in_season') return 'Activity remains established';
+    if (v2.pending_exit) return 'Momentum not yet confirmed';
+    if (v2.confirmed_category === 'steady') return 'Holding near recent highs';
+    return null;
+  }
+
+  function getPublicSignalBadgeV2(dest) {
+    const category = dest && dest.confirmed_category;
+    const meta = MOVERS_V2_BADGE_META[category] || MOVERS_V2_BADGE_META.steady;
+    const vibeClass =
+      category === 'heating_up' ? 'surge'
+        : category === 'cooling' ? 'cool'
+          : 'steady';
+    return {
+      label: meta.label,
+      className: meta.className,
+      badgeKey: category || 'steady',
+      vibeClass,
+      sparkColor: meta.sparkColor,
+    };
   }
 
   function updateClock() {
@@ -5586,6 +5771,10 @@
   }
 
   function _destSignalScoreLabel(dest) {
+    if (_goTangoScoreV2Active && dest && dest.go_tango_score != null) {
+      const score = Number(dest.go_tango_score);
+      return Number.isFinite(score) ? String(score) : '—';
+    }
     const signalScore = Number(dest.signal_score);
     return Number.isFinite(signalScore) ? String(signalScore) : '—';
   }
@@ -5620,9 +5809,10 @@
     scoreLbl.textContent = 'GoTango Score';
 
     const trend = document.createElement('div');
+    const v2Copy = _v2DirectionCopy(dest);
     const wowPts = _getSignalScoreWoWPoints(dest);
-    const movementText = _formatSignalScorePointChange(wowPts);
-    const signedVal = wowPts;
+    const movementText = v2Copy || _formatSignalScorePointChange(wowPts);
+    const signedVal = v2Copy ? null : wowPts;
     trend.textContent = movementText || 'Trend building';
     _applyDestTrendClasses(trend, movementText, signedVal);
 
@@ -5842,7 +6032,11 @@
     try {
       const heatingEl = document.getElementById('stat-heating');
       let heatingVal = null;
-      if (totals && Number.isFinite(Number(totals.heating_count))) {
+      if (_goTangoScoreV2Active && _goTangoScoreV2Data) {
+        heatingVal = Array.isArray(_goTangoScoreV2Data.now_heating_ids)
+          ? _goTangoScoreV2Data.now_heating_ids.length
+          : 0;
+      } else if (totals && Number.isFinite(Number(totals.heating_count))) {
         heatingVal = Number(totals.heating_count);
       } else if (payload.homepage && Array.isArray(payload.homepage.heating_up)) {
         heatingVal = payload.homepage.heating_up.length;
@@ -5857,7 +6051,11 @@
     try {
       const coolingEl = document.getElementById('stat-cooling');
       let coolingVal = null;
-      if (totals && Number.isFinite(Number(totals.cooling_count))) {
+      if (_goTangoScoreV2Active && _goTangoScoreV2Data) {
+        coolingVal = Array.isArray(_goTangoScoreV2Data.now_cooling_ids)
+          ? _goTangoScoreV2Data.now_cooling_ids.length
+          : 0;
+      } else if (totals && Number.isFinite(Number(totals.cooling_count))) {
         coolingVal = Number(totals.cooling_count);
       } else if (payload.homepage && Array.isArray(payload.homepage.cooling_down)) {
         coolingVal = payload.homepage.cooling_down.length;
@@ -5956,26 +6154,44 @@
     try {
       const romans = ['I', 'II', 'III', 'IV', 'V', 'VI'];
       const payload = data.data;
-      const homepageHeating = payload.homepage && Array.isArray(payload.homepage.heating_up)
-        ? payload.homepage.heating_up
-        : undefined;
+      let destinations = payload.destinations.filter((d) => d && d.ok === true);
+      destinations = enrichDestinationsWithGoTangoScoreV2(destinations);
 
       container.innerHTML = '';
 
-      if (homepageHeating !== undefined && homepageHeating.length === 0) {
+      let top6;
+      if (_goTangoScoreV2Active && _goTangoScoreV2Data) {
+        const idOrder = _goTangoScoreV2Data.heating_shortlist || _goTangoScoreV2Data.now_heating_ids || [];
+        const byId = new Map(destinations.map((d) => [d.id, d]));
+        top6 = idOrder.map((id) => byId.get(id)).filter(Boolean).slice(0, 6);
+      } else {
+        const homepageHeating = payload.homepage && Array.isArray(payload.homepage.heating_up)
+          ? payload.homepage.heating_up
+          : undefined;
+
+        if (homepageHeating !== undefined && homepageHeating.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'dest-card';
+          empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No clear heating signal today.<br>Private baseline building.</div>';
+          container.appendChild(empty);
+          return;
+        }
+
+        top6 = homepageHeating !== undefined
+          ? homepageHeating
+          : destinations
+            .filter(dest => _integerArrivals24h(dest) > 0)
+            .sort((a, b) => Number(b.signal_score || 0) - Number(a.signal_score || 0))
+            .slice(0, 6);
+      }
+
+      if (!top6.length) {
         const empty = document.createElement('div');
         empty.className = 'dest-card';
-        empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No clear heating signal today.<br>Private baseline building.</div>';
+        empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No confirmed heating signal today.<br>Private baseline building.</div>';
         container.appendChild(empty);
         return;
       }
-
-      const top6 = homepageHeating !== undefined
-        ? homepageHeating
-        : payload.destinations
-          .filter(dest => _integerArrivals24h(dest) > 0)
-          .sort((a, b) => Number(b.signal_score || 0) - Number(a.signal_score || 0))
-          .slice(0, 6);
 
       top6.forEach((dest, i) => {
         const card = document.createElement('div');
@@ -6013,6 +6229,30 @@
       if (!data || !data.data || !Array.isArray(data.data.destinations)) return;
 
       const payload = data.data;
+      let destinations = payload.destinations.filter((d) => d && d.ok === true);
+      destinations = enrichDestinationsWithGoTangoScoreV2(destinations);
+
+      if (_goTangoScoreV2Active && _goTangoScoreV2Data) {
+        setCoolingDownSectionMeta('Confirmed 2+ days · meaningful easing in new arrivals');
+        const idOrder = _goTangoScoreV2Data.cooling_shortlist || _goTangoScoreV2Data.now_cooling_ids || [];
+        const byId = new Map(destinations.map((d) => [d.id, d]));
+        const coolingPicks = idOrder.map((id) => byId.get(id)).filter(Boolean).slice(0, 3);
+
+        if (coolingPicks.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'cooling-card';
+          empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No confirmed cooling signal today.<br>Private baseline building.</div>';
+          container.appendChild(empty);
+          return;
+        }
+
+        coolingPicks.forEach((dest, i) => {
+          const whyLine = _v2DirectionCopy(dest) || 'Private signal easing';
+          renderCoolingDestinationCard(dest, container, whyLine, i);
+        });
+        return;
+      }
+
       const homepageCooling = payload.homepage && payload.homepage.cooling_down;
 
       if (homepageCooling !== undefined) {
@@ -6293,6 +6533,9 @@
   }
 
   function getPublicSignalBadge(dest, options) {
+    if (_goTangoScoreV2Active && dest && dest.confirmed_category) {
+      return getPublicSignalBadgeV2(dest);
+    }
     const d = _destWithMoversContext(dest);
     const section = options && options.section;
     const sectionHint = options && options.sectionHint;
@@ -6424,6 +6667,8 @@
   }
 
   function getMoverReason(dest, section) {
+    const v2Copy = _v2DirectionCopy(dest);
+    if (_goTangoScoreV2Active && v2Copy) return v2Copy;
     const maxLen = 140;
     const editorial = dest.editorial && String(dest.editorial).trim();
     if (editorial) {
@@ -6533,7 +6778,9 @@
     const points = getMoversScorePoints(dest);
     const days = Number(dest.index_days_count);
     const hasWeekly = Number.isFinite(days) && days >= 2;
-    const todayScore = Number(dest.latest_signal_score ?? dest.signal_score ?? 0);
+    const todayScore = Number(
+      dest.go_tango_score ?? dest.latest_signal_score ?? dest.signal_score ?? 0,
+    );
     const todayDisplay = Number.isFinite(todayScore) && todayScore > 0
       ? String(Math.round(todayScore))
       : '—';
@@ -6684,7 +6931,14 @@
 
     const metricsEl = document.createElement('div');
     metricsEl.className = 'mover-history-meta';
-    if (hasWeekly) {
+    if (_goTangoScoreV2Active && points.length >= 2) {
+      const scores = points.map((p) => Number(p.signal_score)).filter(Number.isFinite);
+      const avg = Math.round(scores.reduce((s, v) => s + v, 0) / scores.length);
+      const peak = Math.round(Math.max(...scores));
+      metricsEl.innerHTML =
+        `<span>7D avg </span><span class="mover-history-meta__avg">${avg}</span>` +
+        `<span> · Peak </span><span class="mover-history-meta__peak">${peak}</span>`;
+    } else if (hasWeekly) {
       const avg = Math.round(Number(dest.index_7d_avg));
       const peak = Math.round(Number(dest.index_7d_high));
       metricsEl.innerHTML =
@@ -6711,7 +6965,93 @@
     if (fallbackEl) fallbackEl.hidden = false;
   }
 
+  function sortMoversDestinationsV2(a, b) {
+    const scoreDiff = Number(b.go_tango_score ?? b.signal_score ?? 0) - Number(a.go_tango_score ?? a.signal_score ?? 0);
+    if (scoreDiff !== 0) return scoreDiff;
+    const arrDiff = _moverPrivateArrivals24h(b) - _moverPrivateArrivals24h(a);
+    if (arrDiff !== 0) return arrDiff;
+    return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+  }
+
+  function assignMoverSectionsV2(destinations) {
+    const sections = {
+      heating_up: [],
+      in_season: [],
+      steady: [],
+      cooling: [],
+    };
+    for (const dest of destinations) {
+      const key = dest.confirmed_category || 'steady';
+      if (sections[key]) sections[key].push(dest);
+      else sections.steady.push(dest);
+    }
+    MOVERS_V2_SECTION_ORDER.forEach((key) => {
+      sections[key].sort(sortMoversDestinationsV2);
+    });
+    return sections;
+  }
+
+  function renderMoversIndexV2(arrivalsData) {
+    const indexEl = document.getElementById('movers-index');
+    const fallbackEl = document.getElementById('movers-static-fallback');
+    if (!indexEl) return;
+
+    if (fallbackEl) fallbackEl.hidden = true;
+
+    const payload = getArrivalsPayload(arrivalsData);
+    if (!payload || !Array.isArray(payload.destinations)) {
+      showMoversStaticFallback();
+      return;
+    }
+
+    let destinations = payload.destinations.filter((d) => d && d.ok === true);
+    destinations = enrichDestinationsWithGoTangoScoreV2(destinations);
+    const grouped = assignMoverSectionsV2(destinations);
+
+    indexEl.innerHTML = '';
+    let renderedDestinations = 0;
+
+    MOVERS_V2_SECTION_ORDER.forEach((sectionKey) => {
+      const list = grouped[sectionKey];
+      const meta = MOVERS_V2_SECTION_META[sectionKey];
+      const countLabel = list.length === 1 ? '1 destination' : `${list.length} destinations`;
+
+      const head = document.createElement('div');
+      head.className = 'section-head';
+
+      const title = document.createElement('h2');
+      title.className = 'section-title';
+      title.innerHTML = `<em>${meta.label}</em>`;
+
+      const sectionMeta = document.createElement('span');
+      sectionMeta.className = 'section-meta';
+      sectionMeta.textContent = `${meta.description} · ${countLabel}`;
+
+      head.appendChild(title);
+      head.appendChild(sectionMeta);
+      indexEl.appendChild(head);
+
+      const group = document.createElement('div');
+      group.className = 'movers-group';
+
+      list.forEach((dest, i) => {
+        renderedDestinations += 1;
+        group.appendChild(renderMoverRow(dest, i + 1, sectionKey, { showActions: true }));
+      });
+
+      indexEl.appendChild(group);
+    });
+
+    if (renderedDestinations === 0) {
+      indexEl.innerHTML = '<p class="movers-loading">No destinations available in the index yet.</p>';
+    }
+  }
+
   function renderMoversIndex(arrivalsData, moversIndexData) {
+    if (_goTangoScoreV2Active) {
+      renderMoversIndexV2(arrivalsData);
+      return;
+    }
     const indexEl = document.getElementById('movers-index');
     const fallbackEl = document.getElementById('movers-static-fallback');
     if (!indexEl) return;
@@ -10757,12 +11097,17 @@
     updateClock();
     setInterval(updateClock, 60000);
     updateDate();
-    const [arrivalsData, moversIndexData] = await Promise.all([
+    const [arrivalsData, moversIndexData, goTangoScoreV2Data] = await Promise.all([
       loadArrivalsData(),
       loadMoversIndex(),
+      loadGoTangoScoreV2(),
     ]);
     _modalArrivalsData = arrivalsData;
     _modalMoversIndexData = moversIndexData;
+    const arrivalsPayload = getArrivalsPayload(arrivalsData);
+    if (goTangoScoreV2Data) {
+      activateGoTangoScoreV2(goTangoScoreV2Data, arrivalsPayload);
+    }
     updateStats(arrivalsData);
     updateTodaysPick(arrivalsData);
     renderHeatingUp(arrivalsData);
