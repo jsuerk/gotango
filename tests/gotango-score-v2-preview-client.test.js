@@ -7,7 +7,24 @@ import test from 'node:test';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const INDEX_HTML = join(__dirname, '../index.html');
 
-const GOTANGO_SCORE_V2_VERSION = 'gotango_score_v2';
+const GOTANGO_SCORE_V2_VERSION = 'gotango_score_v2_1_activity_led';
+const GOTANGO_SCORE_V2_MODEL = 'B_ORIGINAL_cap_15';
+const NOW_MIN_PUBLIC_SCORE = 60;
+
+function goTangoScoreBand(score) {
+  if (score == null || !Number.isFinite(score)) return 'unknown';
+  if (score >= 90) return 'exceptional';
+  if (score >= 75) return 'strong_and_highly_relevant';
+  if (score >= 60) return 'meaningful_activity';
+  if (score >= 40) return 'moderate_or_developing';
+  if (score >= 20) return 'quiet';
+  if (score >= 0) return 'very_limited';
+  return 'unknown';
+}
+
+function passesNowMinimumPublicScore(v2) {
+  return Number(v2 && v2.go_tango_score) >= NOW_MIN_PUBLIC_SCORE;
+}
 
 /** Mirrors index.html preview-client helpers for deterministic tests. */
 function buildGoTangoSignalRead(v2) {
@@ -60,8 +77,10 @@ function buildGoTangoSignalRead(v2) {
 
 function isValidGoTangoV2Record(v2) {
   if (!v2 || v2.go_tango_score_version !== GOTANGO_SCORE_V2_VERSION) return false;
+  if (v2.score_model !== GOTANGO_SCORE_V2_MODEL) return false;
   if (!Number.isFinite(Number(v2.go_tango_score))) return false;
   if (!v2.confirmed_category) return false;
+  if (!v2.score_band) return false;
   if (!Array.isArray(v2.go_tango_score_points_7d)) return false;
   return true;
 }
@@ -102,6 +121,32 @@ function isNowCoolingDisplayEligible(v2) {
   const pendingFirstDay =
     v2.pending_exit === true && Number(v2.contrary_days) === 1;
   return activelyMoving || pendingFirstDay;
+}
+
+function buildNowHeatingShortlist(destinations) {
+  const eligible = destinations.filter((d) => {
+    const v2 = d && d._gotango_v2;
+    return v2 && isNowHeatingDisplayEligible(v2) && passesNowMinimumPublicScore(v2);
+  });
+  const active = eligible.filter((d) => d._gotango_v2.now_heating_eligible);
+  const pending = eligible.filter((d) => {
+    const v2 = d._gotango_v2;
+    return !v2.now_heating_eligible && v2.pending_exit && Number(v2.contrary_days) === 1;
+  });
+  return [...active, ...pending].slice(0, 6);
+}
+
+function buildNowCoolingShortlist(destinations) {
+  const eligible = destinations.filter((d) => {
+    const v2 = d && d._gotango_v2;
+    return v2 && isNowCoolingDisplayEligible(v2) && passesNowMinimumPublicScore(v2);
+  });
+  const active = eligible.filter((d) => d._gotango_v2.now_cooling_eligible);
+  const pending = eligible.filter((d) => {
+    const v2 = d._gotango_v2;
+    return !v2.now_cooling_eligible && v2.pending_exit && Number(v2.contrary_days) === 1;
+  });
+  return [...active, ...pending].slice(0, 3);
 }
 
 const V2_BADGE_LABELS = {
@@ -153,6 +198,8 @@ test('Nantucket category consistency under v2', () => {
   const nantucketV2 = {
     id: 'nantucket',
     go_tango_score_version: GOTANGO_SCORE_V2_VERSION,
+    score_model: GOTANGO_SCORE_V2_MODEL,
+    score_band: 'meaningful_activity',
     go_tango_score: 72,
     confirmed_category: 'heating_up',
     candidate_direction: 'strengthening',
@@ -213,6 +260,8 @@ test('Puerto Vallarta in-season easing read', () => {
     confirmed_category: 'in_season',
     candidate_direction: 'easing',
     go_tango_score_version: GOTANGO_SCORE_V2_VERSION,
+    score_model: GOTANGO_SCORE_V2_MODEL,
+    score_band: 'meaningful_activity',
     go_tango_score: 64,
     go_tango_score_points_7d: [60, 61, 62, 63, 64, 64, 64],
   };
@@ -226,6 +275,8 @@ test('modal uses one score version atomically', () => {
     peers: ['beta'],
     _gotango_v2: {
       go_tango_score_version: GOTANGO_SCORE_V2_VERSION,
+      score_model: GOTANGO_SCORE_V2_MODEL,
+      score_band: 'meaningful_activity',
       go_tango_score: 70,
       confirmed_category: 'heating_up',
       go_tango_score_points_7d: [60, 62, 64, 66, 68, 69, 70],
@@ -239,6 +290,8 @@ test('modal uses one score version atomically', () => {
     id: 'beta',
     _gotango_v2: {
       go_tango_score_version: GOTANGO_SCORE_V2_VERSION,
+      score_model: GOTANGO_SCORE_V2_MODEL,
+      score_band: 'moderate_or_developing',
       go_tango_score: 40,
       confirmed_category: 'steady',
       go_tango_score_points_7d: [38, 39, 40, 40, 40, 40, 40],
@@ -263,8 +316,12 @@ test('heating pending-exit first contrary day remains Now-eligible', () => {
   assert.equal(buildGoTangoSignalRead(v2), 'The recent rise in arrivals has slowed slightly today.');
 });
 
-test('index.html contains v2 preview client wiring', () => {
+test('index.html contains v2.1 preview client wiring', () => {
   const html = readFileSync(INDEX_HTML, 'utf8');
+  assert.match(html, /gotango_score_v2_1_activity_led/);
+  assert.match(html, /B_ORIGINAL_cap_15/);
+  assert.match(html, /NOW_MIN_PUBLIC_SCORE = 60/);
+  assert.match(html, /function goTangoScoreBand\(/);
   assert.match(html, /function buildGoTangoSignalRead\(/);
   assert.match(html, /function _modalUsesGoTangoV2Score\(/);
   assert.match(html, /function _buildNowCoolingShortlist\(/);
@@ -363,4 +420,57 @@ test('low-activity heating copy uses natural phrasing without analytical terms',
     }),
     'Still active after a softer day.',
   );
+});
+
+test('Now minimum public score 60 filters low-score cooling cards', () => {
+  const destinations = [
+    {
+      id: 'tulum',
+      name: 'Tulum & Cancún',
+      _gotango_v2: {
+        confirmed_category: 'cooling',
+        data_confidence: 'high',
+        truncation_status: 'complete',
+        activity_baseline_7d: 18,
+        activity_3d: 14,
+        now_cooling_eligible: true,
+        pending_exit: false,
+        contrary_days: 0,
+        go_tango_score: 70,
+        go_tango_score_version: GOTANGO_SCORE_V2_VERSION,
+        score_model: GOTANGO_SCORE_V2_MODEL,
+        score_band: 'meaningful_activity',
+        go_tango_score_points_7d: [60, 62, 64, 66, 68, 69, 70],
+      },
+    },
+    {
+      id: 'quiet-cool',
+      name: 'Quiet Cool',
+      _gotango_v2: {
+        confirmed_category: 'cooling',
+        data_confidence: 'high',
+        truncation_status: 'complete',
+        activity_baseline_7d: 12,
+        activity_3d: 8,
+        now_cooling_eligible: true,
+        pending_exit: false,
+        contrary_days: 0,
+        go_tango_score: 55,
+        go_tango_score_version: GOTANGO_SCORE_V2_VERSION,
+        score_model: GOTANGO_SCORE_V2_MODEL,
+        score_band: 'moderate_or_developing',
+        go_tango_score_points_7d: [50, 51, 52, 53, 54, 55, 55],
+      },
+    },
+  ];
+  const cooling = buildNowCoolingShortlist(destinations);
+  assert.equal(cooling.length, 1);
+  assert.equal(cooling[0].id, 'tulum');
+});
+
+test('client score band boundaries are gap-free', () => {
+  assert.equal(goTangoScoreBand(74.14), 'meaningful_activity');
+  assert.equal(goTangoScoreBand(74.99), 'meaningful_activity');
+  assert.equal(goTangoScoreBand(89.99), 'strong_and_highly_relevant');
+  assert.equal(goTangoScoreBand(19.99), 'very_limited');
 });

@@ -5362,7 +5362,9 @@
   let _goTangoScoreV2Data = null;
   let _goTangoScoreV2Active = false;
 
-  const GOTANGO_SCORE_V2_VERSION = 'gotango_score_v2';
+  const GOTANGO_SCORE_V2_VERSION = 'gotango_score_v2_1_activity_led';
+  const GOTANGO_SCORE_V2_MODEL = 'B_ORIGINAL_cap_15';
+  const NOW_MIN_PUBLIC_SCORE = 60;
   const MOVERS_V2_SECTION_ORDER = ['heating_up', 'in_season', 'steady', 'cooling'];
   const MOVERS_V2_SECTION_META = {
     heating_up: {
@@ -5436,11 +5438,23 @@
       .map((d) => d.id);
   }
 
+  function goTangoScoreBand(score) {
+    if (score == null || !Number.isFinite(score)) return 'unknown';
+    if (score >= 90) return 'exceptional';
+    if (score >= 75) return 'strong_and_highly_relevant';
+    if (score >= 60) return 'meaningful_activity';
+    if (score >= 40) return 'moderate_or_developing';
+    if (score >= 20) return 'quiet';
+    if (score >= 0) return 'very_limited';
+    return 'unknown';
+  }
+
   function validateGoTangoScoreV2Client(data, arrivalsPayload) {
     const fatal = [];
     if (!data || typeof data !== 'object') fatal.push('invalid_response');
     if (!data || data.ok !== true) fatal.push('endpoint_not_ok');
     if (!data || data.go_tango_score_version !== GOTANGO_SCORE_V2_VERSION) fatal.push('invalid_version');
+    if (!data || data.score_model !== GOTANGO_SCORE_V2_MODEL) fatal.push('invalid_score_model');
 
     const sourceSavedAt = arrivalsPayload && arrivalsPayload.saved_at;
     if (sourceSavedAt && data.source_saved_at !== sourceSavedAt) fatal.push('source_saved_at_mismatch');
@@ -5458,6 +5472,8 @@
       for (const field of [
         'go_tango_score',
         'go_tango_score_version',
+        'score_model',
+        'score_band',
         'daily_signal_score',
         'confirmed_category',
         'candidate_direction',
@@ -5522,6 +5538,8 @@
         ...dest,
         go_tango_score: v2.go_tango_score,
         go_tango_score_version: v2.go_tango_score_version,
+        score_model: v2.score_model,
+        score_band: v2.score_band,
         daily_signal_score: v2.daily_signal_score,
         confirmed_category: v2.confirmed_category,
         candidate_direction: v2.candidate_direction,
@@ -5685,10 +5703,14 @@
     });
   }
 
+  function _passesNowMinimumPublicScore(v2) {
+    return Number(v2 && v2.go_tango_score) >= NOW_MIN_PUBLIC_SCORE;
+  }
+
   function _buildNowHeatingShortlist(destinations) {
     const eligible = destinations.filter((d) => {
       const v2 = d && d._gotango_v2;
-      return v2 && _isNowHeatingDisplayEligible(v2);
+      return v2 && _isNowHeatingDisplayEligible(v2) && _passesNowMinimumPublicScore(v2);
     });
     const active = eligible.filter((d) => d._gotango_v2.now_heating_eligible);
     const pending = eligible.filter((d) => {
@@ -5703,7 +5725,7 @@
   function _buildNowCoolingShortlist(destinations) {
     const eligible = destinations.filter((d) => {
       const v2 = d && d._gotango_v2;
-      return v2 && _isNowCoolingDisplayEligible(v2);
+      return v2 && _isNowCoolingDisplayEligible(v2) && _passesNowMinimumPublicScore(v2);
     });
     const active = eligible.filter((d) => d._gotango_v2.now_cooling_eligible);
     const pending = eligible.filter((d) => {
