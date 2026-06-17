@@ -41,7 +41,7 @@ function buildGoTangoSignalRead(v2) {
 
   if (category === 'heating_up') {
     if (pendingExit && contraryDays === 1) {
-      return 'The recent rise in arrivals has slowed slightly today.';
+      return 'The recent rise in arrivals has slowed slightly today but still shows signs of heating up.';
     }
     if (dir === 'strengthening') {
       return isModestBase
@@ -123,17 +123,71 @@ function isNowCoolingDisplayEligible(v2) {
   return activelyMoving || pendingFirstDay;
 }
 
+function v2InternalGoTangoScore(v2) {
+  const internal = Number(v2.go_tango_score_internal);
+  if (Number.isFinite(internal)) return internal;
+  return Number(v2.go_tango_score ?? 0);
+}
+
+function destWeightedPrivateSignal24h(dest, v2) {
+  const n = Number(
+    dest.weighted_private_signal_24h ??
+      dest.qualified_private_arrivals_24h ??
+      v2.weighted_private_signal_24h ??
+      v2.qualified_private_arrivals_24h,
+  );
+  return Number.isFinite(n) ? n : 0;
+}
+
+function sortNowHeatingShortlist(a, b) {
+  const aV2 = a._gotango_v2 || a;
+  const bV2 = b._gotango_v2 || b;
+  const scoreDiff = v2InternalGoTangoScore(bV2) - v2InternalGoTangoScore(aV2);
+  if (scoreDiff !== 0) return scoreDiff;
+  const activeDiff =
+    (bV2.now_heating_eligible === true ? 1 : 0) -
+    (aV2.now_heating_eligible === true ? 1 : 0);
+  if (activeDiff !== 0) return activeDiff;
+  const a3Diff = (bV2.activity_3d ?? 0) - (aV2.activity_3d ?? 0);
+  if (a3Diff !== 0) return a3Diff;
+  const signalDiff =
+    destWeightedPrivateSignal24h(b, bV2) - destWeightedPrivateSignal24h(a, aV2);
+  if (signalDiff !== 0) return signalDiff;
+  return String(aV2.name || a.name || '').localeCompare(
+    String(bV2.name || b.name || ''),
+    undefined,
+    { sensitivity: 'base' },
+  );
+}
+
+function sortNowCoolingShortlist(a, b) {
+  const aV2 = a._gotango_v2 || a;
+  const bV2 = b._gotango_v2 || b;
+  const scoreDiff = v2InternalGoTangoScore(bV2) - v2InternalGoTangoScore(aV2);
+  if (scoreDiff !== 0) return scoreDiff;
+  const activeDiff =
+    (bV2.now_cooling_eligible === true ? 1 : 0) -
+    (aV2.now_cooling_eligible === true ? 1 : 0);
+  if (activeDiff !== 0) return activeDiff;
+  const a3Diff = (bV2.activity_3d ?? 0) - (aV2.activity_3d ?? 0);
+  if (a3Diff !== 0) return a3Diff;
+  const signalDiff =
+    destWeightedPrivateSignal24h(b, bV2) - destWeightedPrivateSignal24h(a, aV2);
+  if (signalDiff !== 0) return signalDiff;
+  return String(aV2.name || a.name || '').localeCompare(
+    String(bV2.name || b.name || ''),
+    undefined,
+    { sensitivity: 'base' },
+  );
+}
+
 function buildNowHeatingShortlist(destinations) {
   const eligible = destinations.filter((d) => {
     const v2 = d && d._gotango_v2;
     return v2 && isNowHeatingDisplayEligible(v2) && passesNowMinimumPublicScore(v2);
   });
-  const active = eligible.filter((d) => d._gotango_v2.now_heating_eligible);
-  const pending = eligible.filter((d) => {
-    const v2 = d._gotango_v2;
-    return !v2.now_heating_eligible && v2.pending_exit && Number(v2.contrary_days) === 1;
-  });
-  return [...active, ...pending].slice(0, 6);
+  eligible.sort(sortNowHeatingShortlist);
+  return eligible.slice(0, 6);
 }
 
 function buildNowCoolingShortlist(destinations) {
@@ -141,12 +195,8 @@ function buildNowCoolingShortlist(destinations) {
     const v2 = d && d._gotango_v2;
     return v2 && isNowCoolingDisplayEligible(v2) && passesNowMinimumPublicScore(v2);
   });
-  const active = eligible.filter((d) => d._gotango_v2.now_cooling_eligible);
-  const pending = eligible.filter((d) => {
-    const v2 = d._gotango_v2;
-    return !v2.now_cooling_eligible && v2.pending_exit && Number(v2.contrary_days) === 1;
-  });
-  return [...active, ...pending].slice(0, 3);
+  eligible.sort(sortNowCoolingShortlist);
+  return eligible.slice(0, 3);
 }
 
 const V2_BADGE_LABELS = {
@@ -313,7 +363,7 @@ test('heating pending-exit first contrary day remains Now-eligible', () => {
     candidate_direction: 'easing',
   };
   assert.equal(isNowHeatingDisplayEligible(v2), true);
-  assert.equal(buildGoTangoSignalRead(v2), 'The recent rise in arrivals has slowed slightly today.');
+  assert.equal(buildGoTangoSignalRead(v2), 'The recent rise in arrivals has slowed slightly today but still shows signs of heating up.');
 });
 
 test('index.html contains v2.1 preview client wiring', () => {
@@ -340,7 +390,7 @@ test('Now cards use compact destination-info signal line without SIGNAL READ hea
   assert.match(html, /className = 'card-signal-line'/);
   assert.match(html, /reasonEl\.className = v2Copy \? 'card-signal-line' : 'mover-reason'/);
   assert.match(html, /main\.className = 'dest-main destination-info'/);
-  assert.match(html, /The recent rise in arrivals has slowed slightly today\./);
+  assert.match(html, /The recent rise in arrivals has slowed slightly today but still shows signs of heating up\./);
   assert.doesNotMatch(html, /now-card-signal-read/);
   assert.doesNotMatch(html, /dest-card--has-signal/);
   assert.doesNotMatch(html, /cooling-card--has-signal/);
@@ -402,7 +452,7 @@ test('low-activity heating copy uses natural phrasing without analytical terms',
       contrary_days: 1,
       candidate_direction: 'easing',
     }),
-    'The recent rise in arrivals has slowed slightly today.',
+    'The recent rise in arrivals has slowed slightly today but still shows signs of heating up.',
   );
   assert.equal(
     buildGoTangoSignalRead({
@@ -473,4 +523,323 @@ test('client score band boundaries are gap-free', () => {
   assert.equal(goTangoScoreBand(74.99), 'meaningful_activity');
   assert.equal(goTangoScoreBand(89.99), 'strong_and_highly_relevant');
   assert.equal(goTangoScoreBand(19.99), 'very_limited');
+});
+
+const HEATING_UP_PENDING_EXIT_COPY =
+  'The recent rise in arrivals has slowed slightly today but still shows signs of heating up.';
+
+function makeHeatingDest({
+  id,
+  name,
+  internal,
+  publicScore,
+  nowHeatingEligible = false,
+  pendingExit = false,
+  contraryDays = 0,
+  direction = 'easing',
+  activity3d = 10,
+  weightedSignal = 5,
+}) {
+  return {
+    id,
+    name,
+    weighted_private_signal_24h: weightedSignal,
+    _gotango_v2: {
+      name,
+      confirmed_category: 'heating_up',
+      data_confidence: 'high',
+      truncation_status: 'complete',
+      activity_3d: activity3d,
+      go_tango_score_internal: internal,
+      go_tango_score: publicScore,
+      go_tango_score_version: GOTANGO_SCORE_V2_VERSION,
+      score_model: GOTANGO_SCORE_V2_MODEL,
+      score_band: 'meaningful_activity',
+      go_tango_score_points_7d: [60, 62, 64, 66, 68, 69, publicScore],
+      now_heating_eligible: nowHeatingEligible,
+      pending_exit: pendingExit,
+      contrary_days: contraryDays,
+      candidate_direction: direction,
+    },
+  };
+}
+
+test('Now Heating Up sorts by internal GoTango Score descending', () => {
+  const destinations = [
+    makeHeatingDest({
+      id: 'santa-fe',
+      name: 'Santa Fe',
+      internal: 68.76,
+      publicScore: 69,
+      nowHeatingEligible: true,
+      direction: 'strengthening',
+      activity3d: 17.6,
+      weightedSignal: 18.5,
+    }),
+    makeHeatingDest({
+      id: 'hamptons',
+      name: 'Hamptons',
+      internal: 99.89,
+      publicScore: 100,
+      pendingExit: true,
+      contraryDays: 1,
+      activity3d: 75.15,
+      weightedSignal: 55,
+    }),
+    makeHeatingDest({
+      id: 'nantucket',
+      name: 'Nantucket',
+      internal: 93.29,
+      publicScore: 93,
+      pendingExit: true,
+      contraryDays: 1,
+      activity3d: 49.9,
+      weightedSignal: 43.8,
+    }),
+    makeHeatingDest({
+      id: 'mallorca',
+      name: 'Mallorca',
+      internal: 74.14,
+      publicScore: 74,
+      pendingExit: true,
+      contraryDays: 1,
+      activity3d: 25.05,
+      weightedSignal: 24,
+    }),
+    makeHeatingDest({
+      id: 'destin-30a',
+      name: 'Destin / 30A',
+      internal: 72.74,
+      publicScore: 73,
+      pendingExit: true,
+      contraryDays: 1,
+      activity3d: 23,
+      weightedSignal: 17,
+    }),
+  ];
+
+  const ordered = buildNowHeatingShortlist(destinations);
+  assert.deepEqual(
+    ordered.map((d) => d.id),
+    ['hamptons', 'nantucket', 'mallorca', 'destin-30a', 'santa-fe'],
+  );
+  assert.ok(
+    ordered.findIndex((d) => d.id === 'hamptons') <
+      ordered.findIndex((d) => d.id === 'nantucket'),
+  );
+  assert.ok(
+    ordered.findIndex((d) => d.id === 'nantucket') <
+      ordered.findIndex((d) => d.id === 'santa-fe'),
+  );
+});
+
+test('active versus pending-exit is only a tie-breaker on equal internal score', () => {
+  const active = makeHeatingDest({
+    id: 'active-low',
+    name: 'Active Low',
+    internal: 70,
+    publicScore: 70,
+    nowHeatingEligible: true,
+    direction: 'strengthening',
+    activity3d: 20,
+    weightedSignal: 10,
+  });
+  const pendingHigh = makeHeatingDest({
+    id: 'pending-high',
+    name: 'Pending High',
+    internal: 85,
+    publicScore: 85,
+    pendingExit: true,
+    contraryDays: 1,
+    activity3d: 5,
+    weightedSignal: 1,
+  });
+  const ordered = buildNowHeatingShortlist([active, pendingHigh]);
+  assert.deepEqual(ordered.map((d) => d.id), ['pending-high', 'active-low']);
+
+  const tiedActive = makeHeatingDest({
+    id: 'alpha-active',
+    name: 'Alpha',
+    internal: 80,
+    publicScore: 80,
+    nowHeatingEligible: true,
+    direction: 'strengthening',
+    activity3d: 12,
+    weightedSignal: 8,
+  });
+  const tiedPending = makeHeatingDest({
+    id: 'beta-pending',
+    name: 'Beta',
+    internal: 80,
+    publicScore: 80,
+    pendingExit: true,
+    contraryDays: 1,
+    activity3d: 12,
+    weightedSignal: 8,
+  });
+  const tiedOrder = buildNowHeatingShortlist([tiedPending, tiedActive]);
+  assert.deepEqual(tiedOrder.map((d) => d.id), ['alpha-active', 'beta-pending']);
+});
+
+test('internal decimal score beats rounded public integer for Now ordering', () => {
+  const higherInternal = makeHeatingDest({
+    id: 'decimal-winner',
+    name: 'Decimal Winner',
+    internal: 74.99,
+    publicScore: 75,
+    nowHeatingEligible: true,
+    direction: 'strengthening',
+    activity3d: 10,
+    weightedSignal: 5,
+  });
+  const lowerInternal = makeHeatingDest({
+    id: 'decimal-loser',
+    name: 'Decimal Loser',
+    internal: 74.14,
+    publicScore: 75,
+    pendingExit: true,
+    contraryDays: 1,
+    activity3d: 30,
+    weightedSignal: 20,
+  });
+  const ordered = buildNowHeatingShortlist([lowerInternal, higherInternal]);
+  assert.deepEqual(ordered.map((d) => d.id), ['decimal-winner', 'decimal-loser']);
+});
+
+test('Now Cooling Watch sorts by internal GoTango Score descending', () => {
+  const destinations = [
+    {
+      id: 'cool-high',
+      name: 'Cool High',
+      weighted_private_signal_24h: 20,
+      _gotango_v2: {
+        name: 'Cool High',
+        confirmed_category: 'cooling',
+        data_confidence: 'high',
+        truncation_status: 'complete',
+        activity_baseline_7d: 18,
+        activity_3d: 14,
+        go_tango_score_internal: 69.94,
+        go_tango_score: 70,
+        now_cooling_eligible: false,
+        pending_exit: true,
+        contrary_days: 1,
+        candidate_direction: 'strengthening',
+      },
+    },
+    {
+      id: 'cool-low',
+      name: 'Cool Low',
+      weighted_private_signal_24h: 30,
+      _gotango_v2: {
+        name: 'Cool Low',
+        confirmed_category: 'cooling',
+        data_confidence: 'high',
+        truncation_status: 'complete',
+        activity_baseline_7d: 20,
+        activity_3d: 8,
+        go_tango_score_internal: 62,
+        go_tango_score: 62,
+        now_cooling_eligible: true,
+        pending_exit: false,
+        contrary_days: 0,
+        candidate_direction: 'easing',
+      },
+    },
+  ];
+  const ordered = buildNowCoolingShortlist(destinations);
+  assert.deepEqual(ordered.map((d) => d.id), ['cool-high', 'cool-low']);
+});
+
+test('Now shortlist limits and minimum score remain unchanged', () => {
+  const manyHeating = Array.from({ length: 8 }, (_, i) =>
+    makeHeatingDest({
+      id: `heat-${i}`,
+      name: `Heat ${i}`,
+      internal: 90 - i,
+      publicScore: 90 - i,
+      nowHeatingEligible: true,
+      direction: 'strengthening',
+      activity3d: 10 + i,
+      weightedSignal: 5,
+    }),
+  );
+  assert.equal(buildNowHeatingShortlist(manyHeating).length, 6);
+
+  const belowMin = makeHeatingDest({
+    id: 'below-min',
+    name: 'Below Min',
+    internal: 55,
+    publicScore: 55,
+    nowHeatingEligible: true,
+    direction: 'strengthening',
+  });
+  const aboveMin = makeHeatingDest({
+    id: 'above-min',
+    name: 'Above Min',
+    internal: 65,
+    publicScore: 65,
+    nowHeatingEligible: true,
+    direction: 'strengthening',
+  });
+  const heating = buildNowHeatingShortlist([belowMin, aboveMin]);
+  assert.equal(heating.length, 1);
+  assert.equal(heating[0].id, 'above-min');
+
+  const coolingMany = Array.from({ length: 5 }, (_, i) => ({
+    id: `cool-${i}`,
+    name: `Cool ${i}`,
+    weighted_private_signal_24h: 10,
+    _gotango_v2: {
+      name: `Cool ${i}`,
+      confirmed_category: 'cooling',
+      data_confidence: 'high',
+      truncation_status: 'complete',
+      activity_baseline_7d: 12,
+      activity_3d: 8,
+      go_tango_score_internal: 80 - i,
+      go_tango_score: 80 - i,
+      now_cooling_eligible: true,
+      pending_exit: false,
+      contrary_days: 0,
+      candidate_direction: 'easing',
+    },
+  }));
+  assert.equal(buildNowCoolingShortlist(coolingMany).length, 3);
+});
+
+test('Heating Up pending-exit day 1 wording is consistent across surfaces', () => {
+  const html = readFileSync(INDEX_HTML, 'utf8');
+  const pendingExitV2 = {
+    confirmed_category: 'heating_up',
+    pending_exit: true,
+    contrary_days: 1,
+    candidate_direction: 'easing',
+  };
+  assert.equal(buildGoTangoSignalRead(pendingExitV2), HEATING_UP_PENDING_EXIT_COPY);
+  assert.match(html, new RegExp(HEATING_UP_PENDING_EXIT_COPY.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.doesNotMatch(
+    html,
+    /The recent rise in arrivals has slowed slightly today\.(?! but still shows signs of heating up\.)/,
+  );
+  assert.equal(
+    buildGoTangoSignalRead({
+      confirmed_category: 'heating_up',
+      candidate_direction: 'strengthening',
+      activity_ratio: 0.9,
+      activity_baseline_7d: 5,
+      pending_exit: false,
+      contrary_days: 0,
+    }),
+    'Arrivals are picking up after a quieter stretch.',
+  );
+  assert.equal(
+    buildGoTangoSignalRead({
+      confirmed_category: 'cooling',
+      pending_exit: true,
+      contrary_days: 1,
+      candidate_direction: 'strengthening',
+    }),
+    'Cooling has slowed, and activity picked up today.',
+  );
 });
