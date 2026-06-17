@@ -917,14 +917,21 @@
     align-items: start;
     gap: 14px;
   }
-  #tab-now .dest-card.dest-card--has-signal,
-  #tab-now .cooling-card.cooling-card--ranked.cooling-card--has-signal {
-    grid-template-rows: auto auto;
-    row-gap: 10px;
-  }
   #tab-now .dest-main {
     min-width: 0;
     overflow-wrap: normal;
+  }
+  #tab-now .destination-info .now-card-signal-line {
+    font-size: var(--fs-label);
+    color: var(--text-dim);
+    margin-top: 4px;
+    margin-bottom: 0;
+    line-height: 1.35;
+    font-style: italic;
+    max-width: 100%;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: break-word;
   }
   #tab-now .now-dest-title .dest-name {
     white-space: normal;
@@ -937,24 +944,6 @@
   #tab-now .dest-score-main {
     flex-shrink: 0;
     align-self: start;
-  }
-  #tab-now .dest-card.dest-card--has-signal .dest-trend,
-  #tab-now .cooling-card.cooling-card--has-signal .dest-trend {
-    display: none;
-  }
-  #tab-now .now-card-signal-read {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    min-width: 0;
-    max-width: 100%;
-    margin-top: 0;
-    margin-bottom: 0;
-  }
-  #tab-now .now-card-signal-read .signal-read__text {
-    white-space: normal;
-    overflow-wrap: break-word;
-    max-width: 100%;
-    min-width: 0;
   }
   .sleeper-code {
     font-family: 'Geist Mono', monospace;
@@ -5567,7 +5556,7 @@
 
     if (category === 'heating_up') {
       if (pendingExit && contraryDays === 1) {
-        return 'The recent rise is pausing today.';
+        return 'The recent rise in arrivals has slowed slightly today.';
       }
       if (dir === 'strengthening') {
         return isModestBase
@@ -6157,43 +6146,23 @@
     return titleBlock;
   }
 
-  function _buildNowCardSignalRead(dest) {
+  function _buildNowCardCompactSignal(dest) {
     if (!_goTangoScoreV2Active || !_destinationHasValidGoTangoV2(dest)) return null;
     const text = buildGoTangoSignalRead(dest._gotango_v2);
     if (!text) return null;
 
-    const wrap = document.createElement('div');
-    wrap.className = 'signal-read now-card-signal-read';
-    wrap.setAttribute('aria-label', 'Signal read');
-
-    const label = document.createElement('div');
-    label.className = 'signal-read__label';
-    label.textContent = 'Signal read';
-
-    const para = document.createElement('p');
-    para.className = 'signal-read__text';
-    para.textContent = text;
-
-    wrap.appendChild(label);
-    wrap.appendChild(para);
-    return wrap;
-  }
-
-  function _attachNowCardSignalRead(card, dest) {
-    const block = _buildNowCardSignalRead(dest);
-    if (!block) return;
-    if (card.classList.contains('cooling-card')) {
-      card.classList.add('cooling-card--has-signal');
-    } else {
-      card.classList.add('dest-card--has-signal');
-    }
-    card.appendChild(block);
+    const line = document.createElement('p');
+    line.className = 'now-card-signal-line';
+    line.textContent = text;
+    return line;
   }
 
   function _buildCoolingCardMain(dest, sectionHint) {
     const main = document.createElement('div');
-    main.className = 'dest-main';
+    main.className = 'dest-main destination-info';
     main.appendChild(_buildNowCardTitleBlock(dest, 'cooling-name', sectionHint || 'cooling'));
+    const signalLine = _buildNowCardCompactSignal(dest);
+    if (signalLine) main.appendChild(signalLine);
     return main;
   }
 
@@ -6213,7 +6182,6 @@
     card.appendChild(rank);
     card.appendChild(main);
     card.appendChild(_buildDestScoreColumn(dest, 'negative'));
-    _attachNowCardSignalRead(card, dest);
     container.appendChild(card);
   }
 
@@ -6540,15 +6508,16 @@
         rank.textContent = romans[i] || String(i + 1);
 
         const main = document.createElement('div');
-        main.className = 'dest-main';
+        main.className = 'dest-main destination-info';
 
         main.appendChild(_buildNowCardTitleBlock(dest, null, 'heating'));
+        const signalLine = _buildNowCardCompactSignal(dest);
+        if (signalLine) main.appendChild(signalLine);
         main.appendChild(_buildDestPrivateSupport(dest));
 
         card.appendChild(rank);
         card.appendChild(main);
         card.appendChild(_buildDestScoreColumn(dest, 'positive'));
-        _attachNowCardSignalRead(card, dest);
         container.appendChild(card);
       });
     } catch (error) {
