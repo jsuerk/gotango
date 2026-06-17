@@ -921,7 +921,7 @@
     min-width: 0;
     overflow-wrap: normal;
   }
-  #tab-now .destination-info .now-card-signal-line {
+  .card-signal-line {
     font-size: var(--fs-label);
     color: var(--text-dim);
     margin-top: 4px;
@@ -5560,7 +5560,7 @@
       }
       if (dir === 'strengthening') {
         return isModestBase
-          ? 'New arrivals are building from a modest base.'
+          ? 'Arrivals are picking up after a quieter stretch.'
           : 'Private arrivals are building.';
       }
       return 'Private arrivals are building.';
@@ -6152,7 +6152,7 @@
     if (!text) return null;
 
     const line = document.createElement('p');
-    line.className = 'now-card-signal-line';
+    line.className = 'card-signal-line';
     line.textContent = text;
     return line;
   }
@@ -7134,8 +7134,9 @@
 
     titleBlock.appendChild(metaRow);
 
-    const reasonEl = document.createElement('div');
-    reasonEl.className = 'mover-reason';
+    const v2Copy = _goTangoScoreV2Active ? _v2DirectionCopy(dest) : null;
+    const reasonEl = document.createElement(v2Copy ? 'p' : 'div');
+    reasonEl.className = v2Copy ? 'card-signal-line' : 'mover-reason';
     reasonEl.textContent = getMoverReason(dest, section);
 
     info.appendChild(titleBlock);
