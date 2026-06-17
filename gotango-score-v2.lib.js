@@ -3,11 +3,42 @@
  * Ported from /tmp/gotango-travel-outlook-corrected-backtest.py (recommended model).
  */
 
-export const GOTANGO_SCORE_VERSION = 'gotango_score_v2';
+export const GOTANGO_SCORE_VERSION = 'gotango_score_v2_1_activity_led';
+export const SCORE_MODEL = 'B_ORIGINAL_cap_15';
+export const CATEGORY_MODEL_VERSION = 'gotango_category_v2';
 export const HISTORY_VERSION = 'ga_filtered_v2';
 
 export const O5_WEIGHTS = [0.35, 0.25, 0.18, 0.13, 0.09];
 export const ACTIVITY_3D_WEIGHTS = [0.5, 0.3, 0.2];
+export const B_ACTIVITY_LED_WEIGHTS = {
+  absolute_activity_score: 0.4,
+  sustained_activity_score: 0.2,
+  market_activity_percentile_score: 0.2,
+  own_history_percentile_score: 0.1,
+  recent_signal_score: 0.05,
+  confidence_score: 0.05,
+};
+export const CALIBRATION_FACTOR = 1.15;
+export const PUBLIC_MOVEMENT_CAP = 15;
+export const NOW_MIN_PUBLIC_SCORE = 60;
+export const LN_DENOM = Math.log(101);
+
+export const MODERATE_CAP_SYSTEM = {
+  activity_caps: [
+    [3, 50],
+    [5, 60],
+    [8, 70],
+  ],
+  truncated_max: 80,
+  low_confidence_max: 75,
+};
+
+export const CONFIDENCE_SCORE_MAP = {
+  high: 100,
+  moderate: 75,
+  low: 40,
+};
+
 export const MIN_ACTIVITY = 5;
 export const BASELINE_FLOOR = 5;
 export const IN_SEASON_BASELINE_RATIO = 0.9;
@@ -71,6 +102,261 @@ export function weightedOutlook(scores, weights) {
   const tw = w.reduce((acc, wi) => acc + wi, 0);
   if (!tw) return null;
   return s.reduce((acc, si, i) => acc + si * w[i], 0) / tw;
+}
+
+export function clampScore(v, lo = 0, hi = 100) {
+  return Math.max(lo, Math.min(hi, v));
+}
+
+export function roundScore2(v) {
+  return Math.round(v * 100) / 100;
+}
+
+export function logActivityScore(activity) {
+  if (activity == null || activity < 0) return 0;
+  return clampScore(100 * Math.log(1 + activity) / LN_DENOM);
+}
+
+export function activity7dMean(activitySeries, idx) {
+  const vals = [];
+  for (let j = Math.max(0, idx - 6); j <= idx; j++) {
+    if (activitySeries[j] != null) vals.push(activitySeries[j]);
+  }
+  if (!vals.length) return null;
+  return vals.reduce((acc, v) => acc + v, 0) / vals.length;
+}
+
+/** Deterministic percentile rank 0–100 using average-rank for ties. */
+export function percentileRankAverageTies(values, target) {
+  if (!values || values.length === 0) return 50;
+  const n = values.length;
+  const less = values.filter((v) => v < target).length;
+  const equal = values.filter((v) => v === target).length;
+  if (equal === 0) {
+    const sorted = [...values].sort((a, b) => a - b);
+    if (target <= sorted[0]) return 0;
+    if (target >= sorted[n - 1]) return 100;
+    for (let i = 0; i < n - 1; i++) {
+      if (sorted[i] <= target && target <= sorted[i + 1]) {
+        const frac = (target - sorted[i]) / (sorted[i + 1] - sorted[i]);
+        const rank = i + frac;
+        return clampScore((100 * rank) / (n - 1));
+      }
+    }
+    return 50;
+  }
+  const avgRank = less + (equal - 1) / 2;
+  if (n === 1) return 50;
+  return clampScore((100 * avgRank) / (n - 1));
+}
+
+export function applyCalibration(raw, factor = CALIBRATION_FACTOR) {
+  return clampScore(50 + factor * (raw - 50));
+}
+
+export function computeRawComposite(components, weights = B_ACTIVITY_LED_WEIGHTS) {
+  let total = 0;
+  for (const [key, weight] of Object.entries(weights)) {
+    total += (components[key] ?? 0) * weight;
+  }
+  return roundScore2(total);
+}
+
+export function applyActivityConfidenceCaps(calibrated, row, options = {}) {
+  const { truncatedWithoutPrior = false } = options;
+  const binding = [];
+  const a3 = row.activity_3d;
+  if (a3 != null) {
+    for (const [threshold, max] of MODERATE_CAP_SYSTEM.activity_caps) {
+      if (a3 < threshold) {
+        binding.push([max, `activity_3d_below_${threshold}_max_${max}`]);
+      }
+    }
+  }
+  if (truncatedWithoutPrior && row.truncation_status === 'truncated') {
+    binding.push([
+      MODERATE_CAP_SYSTEM.truncated_max,
+      `truncated_max_${MODERATE_CAP_SYSTEM.truncated_max}`,
+    ]);
+  }
+  if (row.confidence === 'low') {
+    binding.push([
+      MODERATE_CAP_SYSTEM.low_confidence_max,
+      `low_confidence_max_${MODERATE_CAP_SYSTEM.low_confidence_max}`,
+    ]);
+  }
+  if (!binding.length) {
+    return { score: roundScore2(calibrated), diagnostics: [] };
+  }
+  const minLim = Math.min(...binding.map(([lim]) => lim));
+  const final = Math.min(calibrated, minLim);
+  const diagnostics =
+    final < calibrated
+      ? [binding.find(([lim]) => lim === minLim)[1]]
+      : [];
+  return { score: roundScore2(final), diagnostics };
+}
+
+export function applyPublicMovement(calculated, priorPublic, meta = {}) {
+  const {
+    mature = false,
+    isFirstMatureDay = false,
+    isTruncated = false,
+    movementCap = PUBLIC_MOVEMENT_CAP,
+  } = meta;
+  const diagnostics = [];
+  let score = calculated;
+  let movementCapApplied = false;
+
+  if (isTruncated && priorPublic != null) {
+    return {
+      score: roundScore2(priorPublic),
+      diagnostics: ['truncated_hold_prior'],
+      movementCapApplied: false,
+    };
+  }
+
+  if (mature && !isFirstMatureDay && movementCap != null && priorPublic != null) {
+    const delta = score - priorPublic;
+    if (delta > movementCap) {
+      score = priorPublic + movementCap;
+      movementCapApplied = true;
+      diagnostics.push(`movement_cap_up_${movementCap}`);
+    } else if (delta < -movementCap) {
+      score = priorPublic - movementCap;
+      movementCapApplied = true;
+      diagnostics.push(`movement_cap_down_${movementCap}`);
+    }
+  }
+
+  return {
+    score: roundScore2(clampScore(score)),
+    diagnostics,
+    movementCapApplied,
+  };
+}
+
+export function goTangoScoreBand(score) {
+  if (score == null || !Number.isFinite(score)) return 'unknown';
+  if (score >= 90) return 'exceptional';
+  if (score >= 75) return 'strong_and_highly_relevant';
+  if (score >= 60) return 'meaningful_activity';
+  if (score >= 40) return 'moderate_or_developing';
+  if (score >= 20) return 'quiet';
+  if (score >= 0) return 'very_limited';
+  return 'unknown';
+}
+
+export function matureObservationFlags(activitySeries, idx) {
+  let priorObs = 0;
+  for (let j = 0; j < idx; j++) {
+    if (activitySeries[j] != null) priorObs++;
+  }
+  const mature = priorObs >= MATURE_MIN_PRIOR;
+  let isFirstMatureDay = false;
+  if (mature) {
+    let anyPriorMature = false;
+    for (let j = 0; j < idx; j++) {
+      let po = 0;
+      for (let k = 0; k < j; k++) {
+        if (activitySeries[k] != null) po++;
+      }
+      if (po >= MATURE_MIN_PRIOR) {
+        anyPriorMature = true;
+        break;
+      }
+    }
+    isFirstMatureDay = !anyPriorMature;
+  }
+  return { priorObs, mature, isFirstMatureDay };
+}
+
+export function ownHistoryPercentileScore(activitySeries, idx, currentA3) {
+  const trailStart = Math.max(0, idx - 28);
+  const trailVals = [];
+  for (let j = trailStart; j <= idx; j++) {
+    if (activitySeries[j] != null) trailVals.push(activitySeries[j]);
+  }
+  if (trailVals.length < 5) return 50;
+  return roundScore2(
+    percentileRankAverageTies(trailVals, currentA3 != null ? currentA3 : 0),
+  );
+}
+
+export function buildMarketActivityPercentiles(dailyByDestId) {
+  const byDate = new Map();
+  for (const daily of dailyByDestId.values()) {
+    for (const row of daily) {
+      if (row.activity_3d == null) continue;
+      if (!byDate.has(row.date)) byDate.set(row.date, []);
+      byDate.get(row.date).push(row.activity_3d);
+    }
+  }
+  const marketByDate = new Map();
+  for (const [date, vals] of byDate) {
+    marketByDate.set(date, vals);
+  }
+  return marketByDate;
+}
+
+export function marketPercentileForDestination(marketByDate, date, activity3d) {
+  const vals = marketByDate.get(date);
+  if (!vals || !vals.length) return 50;
+  return roundScore2(percentileRankAverageTies(vals, activity3d != null ? activity3d : 0));
+}
+
+export function scoreDestinationPublicHistory(destId, series, daily, marketByDate) {
+  const activitySeries = series.activity_3d;
+  const scored = [];
+  let priorPublic = null;
+
+  for (let idx = 0; idx < daily.length; idx++) {
+    const row = daily[idx];
+    const a3 = row.activity_3d;
+    const a7 = activity7dMean(activitySeries, idx);
+    const { mature, isFirstMatureDay } = matureObservationFlags(activitySeries, idx);
+    const o5 = row.o5_score != null ? row.o5_score : 0;
+    const components = {
+      absolute_activity_score: roundScore2(logActivityScore(a3 != null ? a3 : 0)),
+      sustained_activity_score: roundScore2(logActivityScore(a7 != null ? a7 : 0)),
+      market_activity_percentile_score: marketPercentileForDestination(
+        marketByDate,
+        row.date,
+        a3,
+      ),
+      own_history_percentile_score: ownHistoryPercentileScore(activitySeries, idx, a3),
+      recent_signal_score: roundScore2(o5),
+      confidence_score: CONFIDENCE_SCORE_MAP[row.confidence] ?? 75,
+    };
+    const rawComposite = computeRawComposite(components);
+    const calibrated = roundScore2(applyCalibration(rawComposite));
+    const truncatedWithoutPrior =
+      row.truncation_status === 'truncated' && priorPublic == null;
+    const capped = applyActivityConfidenceCaps(calibrated, row, { truncatedWithoutPrior });
+    const moved = applyPublicMovement(capped.score, priorPublic, {
+      mature,
+      isFirstMatureDay,
+      isTruncated: row.truncation_status === 'truncated',
+      movementCap: PUBLIC_MOVEMENT_CAP,
+    });
+    const diagnostics = [...capped.diagnostics, ...moved.diagnostics];
+    const internal = moved.score;
+    priorPublic = internal;
+
+    scored.push({
+      ...row,
+      destination_id: destId,
+      score_components: components,
+      raw_composite: rawComposite,
+      calibrated_score: calibrated,
+      go_tango_score_internal: internal,
+      go_tango_score_band: goTangoScoreBand(internal),
+      score_diagnostics: diagnostics,
+      movement_cap_applied: moved.movementCapApplied,
+    });
+  }
+
+  return scored;
 }
 
 export function computeActivity3d(signals, idx) {
@@ -230,6 +516,34 @@ function nowCoolingEligible(row, contraryDays) {
   const baseline = row.baseline;
   if (baseline == null || baseline < MIN_ACTIVITY) return [false, 'prior_baseline_below_5'];
   return [true, 'eligible'];
+}
+
+export function nowHeatingDisplayEligible(row) {
+  const categoryKey = displayCategoryToKey(row.confirmed_category);
+  if (categoryKey !== 'heating_up') return false;
+  if (row.confidence !== 'high') return false;
+  if (row.truncation_status === 'truncated') return false;
+  if ((row.activity_3d || 0) < MIN_ACTIVITY) return false;
+  const activelyMoving = row.now_heating_eligible === true;
+  const pendingFirstDay =
+    row.pending_exit === true && Number(row.contrary_days_in_mover) === 1;
+  return activelyMoving || pendingFirstDay;
+}
+
+export function nowCoolingDisplayEligible(row) {
+  const categoryKey = displayCategoryToKey(row.confirmed_category);
+  if (categoryKey !== 'cooling') return false;
+  if (row.confidence !== 'high') return false;
+  if (row.truncation_status === 'truncated') return false;
+  if ((row.baseline ?? 0) < MIN_ACTIVITY) return false;
+  const activelyMoving = row.now_cooling_eligible === true;
+  const pendingFirstDay =
+    row.pending_exit === true && Number(row.contrary_days_in_mover) === 1;
+  return activelyMoving || pendingFirstDay;
+}
+
+export function passesNowMinimumPublicScore(publicScore, minimum = NOW_MIN_PUBLIC_SCORE) {
+  return Number(publicScore) >= minimum;
 }
 
 export function classifyDestination(series, params = DEFAULT_PARAMS) {
@@ -446,7 +760,7 @@ export function classifyDestination(series, params = DEFAULT_PARAMS) {
       raw_ga_arrivals_24h: series.rawGa[idx],
       weighted_private_signal_24h: series.signals[idx],
       daily_signal_score: Math.round(series.dailyScores[idx] * 100) / 100,
-      go_tango_score_raw: series.o5_scores[idx],
+      o5_score: series.o5_scores[idx],
       activity_3d: a3 != null ? Math.round(a3 * 1000) / 1000 : null,
       baseline: baseline != null ? Math.round(baseline * 1000) / 1000 : null,
       activity_ratio: ratio != null ? Math.round(ratio * 10000) / 10000 : null,
@@ -486,14 +800,14 @@ export function classifyDestination(series, params = DEFAULT_PARAMS) {
   return results;
 }
 
-export function publicGoTangoScore(rawO5) {
-  if (rawO5 == null || !Number.isFinite(rawO5)) return null;
-  return Math.round(rawO5);
+export function publicGoTangoScore(internalScore) {
+  if (internalScore == null || !Number.isFinite(internalScore)) return null;
+  return Math.round(internalScore);
 }
 
-export function goTangoScorePoints7d(results) {
-  const scores = results
-    .map((r) => publicGoTangoScore(r.go_tango_score_raw))
+export function goTangoScorePoints7d(scoredDaily) {
+  const scores = scoredDaily
+    .map((r) => publicGoTangoScore(r.go_tango_score_internal))
     .filter((v) => v != null);
   return scores.length > 7 ? scores.slice(-7) : scores;
 }
@@ -596,6 +910,12 @@ export function replayDestination(panelRows, params = DEFAULT_PARAMS) {
   return { series, daily };
 }
 
+export function replayDestinationWithPublicScores(destId, panelRows, marketByDate, params = DEFAULT_PARAMS) {
+  const { series, daily } = replayDestination(panelRows, params);
+  const scoredDaily = scoreDestinationPublicHistory(destId, series, daily, marketByDate);
+  return { series, daily: scoredDaily };
+}
+
 export function formatDestinationResult(destMeta, dailyResults) {
   const latest = dailyResults[dailyResults.length - 1];
   const historyDaysUsed = dailyResults.length;
@@ -604,8 +924,12 @@ export function formatDestinationResult(destMeta, dailyResults) {
   return {
     id: destMeta.id,
     name: destMeta.name,
-    go_tango_score: publicGoTangoScore(latest.go_tango_score_raw),
+    go_tango_score: publicGoTangoScore(latest.go_tango_score_internal),
+    go_tango_score_internal: latest.go_tango_score_internal,
     go_tango_score_version: GOTANGO_SCORE_VERSION,
+    score_model: SCORE_MODEL,
+    score_band: latest.go_tango_score_band,
+    o5_score: latest.o5_score,
     daily_signal_score: Math.round(latest.daily_signal_score),
     activity_3d: latest.activity_3d,
     activity_baseline_7d: latest.baseline,
@@ -620,11 +944,14 @@ export function formatDestinationResult(destMeta, dailyResults) {
     contrary_days: latest.contrary_days_in_mover,
     now_heating_eligible: latest.now_heating_eligible,
     now_cooling_eligible: latest.now_cooling_eligible,
+    now_heating_display_eligible: nowHeatingDisplayEligible(latest),
+    now_cooling_display_eligible: nowCoolingDisplayEligible(latest),
     now_eligibility_reason: latest.now_eligibility_reason,
     data_confidence: latest.confidence,
     truncation_status: latest.truncation_status,
     history_days_used: historyDaysUsed,
     go_tango_score_points_7d: points7d,
+    score_diagnostics: latest.score_diagnostics || [],
     raw_ga_arrivals_24h: latest.raw_ga_arrivals_24h,
   };
 }
@@ -671,7 +998,7 @@ export function computeGoTangoScoreResponse({
   const warnings = [];
   const publicIds = publicDestinations.map((d) => d.id);
   const panels = buildDestinationPanels(latestPayload, historyList, publicIds);
-  const destinations = [];
+  const classifiedDaily = new Map();
 
   for (const destMeta of publicDestinations) {
     const panelRows = panels.get(destMeta.id) || [];
@@ -679,7 +1006,22 @@ export function computeGoTangoScoreResponse({
       warnings.push(`missing_history:${destMeta.id}`);
     }
     const { daily } = replayDestination(panelRows, params);
-    destinations.push(formatDestinationResult(destMeta, daily));
+    classifiedDaily.set(destMeta.id, daily);
+  }
+
+  const marketByDate = buildMarketActivityPercentiles(classifiedDaily);
+  const destinations = [];
+
+  for (const destMeta of publicDestinations) {
+    const panelRows = panels.get(destMeta.id) || [];
+    const { series, daily } = replayDestination(panelRows, params);
+    const scoredDaily = scoreDestinationPublicHistory(
+      destMeta.id,
+      series,
+      daily,
+      marketByDate,
+    );
+    destinations.push(formatDestinationResult(destMeta, scoredDaily));
   }
 
   const categoryCounts = Object.fromEntries(CATEGORY_KEYS.map((k) => [k, 0]));
@@ -692,19 +1034,30 @@ export function computeGoTangoScoreResponse({
   }
 
   const heatingShortlist = destinations
-    .filter((d) => d.now_heating_eligible)
+    .filter(
+      (d) =>
+        d.now_heating_display_eligible &&
+        passesNowMinimumPublicScore(d.go_tango_score),
+    )
     .sort(sortHeatingShortlist)
     .slice(0, 6)
     .map((d) => d.id);
 
   const coolingShortlist = destinations
-    .filter((d) => d.now_cooling_eligible)
+    .filter(
+      (d) =>
+        d.now_cooling_display_eligible &&
+        passesNowMinimumPublicScore(d.go_tango_score),
+    )
     .sort(sortCoolingShortlist)
     .slice(0, 3)
     .map((d) => d.id);
 
   return {
     go_tango_score_version: GOTANGO_SCORE_VERSION,
+    score_model: SCORE_MODEL,
+    category_model_version: CATEGORY_MODEL_VERSION,
+    now_minimum_public_score: NOW_MIN_PUBLIC_SCORE,
     source_saved_at: latestPayload?.saved_at || null,
     generated_at: generatedAt,
     total_destinations: destinations.length,
@@ -729,6 +1082,9 @@ export function validateGoTangoScoreResponse(response, expectedSourceSavedAt, pu
   if (response.go_tango_score_version !== GOTANGO_SCORE_VERSION) {
     fatal.push('invalid_version');
   }
+  if (response.score_model !== SCORE_MODEL) {
+    fatal.push('invalid_score_model');
+  }
   if (expectedSourceSavedAt && response.source_saved_at !== expectedSourceSavedAt) {
     fatal.push('source_saved_at_mismatch');
   }
@@ -747,6 +1103,8 @@ export function validateGoTangoScoreResponse(response, expectedSourceSavedAt, pu
     for (const field of [
       'go_tango_score',
       'go_tango_score_version',
+      'score_model',
+      'score_band',
       'daily_signal_score',
       'confirmed_category',
       'candidate_direction',
