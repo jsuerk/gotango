@@ -28,7 +28,7 @@ function buildGoTangoSignalRead(v2) {
     }
     if (dir === 'strengthening') {
       return isModestBase
-        ? 'New arrivals are building from a modest base.'
+        ? 'Arrivals are picking up after a quieter stretch.'
         : 'Private arrivals are building.';
     }
     return 'Private arrivals are building.';
@@ -271,7 +271,7 @@ test('index.html contains v2 preview client wiring', () => {
   assert.match(html, /label: 'HEATING UP'/);
   assert.match(html, /GOTANGO SCORE/);
   assert.match(html, /Cooling has slowed, and activity picked up today\./);
-  assert.match(html, /now-card-signal-line/);
+  assert.match(html, /card-signal-line/);
   assert.match(html, /destination-info/);
   assert.match(html, /grid-template-columns: auto minmax\(0, 1fr\) auto/);
   assert.doesNotMatch(html, /day\$\{streak === 1 \? '' : 's'\} strengthening/);
@@ -280,7 +280,8 @@ test('index.html contains v2 preview client wiring', () => {
 test('Now cards use compact destination-info signal line without SIGNAL READ heading', () => {
   const html = readFileSync(INDEX_HTML, 'utf8');
   assert.match(html, /function _buildNowCardCompactSignal\(/);
-  assert.match(html, /className = 'now-card-signal-line'/);
+  assert.match(html, /className = 'card-signal-line'/);
+  assert.match(html, /reasonEl\.className = v2Copy \? 'card-signal-line' : 'mover-reason'/);
   assert.match(html, /main\.className = 'dest-main destination-info'/);
   assert.match(html, /The recent rise in arrivals has slowed slightly today\./);
   assert.doesNotMatch(html, /now-card-signal-read/);
@@ -288,6 +289,8 @@ test('Now cards use compact destination-info signal line without SIGNAL READ hea
   assert.doesNotMatch(html, /cooling-card--has-signal/);
   assert.doesNotMatch(html, /label\.textContent = 'Signal read'/);
   assert.match(html, /dest-modal[\s\S]*signal-read__label/);
+  assert.doesNotMatch(html, /New arrivals are building from a modest base\./);
+  assert.match(html, /Arrivals are picking up after a quieter stretch\./);
   assert.equal(
     buildGoTangoSignalRead({
       confirmed_category: 'heating_up',
@@ -297,7 +300,7 @@ test('Now cards use compact destination-info signal line without SIGNAL READ hea
       pending_exit: false,
       contrary_days: 0,
     }),
-    'New arrivals are building from a modest base.',
+    'Arrivals are picking up after a quieter stretch.',
   );
   assert.equal(
     buildGoTangoSignalRead({
@@ -307,5 +310,57 @@ test('Now cards use compact destination-info signal line without SIGNAL READ hea
       candidate_direction: 'strengthening',
     }),
     'Cooling has slowed, and activity picked up today.',
+  );
+});
+
+test('Now and Movers share card-signal-line typography for v2 reads', () => {
+  const html = readFileSync(INDEX_HTML, 'utf8');
+  const cardSignalBlock = html.match(/\.card-signal-line\s*\{[\s\S]*?\}/);
+  assert.ok(cardSignalBlock, 'shared card-signal-line rule exists');
+  assert.match(cardSignalBlock[0], /font-size:\s*var\(--fs-label\)/);
+  assert.match(cardSignalBlock[0], /color:\s*var\(--text-dim\)/);
+  assert.match(cardSignalBlock[0], /line-height:\s*1\.35/);
+  assert.match(cardSignalBlock[0], /font-style:\s*italic/);
+  assert.doesNotMatch(html, /now-card-signal-line/);
+  assert.match(html, /function _buildNowCardCompactSignal\(/);
+  assert.match(html, /v2Copy \? 'card-signal-line' : 'mover-reason'/);
+});
+
+test('low-activity heating copy uses natural phrasing without analytical terms', () => {
+  const modestBaseV2 = {
+    confirmed_category: 'heating_up',
+    candidate_direction: 'strengthening',
+    activity_ratio: 0.9,
+    activity_baseline_7d: 5,
+    pending_exit: false,
+    contrary_days: 0,
+  };
+  const read = buildGoTangoSignalRead(modestBaseV2);
+  assert.equal(read, 'Arrivals are picking up after a quieter stretch.');
+  assert.ok(!/modest base|moderate base|baseline|signal depth|momentum threshold|low-volume normalization/i.test(read));
+  assert.equal(
+    buildGoTangoSignalRead({
+      confirmed_category: 'heating_up',
+      pending_exit: true,
+      contrary_days: 1,
+      candidate_direction: 'easing',
+    }),
+    'The recent rise in arrivals has slowed slightly today.',
+  );
+  assert.equal(
+    buildGoTangoSignalRead({
+      confirmed_category: 'cooling',
+      pending_exit: true,
+      contrary_days: 1,
+      candidate_direction: 'strengthening',
+    }),
+    'Cooling has slowed, and activity picked up today.',
+  );
+  assert.equal(
+    buildGoTangoSignalRead({
+      confirmed_category: 'in_season',
+      candidate_direction: 'easing',
+    }),
+    'Still active after a softer day.',
   );
 });
