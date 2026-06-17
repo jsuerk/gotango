@@ -844,8 +844,8 @@
   }
   #tab-now .now-dest-title .dest-name {
     display: block;
+    min-width: 0;
     max-width: 100%;
-    overflow-wrap: break-word;
   }
   #tab-now .now-dest-title .card-meta-row {
     display: flex;
@@ -867,6 +867,94 @@
   #tab-now .dest-list .dest-private-support__label,
   #tab-now .cooling-list .dest-private-support__label {
     white-space: nowrap;
+  }
+  #tab-now {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  #tab-now .dest-list,
+  #tab-now .cooling-list {
+    width: calc(100% - 40px);
+    max-width: calc(100% - 40px);
+    box-sizing: border-box;
+  }
+  #tab-now .section-head:has(#heating-up-meta),
+  #tab-now .section-head:has(#cooling-down-meta) {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 6px;
+    overflow-wrap: break-word;
+  }
+  #tab-now .section-head:has(#heating-up-meta) .section-title,
+  #tab-now .section-head:has(#cooling-down-meta) .section-title {
+    min-width: 0;
+    flex-shrink: 0;
+    text-align: left;
+    line-height: 1.1;
+    max-width: 100%;
+  }
+  #tab-now #heating-up-meta,
+  #tab-now #cooling-down-meta {
+    white-space: normal;
+    text-align: left;
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    box-sizing: border-box;
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+  }
+  #tab-now .dest-card,
+  #tab-now .cooling-card.cooling-card--ranked {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 14px;
+  }
+  #tab-now .dest-card.dest-card--has-signal,
+  #tab-now .cooling-card.cooling-card--ranked.cooling-card--has-signal {
+    grid-template-rows: auto auto;
+    row-gap: 10px;
+  }
+  #tab-now .dest-main {
+    min-width: 0;
+    overflow-wrap: normal;
+  }
+  #tab-now .now-dest-title .dest-name {
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+  #tab-now .dest-private-support__value {
+    white-space: nowrap;
+  }
+  #tab-now .dest-score-main {
+    flex-shrink: 0;
+    align-self: start;
+  }
+  #tab-now .dest-card.dest-card--has-signal .dest-trend,
+  #tab-now .cooling-card.cooling-card--has-signal .dest-trend {
+    display: none;
+  }
+  #tab-now .now-card-signal-read {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-width: 0;
+    max-width: 100%;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  #tab-now .now-card-signal-read .signal-read__text {
+    white-space: normal;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    min-width: 0;
   }
   .sleeper-code {
     font-family: 'Geist Mono', monospace;
@@ -6015,17 +6103,24 @@
     scoreLbl.className = 'dest-score-main__label';
     scoreLbl.textContent = 'GoTango Score';
 
-    const trend = document.createElement('div');
-    const v2Copy = _v2DirectionCopy(dest);
-    const wowPts = _getSignalScoreWoWPoints(dest);
-    const movementText = v2Copy || _formatSignalScorePointChange(wowPts);
-    const signedVal = v2Copy ? null : wowPts;
-    trend.textContent = movementText || 'Trend building';
-    _applyDestTrendClasses(trend, movementText, signedVal);
-
     col.appendChild(scoreVal);
     col.appendChild(scoreLbl);
-    col.appendChild(trend);
+
+    const hasV2SignalRow =
+      _goTangoScoreV2Active &&
+      _destinationHasValidGoTangoV2(dest) &&
+      buildGoTangoSignalRead(dest._gotango_v2);
+    if (!hasV2SignalRow) {
+      const trend = document.createElement('div');
+      const v2Copy = _v2DirectionCopy(dest);
+      const wowPts = _getSignalScoreWoWPoints(dest);
+      const movementText = v2Copy || _formatSignalScorePointChange(wowPts);
+      const signedVal = v2Copy ? null : wowPts;
+      trend.textContent = movementText || 'Trend building';
+      _applyDestTrendClasses(trend, movementText, signedVal);
+      col.appendChild(trend);
+    }
+
     return col;
   }
 
@@ -6062,6 +6157,39 @@
     return titleBlock;
   }
 
+  function _buildNowCardSignalRead(dest) {
+    if (!_goTangoScoreV2Active || !_destinationHasValidGoTangoV2(dest)) return null;
+    const text = buildGoTangoSignalRead(dest._gotango_v2);
+    if (!text) return null;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'signal-read now-card-signal-read';
+    wrap.setAttribute('aria-label', 'Signal read');
+
+    const label = document.createElement('div');
+    label.className = 'signal-read__label';
+    label.textContent = 'Signal read';
+
+    const para = document.createElement('p');
+    para.className = 'signal-read__text';
+    para.textContent = text;
+
+    wrap.appendChild(label);
+    wrap.appendChild(para);
+    return wrap;
+  }
+
+  function _attachNowCardSignalRead(card, dest) {
+    const block = _buildNowCardSignalRead(dest);
+    if (!block) return;
+    if (card.classList.contains('cooling-card')) {
+      card.classList.add('cooling-card--has-signal');
+    } else {
+      card.classList.add('dest-card--has-signal');
+    }
+    card.appendChild(block);
+  }
+
   function _buildCoolingCardMain(dest, sectionHint) {
     const main = document.createElement('div');
     main.className = 'dest-main';
@@ -6085,6 +6213,7 @@
     card.appendChild(rank);
     card.appendChild(main);
     card.appendChild(_buildDestScoreColumn(dest, 'negative'));
+    _attachNowCardSignalRead(card, dest);
     container.appendChild(card);
   }
 
@@ -6419,6 +6548,7 @@
         card.appendChild(rank);
         card.appendChild(main);
         card.appendChild(_buildDestScoreColumn(dest, 'positive'));
+        _attachNowCardSignalRead(card, dest);
         container.appendChild(card);
       });
     } catch (error) {
