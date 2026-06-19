@@ -729,6 +729,12 @@
     border-radius: 10px;
     overflow: hidden;
   }
+  #expanded-world-map,
+  .expanded-world-map-shell {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
   #expanded-world-map {
     width: 100%;
     height: 100%;
@@ -738,6 +744,9 @@
   }
   #expanded-world-map:active {
     cursor: grabbing;
+  }
+  .map-interaction-bg {
+    pointer-events: all;
   }
   .map-ocean {
     pointer-events: none;
@@ -9364,16 +9373,24 @@
   }
 
   function _getExpandedMarkerSizing(d, isMobile) {
-    const coreR = d.type === 'surge' ? (isMobile ? 4 : 4.5) : (isMobile ? 3.5 : 4);
-    const innerPad = isMobile ? 5 : 6;
-    const outerPad = isMobile ? 12 : 14;
-    const hitR = isMobile ? 17 : 19;
     const opac = mapGlowOpacity[d.type];
+    if (isMobile) {
+      const coreR = d.type === 'surge' ? 4 : 3.5;
+      return {
+        coreR,
+        innerGlowR: 8,
+        outerGlowR: 12,
+        hitR: 18,
+        innerOpacity: opac * 0.4,
+        outerOpacity: opac * 0.18
+      };
+    }
+    const coreR = d.type === 'surge' ? 4.5 : 4;
     return {
       coreR,
-      innerGlowR: coreR + innerPad,
-      outerGlowR: coreR + outerPad,
-      hitR,
+      innerGlowR: coreR + 6,
+      outerGlowR: coreR + 14,
+      hitR: 19,
       innerOpacity: opac * 0.6,
       outerOpacity: opac * 0.3
     };
@@ -9381,23 +9398,9 @@
 
   function _updateExpandedMarkerRadii(svg, k) {
     const safeK = Math.max(k, 0.001);
-    svg.select('.map-dots').selectAll('circle[data-base-r]').each(function () {
-      const el = d3.select(this);
-      const baseR = +el.attr('data-base-r');
-      el.attr('r', baseR / safeK);
+    svg.select('.map-dots').selectAll('[data-screen-r]').attr('r', function () {
+      return Number(this.getAttribute('data-screen-r')) / safeK;
     });
-  }
-
-  function _updateExpandedRegionLabels(svg, k, isMobile) {
-    if (!isMobile) return;
-    const baseOpacity = 0.14;
-    const fadeStart = 1.6;
-    const fadeEnd = 2.6;
-    let opacity = baseOpacity;
-    if (k > fadeStart) {
-      opacity = baseOpacity * Math.max(0, 1 - (k - fadeStart) / (fadeEnd - fadeStart));
-    }
-    svg.selectAll('.map-region-label').style('opacity', opacity);
   }
 
   function resolveWorldMapDestinations(arrivalsData) {
@@ -9437,7 +9440,7 @@
     { text: 'Mediterranean', lng: 20, lat: 36 }
   ];
 
-  function renderExpandedMapBaseLayers(mapRoot, world, projection, pathGen, width, height) {
+  function renderExpandedMapBaseLayers(mapRoot, world, projection, pathGen, width, height, isMobile) {
     const defs = mapRoot.append('defs');
     const oceanGrad = defs.append('linearGradient')
       .attr('id', 'map-ocean-gradient')
@@ -9475,16 +9478,18 @@
       console.warn('Expanded map: country borders unavailable');
     }
 
-    const regionLabelGroup = mapRoot.append('g').attr('class', 'map-region-labels');
-    EXPANDED_MAP_REGION_LABELS.forEach((label) => {
-      const [x, y] = projection([label.lng, label.lat]);
-      regionLabelGroup.append('text')
-        .attr('x', x)
-        .attr('y', y)
-        .attr('class', 'map-region-label')
-        .attr('text-anchor', 'middle')
-        .text(label.text);
-    });
+    if (!isMobile) {
+      const regionLabelGroup = mapRoot.append('g').attr('class', 'map-region-labels');
+      EXPANDED_MAP_REGION_LABELS.forEach((label) => {
+        const [x, y] = projection([label.lng, label.lat]);
+        regionLabelGroup.append('text')
+          .attr('x', x)
+          .attr('y', y)
+          .attr('class', 'map-region-label')
+          .attr('text-anchor', 'middle')
+          .text(label.text);
+      });
+    }
   }
 
   function renderWorldMap(arrivalsData, options = {}) {
@@ -9557,7 +9562,17 @@
         : svg;
 
       if (isExpanded) {
-        renderExpandedMapBaseLayers(mapRoot, world, projection, pathGen, width, height);
+        if (opts.enableZoom) {
+          mapRoot.insert('rect', ':first-child')
+            .attr('class', 'map-interaction-bg')
+            .attr('x', -width * 2)
+            .attr('y', -height * 2)
+            .attr('width', width * 5)
+            .attr('height', height * 5)
+            .attr('fill', 'transparent')
+            .style('pointer-events', 'all');
+        }
+        renderExpandedMapBaseLayers(mapRoot, world, projection, pathGen, width, height, isMobileExpandedMap);
       } else {
         const land = topojson.feature(world, world.objects.land);
         mapRoot.append('g')
@@ -9587,9 +9602,8 @@
             .attr('cx', x).attr('cy', y)
             .attr('r', sizing.outerGlowR)
             .attr('class', 'map-dot')
-            .attr('data-base-r', sizing.outerGlowR)
-            .attr('data-base-opacity', sizing.outerOpacity)
-            .attr('data-layer', 'glow-outer')
+            .attr('data-screen-r', sizing.outerGlowR)
+            .attr('data-marker-layer', 'glow-outer')
             .attr('fill', color).attr('opacity', 0)
             .transition().duration(600).attr('opacity', sizing.outerOpacity);
 
@@ -9597,9 +9611,8 @@
             .attr('cx', x).attr('cy', y)
             .attr('r', sizing.innerGlowR)
             .attr('class', 'map-dot')
-            .attr('data-base-r', sizing.innerGlowR)
-            .attr('data-base-opacity', sizing.innerOpacity)
-            .attr('data-layer', 'glow-inner')
+            .attr('data-screen-r', sizing.innerGlowR)
+            .attr('data-marker-layer', 'glow-inner')
             .attr('fill', color).attr('opacity', 0)
             .transition().duration(600).attr('opacity', sizing.innerOpacity);
 
@@ -9607,9 +9620,8 @@
             .attr('cx', x).attr('cy', y)
             .attr('r', sizing.coreR)
             .attr('class', 'map-dot')
-            .attr('data-base-r', sizing.coreR)
-            .attr('data-base-opacity', 1)
-            .attr('data-layer', 'core')
+            .attr('data-screen-r', sizing.coreR)
+            .attr('data-marker-layer', 'core')
             .attr('fill', color).attr('opacity', 0)
             .transition().duration(600).attr('opacity', 1);
 
@@ -9618,8 +9630,8 @@
               .attr('cx', x).attr('cy', y)
               .attr('r', sizing.hitR)
               .attr('class', 'map-dot-hit')
-              .attr('data-base-r', sizing.hitR)
-              .attr('data-layer', 'hit')
+              .attr('data-screen-r', sizing.hitR)
+              .attr('data-marker-layer', 'hit')
               .attr('data-live-map-destination-id', d.id)
               .attr('aria-label', destName)
               .attr('title', destName)
@@ -9684,14 +9696,18 @@
       }
 
       if (opts.enableZoom) {
+        const panPaddingX = width * 3;
+        const panPaddingY = height * 3;
         const zoom = d3.zoom()
           .scaleExtent([1, 8])
           .extent([[0, 0], [width, height]])
-          .translateExtent([[-width * 1.5, -height * 1.5], [width * 2.5, height * 2.5]])
+          .translateExtent([
+            [-panPaddingX, -panPaddingY],
+            [width + panPaddingX, height + panPaddingY]
+          ])
           .filter((event) => {
             const target = event.target;
             if (target && target.closest) {
-              if (target.closest('[data-live-map-destination-id]')) return false;
               if (target.closest('.live-map-controls')) return false;
             }
             return (!event.ctrlKey || event.type === 'wheel') && !event.button;
@@ -9701,7 +9717,6 @@
             svg.select('.map-viewport').attr('transform', event.transform);
             if (isExpanded) {
               _updateExpandedMarkerRadii(svg, k);
-              _updateExpandedRegionLabels(svg, k, isMobileExpandedMap);
             }
           });
         svg.call(zoom);
