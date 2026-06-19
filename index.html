@@ -9406,6 +9406,48 @@
     });
   }
 
+  function _normalizeLiveMapStatusToken(raw) {
+    if (raw == null || raw === '') return '';
+    return String(raw).trim().toLowerCase().replace(/[\s-]+/g, '_');
+  }
+
+  // Live map dot color follows the same public status family as destination cards
+  // (getPublicSignalBadgeV2 / _resolvePublicBadgeKeyFromStatus), not score rank.
+  // e.g. confirmed_category 'in_season' (Destin / 30A, Hamptons) -> 'steady' (green).
+  function _getLiveMapVisualType(dest) {
+    if (!dest) return 'steady';
+
+    if (_goTangoScoreV2Active && dest.confirmed_category) {
+      const category = dest.confirmed_category;
+      if (category === 'heating_up') return 'surge';
+      if (category === 'cooling') return 'cool';
+      return 'steady';
+    }
+
+    const tokens = [
+      dest.status,
+      dest.v2_status,
+      dest.score_v2_status,
+      dest.category,
+      dest.mover_category,
+      dest.badge,
+      dest.badgeKey,
+      dest.status_label,
+    ].map(_normalizeLiveMapStatusToken).filter(Boolean);
+
+    const heating = new Set(['heating', 'warming', 'heating_up', 'rising', 'surge', 'surging']);
+    const cooling = new Set(['cooling', 'softening', 'cooling_down', 'cool', 'off_season']);
+    const steady = new Set(['in_season', 'active', 'steady', 'established', 'holding', 'busy', 'normal']);
+
+    for (const t of tokens) {
+      if (heating.has(t)) return 'surge';
+      if (cooling.has(t)) return 'cool';
+      if (steady.has(t)) return 'steady';
+    }
+
+    return 'steady';
+  }
+
   function resolveWorldMapDestinations(arrivalsData) {
     let resolvedMapDestinations = mapDestinations;
     const allDests = arrivalsData && arrivalsData.data && Array.isArray(arrivalsData.data.destinations)
@@ -9418,7 +9460,7 @@
       if (validDests.length > 0) {
         resolvedMapDestinations = validDests.map((dest) => {
           const arrivalsCount = _integerArrivals24h(dest);
-          const type = _computeTier(dest, validDests);
+          const type = _getLiveMapVisualType(dest);
           const size = arrivalsCount <= 0 ? 2 : Math.max(2, Math.min(8, 2 + (arrivalsCount / 5)));
           return {
             id: dest.id,
