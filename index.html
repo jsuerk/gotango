@@ -9738,6 +9738,7 @@
   function closeLiveMapModal() {
     const modal = document.getElementById('live-map-modal');
     if (!modal) return;
+    if (_modalCurrentDestId) return;
 
     modal.style.display = 'none';
     modal.setAttribute('aria-hidden', 'true');
@@ -9781,7 +9782,6 @@
       e.stopPropagation();
       const destinationId = marker.getAttribute('data-live-map-destination-id');
       if (!destinationId) return;
-      closeLiveMapModal();
       openDestinationModal(destinationId);
     });
 
@@ -11115,6 +11115,14 @@
 
     document.body.classList.remove('dest-modal-open');
     _modalCurrentDestId = null;
+
+    const liveMapModal = document.getElementById('live-map-modal');
+    if (liveMapModal && liveMapModal.style.display !== 'none') {
+      setTimeout(() => {
+        const closeBtn = liveMapModal.querySelector('.live-map-modal__close');
+        if (closeBtn) closeBtn.focus();
+      }, 50);
+    }
 
     // Remove deep-link param from URL
     try {
