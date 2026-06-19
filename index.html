@@ -640,6 +640,26 @@
       margin: 8px;
     }
   }
+  @media (max-width: 700px) {
+    .live-map-modal__header {
+      padding: 16px 20px 10px;
+    }
+    .live-map-modal__header h2 {
+      font-size: 22px;
+    }
+    .live-map-modal__subhead {
+      font-size: 12px;
+    }
+    .expanded-world-map-shell {
+      margin: 0 12px;
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    .live-map-modal__legend {
+      padding: 10px 20px 14px;
+      gap: 12px;
+    }
+  }
   .live-map-modal__header {
     display: flex;
     align-items: flex-start;
@@ -9296,6 +9316,36 @@
   let liveMapHandlersAttached = false;
   let _liveMapZoom = null;
   let _liveMapZoomSvg = null;
+  let _liveMapInitialTransform = null;
+
+  function _isMobileExpandedMap() {
+    return window.matchMedia('(max-width: 700px)').matches;
+  }
+
+  function _getExpandedMapInitialTransform(projection, width, height) {
+    if (!_isMobileExpandedMap()) return d3.zoomIdentity;
+    const initialK = 2.4;
+    const [targetX, targetY] = projection([-78, 27]);
+    return d3.zoomIdentity
+      .translate(width / 2 - initialK * targetX, height / 2 - initialK * targetY)
+      .scale(initialK);
+  }
+
+  function _setExpandedMapHoveredLabel(svg, destinationId) {
+    const destLabels = svg.select('.map-destination-labels');
+    if (destLabels.empty()) return;
+    destLabels.selectAll('.map-destination-label')
+      .style('opacity', function () {
+        return d3.select(this).attr('data-live-map-label-for') === destinationId ? 1 : 0;
+      });
+  }
+
+  function _clearExpandedMapHoveredLabels(svg) {
+    const destLabels = svg.select('.map-destination-labels');
+    if (!destLabels.empty()) {
+      destLabels.selectAll('.map-destination-label').style('opacity', 0);
+    }
+  }
 
   function resolveWorldMapDestinations(arrivalsData) {
     let resolvedMapDestinations = mapDestinations;
@@ -9393,6 +9443,17 @@
       ...options
     };
     const isExpanded = opts.mode === 'expanded';
+    const isMobileExpandedMap = isExpanded && _isMobileExpandedMap();
+
+    if (isExpanded) {
+      const expandedSvgEl = document.querySelector(opts.svgSelector);
+      if (expandedSvgEl) {
+        expandedSvgEl.setAttribute(
+          'preserveAspectRatio',
+          isMobileExpandedMap ? 'xMidYMid slice' : 'xMidYMid meet'
+        );
+      }
+    }
 
     if (opts.mode === 'compact' && arrivalsData != null) {
       latestLiveMapArrivalsData = arrivalsData;
@@ -9498,8 +9559,9 @@
             .style('cursor', 'pointer');
         }
 
-        if (isExpanded) {
+        if (isExpanded && !isMobileExpandedMap) {
           destinationLabelEntries.push({
+            id: d.id,
             x,
             y,
             name: destName,
@@ -9508,18 +9570,27 @@
         }
       });
 
-      if (isExpanded && destinationLabelEntries.length > 0) {
+      if (isExpanded && !isMobileExpandedMap && destinationLabelEntries.length > 0) {
         const destLabelGroup = mapRoot.append('g')
-          .attr('class', 'map-destination-labels')
-          .style('opacity', 0);
+          .attr('class', 'map-destination-labels');
         destinationLabelEntries.forEach((entry) => {
           destLabelGroup.append('text')
             .attr('x', entry.x)
             .attr('y', entry.y - entry.offset)
             .attr('class', 'map-destination-label')
+            .attr('data-live-map-label-for', entry.id)
             .attr('text-anchor', 'middle')
+            .style('opacity', 0)
             .text(entry.name);
         });
+
+        dotGroup.selectAll('.map-dot-hit')
+          .on('mouseenter focus', function () {
+            _setExpandedMapHoveredLabel(svg, d3.select(this).attr('data-live-map-destination-id'));
+          })
+          .on('mouseleave blur', function () {
+            _clearExpandedMapHoveredLabels(svg);
+          });
       }
 
       if (opts.enableZoom) {
@@ -9535,16 +9606,15 @@
           })
           .on('zoom', (event) => {
             svg.select('.map-viewport').attr('transform', event.transform);
-            if (isExpanded) {
-              const destLabels = svg.select('.map-destination-labels');
-              if (!destLabels.empty()) {
-                destLabels.style('opacity', event.transform.k >= 2.2 ? 1 : 0);
-              }
-            }
           });
         svg.call(zoom);
         _liveMapZoom = zoom;
         _liveMapZoomSvg = svg;
+        if (isExpanded) {
+          const initialTransform = _getExpandedMapInitialTransform(projection, width, height);
+          _liveMapInitialTransform = initialTransform;
+          svg.call(zoom.transform, initialTransform);
+        }
       }
     }).catch(err => console.error('Map load failed:', err));
   }
@@ -9580,6 +9650,7 @@
 
     _liveMapZoom = null;
     _liveMapZoomSvg = null;
+    _liveMapInitialTransform = null;
     const expandedSvg = d3.select('#expanded-world-map');
     if (!expandedSvg.empty()) {
       expandedSvg.on('.zoom', null);
@@ -9642,7 +9713,8 @@
       } else if (action === 'out') {
         _liveMapZoomSvg.transition().duration(150).call(_liveMapZoom.scaleBy, 1 / 1.35);
       } else if (action === 'reset') {
-        _liveMapZoomSvg.transition().duration(150).call(_liveMapZoom.transform, d3.zoomIdentity);
+        const resetTransform = _liveMapInitialTransform || d3.zoomIdentity;
+        _liveMapZoomSvg.transition().duration(150).call(_liveMapZoom.transform, resetTransform);
       }
     });
   }
