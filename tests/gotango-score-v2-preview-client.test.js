@@ -210,6 +210,96 @@ function v2BadgeLabel(category) {
   return V2_BADGE_LABELS[category] || V2_BADGE_LABELS.steady;
 }
 
+function getPublicSignalBadgeV2(dest) {
+  const category = dest && dest.confirmed_category;
+  const vibeClass =
+    category === 'heating_up' ? 'surge'
+      : category === 'cooling' ? 'cool'
+        : 'steady';
+  return { vibeClass };
+}
+
+function _normalizeLiveMapStatusToken(raw) {
+  if (raw == null || raw === '') return '';
+  return String(raw).trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function _getLiveMapVisualType(dest, goTangoScoreV2Active = true) {
+  if (!dest) return 'steady';
+
+  if (goTangoScoreV2Active && dest.confirmed_category) {
+    return getPublicSignalBadgeV2(dest).vibeClass;
+  }
+
+  const tokens = [
+    dest.status,
+    dest.v2_status,
+    dest.score_v2_status,
+    dest.category,
+    dest.mover_category,
+    dest.badge,
+    dest.badgeKey,
+    dest.status_label,
+  ].map(_normalizeLiveMapStatusToken).filter(Boolean);
+
+  const heating = new Set(['heating', 'warming', 'heating_up', 'rising', 'surge', 'surging']);
+  const cooling = new Set(['cooling', 'softening', 'cooling_down', 'cool', 'off_season']);
+  const steady = new Set(['in_season', 'active', 'steady', 'established', 'holding', 'busy', 'normal']);
+
+  for (const t of tokens) {
+    if (heating.has(t)) return 'surge';
+    if (cooling.has(t)) return 'cool';
+    if (steady.has(t)) return 'steady';
+  }
+
+  return 'steady';
+}
+
+function enrichDestinationsWithGoTangoScoreV2(destinations, v2Map) {
+  return destinations.map((dest) => {
+    const v2 = v2Map.get(dest.id);
+    if (!v2) return dest;
+    return {
+      ...dest,
+      confirmed_category: v2.confirmed_category,
+      go_tango_score: v2.go_tango_score,
+      _gotango_v2: v2,
+    };
+  });
+}
+
+function getArrivalsPayload(data) {
+  if (!data) return null;
+  if (data.data && Array.isArray(data.data.destinations)) return data.data;
+  if (Array.isArray(data.destinations)) return data;
+  return null;
+}
+
+function _buildLiveMapPublicDestinationMap(arrivalsData, v2Map) {
+  const payload = getArrivalsPayload(arrivalsData);
+  if (!payload || !Array.isArray(payload.destinations)) return null;
+  const okDests = payload.destinations.filter((d) => d && d.ok === true);
+  const enriched = enrichDestinationsWithGoTangoScoreV2(okDests, v2Map);
+  const map = new Map();
+  for (const dest of enriched) {
+    if (dest && dest.id) map.set(dest.id, dest);
+  }
+  return map;
+}
+
+function _getPublicDestinationForLiveMap(rawDest, publicDestMap) {
+  const id = rawDest && rawDest.id;
+  if (!id) return rawDest;
+  const enriched = publicDestMap && publicDestMap.get(id);
+  return enriched ? { ...rawDest, ...enriched } : rawDest;
+}
+
+function resolveLiveMapTypeForRawDest(rawDest, arrivalsData, v2Map) {
+  const publicDestMap = _buildLiveMapPublicDestinationMap(arrivalsData, v2Map);
+  const publicDest = _getPublicDestinationForLiveMap(rawDest, publicDestMap);
+  return _getLiveMapVisualType(publicDest, true);
+}
+
 test('shared human-language templates', () => {
   assert.equal(
     buildGoTangoSignalRead({
@@ -899,4 +989,62 @@ test('Movers action controls keep handlers and hit area while removing visible c
   assert.ok(shareIconBlock, 'Movers share icon rule exists');
   assert.match(shareIconBlock[0], /width: 15px/);
   assert.match(shareIconBlock[0], /height: 15px/);
+});
+
+test('Live Map dot color uses enriched public category, not raw arrivals status or rank', () => {
+  const html = readFileSync(INDEX_HTML, 'utf8');
+  assert.match(html, /function _buildLiveMapPublicDestinationMap\(/);
+  assert.match(html, /function _getPublicDestinationForLiveMap\(/);
+  assert.match(html, /getPublicSignalBadgeV2\(dest\)\.vibeClass/);
+  assert.match(html, /const publicDest = _getPublicDestinationForLiveMap\(dest, publicDestMap\)/);
+  assert.match(html, /const type = _getLiveMapVisualType\(publicDest\)/);
+  assert.match(html, /function _computeTier\(dest, allDestinations\)/);
+
+  const v2Map = new Map([
+    ['destin-30a', { id: 'destin-30a', confirmed_category: 'in_season', go_tango_score: 73 }],
+    ['hamptons', { id: 'hamptons', confirmed_category: 'in_season', go_tango_score: 100 }],
+    ['palm-beach', { id: 'palm-beach', confirmed_category: 'in_season', go_tango_score: 97 }],
+    ['nantucket', { id: 'nantucket', confirmed_category: 'heating_up', go_tango_score: 93 }],
+    ['hilton-head', { id: 'hilton-head', confirmed_category: 'cooling', go_tango_score: 55 }],
+    ['sardinia-olbia', { id: 'sardinia-olbia', confirmed_category: 'cooling', go_tango_score: 48 }],
+  ]);
+
+  const arrivalsData = {
+    data: {
+      destinations: [
+        { id: 'destin-30a', ok: true, lat: 30.4, lng: -86.5, signal_score: 95, status: 'heating' },
+        { id: 'hamptons', ok: true, lat: 40.96, lng: -72.25, signal_score: 99, status: 'heating' },
+        { id: 'palm-beach', ok: true, lat: 26.68, lng: -80.1, signal_score: 97, status: 'heating' },
+        { id: 'nantucket', ok: true, lat: 41.28, lng: -70.1, signal_score: 93, status: 'steady' },
+        { id: 'hilton-head', ok: true, lat: 32.2, lng: -80.7, signal_score: 20, status: 'heating' },
+        { id: 'sardinia-olbia', ok: true, lat: 40.9, lng: 9.5, signal_score: 15, status: 'heating' },
+      ],
+    },
+  };
+
+  const expectations = {
+    'destin-30a': 'steady',
+    hamptons: 'steady',
+    'palm-beach': 'steady',
+    nantucket: 'surge',
+    'hilton-head': 'cool',
+    'sardinia-olbia': 'cool',
+  };
+
+  for (const rawDest of arrivalsData.data.destinations) {
+    assert.equal(
+      resolveLiveMapTypeForRawDest(rawDest, arrivalsData, v2Map),
+      expectations[rawDest.id],
+      `${rawDest.id} should use public category for map color`,
+    );
+  }
+
+  const destinRaw = arrivalsData.data.destinations[0];
+  assert.equal(_getLiveMapVisualType(destinRaw, true), 'surge', 'raw dest without enrichment would mis-color');
+  const publicDest = _getPublicDestinationForLiveMap(
+    destinRaw,
+    _buildLiveMapPublicDestinationMap(arrivalsData, v2Map),
+  );
+  assert.equal(publicDest.confirmed_category, 'in_season');
+  assert.equal(_getLiveMapVisualType(publicDest, true), 'steady');
 });

@@ -9411,6 +9411,25 @@
     return String(raw).trim().toLowerCase().replace(/[\s-]+/g, '_');
   }
 
+  function _buildLiveMapPublicDestinationMap(arrivalsData) {
+    const payload = getArrivalsPayload(arrivalsData);
+    if (!payload || !Array.isArray(payload.destinations)) return null;
+    const okDests = payload.destinations.filter((d) => d && d.ok === true);
+    const enriched = enrichDestinationsWithGoTangoScoreV2(okDests);
+    const map = new Map();
+    for (const dest of enriched) {
+      if (dest && dest.id) map.set(dest.id, dest);
+    }
+    return map;
+  }
+
+  function _getPublicDestinationForLiveMap(rawDest, publicDestMap) {
+    const id = rawDest && rawDest.id;
+    if (!id) return rawDest;
+    const enriched = publicDestMap && publicDestMap.get(id);
+    return enriched ? { ...rawDest, ...enriched } : rawDest;
+  }
+
   // Live map dot color follows the same public status family as destination cards
   // (getPublicSignalBadgeV2 / _resolvePublicBadgeKeyFromStatus), not score rank.
   // e.g. confirmed_category 'in_season' (Destin / 30A, Hamptons) -> 'steady' (green).
@@ -9418,10 +9437,7 @@
     if (!dest) return 'steady';
 
     if (_goTangoScoreV2Active && dest.confirmed_category) {
-      const category = dest.confirmed_category;
-      if (category === 'heating_up') return 'surge';
-      if (category === 'cooling') return 'cool';
-      return 'steady';
+      return getPublicSignalBadgeV2(dest).vibeClass;
     }
 
     const tokens = [
@@ -9454,13 +9470,15 @@
       ? arrivalsData.data.destinations
       : null;
     if (allDests && allDests.length > 0) {
+      const publicDestMap = _buildLiveMapPublicDestinationMap(arrivalsData);
       const validDests = allDests
         .filter(dest => typeof dest.lat === 'number' && typeof dest.lng === 'number')
         .sort((a, b) => Number(b.signal_score || 0) - Number(a.signal_score || 0));
       if (validDests.length > 0) {
         resolvedMapDestinations = validDests.map((dest) => {
-          const arrivalsCount = _integerArrivals24h(dest);
-          const type = _getLiveMapVisualType(dest);
+          const publicDest = _getPublicDestinationForLiveMap(dest, publicDestMap);
+          const arrivalsCount = _integerArrivals24h(publicDest);
+          const type = _getLiveMapVisualType(publicDest);
           const size = arrivalsCount <= 0 ? 2 : Math.max(2, Math.min(8, 2 + (arrivalsCount / 5)));
           return {
             id: dest.id,
