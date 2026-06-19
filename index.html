@@ -791,60 +791,11 @@
     font-weight: 500;
     pointer-events: none;
   }
-  .live-map-controls {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    z-index: 2;
-  }
-  .live-map-controls button {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: rgba(10, 13, 17, 0.9);
-    color: var(--text);
-    font-family: 'Geist Mono', monospace;
-    font-size: 16px;
-    line-height: 1;
-    cursor: pointer;
-    transition: background 150ms ease, border-color 150ms ease;
-    touch-action: manipulation;
-  }
-  .live-map-controls button[data-live-map-zoom="reset"],
-  .live-map-controls button[data-live-map-zoom="world"] {
-    width: auto;
-    min-width: 36px;
-    padding: 0 10px;
-    font-size: 10px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-  .live-map-controls button[data-live-map-zoom="world"] {
-    display: none;
-  }
   @media (max-width: 700px) {
-    .live-map-controls button[data-live-map-zoom="world"] {
-      display: block;
-      font-size: 9px;
-      padding: 0 8px;
-    }
     .map-region-label {
       font-size: 6px;
       fill: rgba(255, 255, 255, 0.14);
     }
-  }
-  .live-map-controls button:hover {
-    background: rgba(16, 20, 26, 0.95);
-    border-color: var(--amber-bright);
-  }
-  .live-map-controls button:focus-visible {
-    outline: none;
-    border-color: var(--amber-bright);
-    box-shadow: 0 0 0 2px rgba(244, 181, 42, 0.35);
   }
   .live-map-modal__legend {
     display: flex;
@@ -5670,13 +5621,6 @@
 
     <div class="expanded-world-map-shell">
       <svg id="expanded-world-map" viewBox="0 0 480 150" preserveAspectRatio="xMidYMid meet" aria-label="Expanded GoTango live destination map"></svg>
-
-      <div class="live-map-controls" aria-label="Map zoom controls">
-        <button type="button" data-live-map-zoom="in" aria-label="Zoom in">+</button>
-        <button type="button" data-live-map-zoom="out" aria-label="Zoom out">−</button>
-        <button type="button" data-live-map-zoom="reset" aria-label="Reset map">Reset</button>
-        <button type="button" data-live-map-zoom="world" aria-label="Show full world">World</button>
-      </div>
     </div>
 
     <div class="live-map-modal__legend">
@@ -9355,9 +9299,6 @@
 
   let latestLiveMapArrivalsData = null;
   let liveMapHandlersAttached = false;
-  let _liveMapZoom = null;
-  let _liveMapZoomSvg = null;
-  let _liveMapInitialTransform = null;
 
   function _isMobileExpandedMap() {
     return window.matchMedia('(max-width: 700px)').matches;
@@ -9755,10 +9696,6 @@
             [width + panPaddingX, height + panPaddingY]
           ])
           .filter((event) => {
-            const target = event.target;
-            if (target && target.closest) {
-              if (target.closest('.live-map-controls')) return false;
-            }
             return (!event.ctrlKey || event.type === 'wheel') && !event.button;
           })
           .on('zoom', (event) => {
@@ -9769,11 +9706,8 @@
             }
           });
         svg.call(zoom);
-        _liveMapZoom = zoom;
-        _liveMapZoomSvg = svg;
         if (isExpanded) {
           const initialTransform = _getExpandedMapInitialTransform(projection, width, height);
-          _liveMapInitialTransform = initialTransform;
           svg.call(zoom.transform, initialTransform);
         }
       }
@@ -9809,9 +9743,6 @@
     modal.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('live-map-modal-open');
 
-    _liveMapZoom = null;
-    _liveMapZoomSvg = null;
-    _liveMapInitialTransform = null;
     const expandedSvg = d3.select('#expanded-world-map');
     if (!expandedSvg.empty()) {
       expandedSvg.on('.zoom', null);
@@ -9862,24 +9793,6 @@
       closeLiveMapModal();
     });
 
-    document.addEventListener('click', (e) => {
-      const zoomBtn = e.target.closest('[data-live-map-zoom]');
-      if (!zoomBtn || !_liveMapZoom || !_liveMapZoomSvg) return;
-      const liveMapModal = document.getElementById('live-map-modal');
-      if (!liveMapModal || liveMapModal.style.display === 'none') return;
-
-      const action = zoomBtn.getAttribute('data-live-map-zoom');
-      if (action === 'in') {
-        _liveMapZoomSvg.transition().duration(150).call(_liveMapZoom.scaleBy, 1.35);
-      } else if (action === 'out') {
-        _liveMapZoomSvg.transition().duration(150).call(_liveMapZoom.scaleBy, 1 / 1.35);
-      } else if (action === 'reset') {
-        const resetTransform = _liveMapInitialTransform || d3.zoomIdentity;
-        _liveMapZoomSvg.transition().duration(150).call(_liveMapZoom.transform, resetTransform);
-      } else if (action === 'world') {
-        _liveMapZoomSvg.transition().duration(150).call(_liveMapZoom.transform, d3.zoomIdentity);
-      }
-    });
   }
 
   // === Destination Detail Modal ===
