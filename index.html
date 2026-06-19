@@ -42,6 +42,9 @@
     --signal-up: #7FB069;
     --signal-down: #E07856;
     --teal: #5EAAA8;
+    --status-heating: #E07A6A;
+    --status-steady: #6BCB8B;
+    --status-cooling: #5B9EA8;
     --coral: #E58C5E;
     --fs-micro: clamp(0.72rem, 0.68rem + 0.18vw, 0.82rem);
     --fs-label: clamp(0.78rem, 0.72rem + 0.24vw, 0.92rem);
@@ -493,7 +496,7 @@
 
   .hero-stats .hero-stat-value--private { color: var(--text); }
   .hero-stats .hero-stat-value--heating { color: var(--text); }
-  .hero-stats .hero-stat-value--cooling { color: var(--teal); }
+  .hero-stats .hero-stat-value--cooling { color: var(--status-cooling); }
   .hero-stats .hero-stat-delta {
     font-family: 'Geist Mono', monospace;
     font-size: var(--fs-label);
@@ -578,6 +581,294 @@
   .world-key span { display: flex; align-items: center; gap: 4px; }
   .world-key .dot {
     width: 6px; height: 6px; border-radius: 50%;
+  }
+  .world-strip[role="button"] {
+    cursor: pointer;
+  }
+  .world-strip[role="button"]:focus-visible {
+    outline: 2px solid var(--amber-bright);
+    outline-offset: 2px;
+  }
+  .world-expand-hint {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.75;
+    pointer-events: none;
+  }
+
+  /* ===== LIVE MAP EXPANDED MODAL ===== */
+  .live-map-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-family: inherit;
+  }
+  .live-map-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 8, 12, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    cursor: pointer;
+    animation: dest-modal-fade-in 200ms ease-out;
+  }
+  .live-map-modal__panel {
+    position: relative;
+    background: #0f0f14;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    width: min(1120px, 92vw);
+    height: min(760px, 86vh);
+    margin: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    animation: dest-modal-slide-up 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @media (max-width: 640px) {
+    .live-map-modal__panel {
+      width: 96vw;
+      height: 88vh;
+      margin: 8px;
+    }
+  }
+  @media (max-width: 700px) {
+    .live-map-modal__header {
+      padding: 16px 20px 10px;
+    }
+    .live-map-modal__header h2 {
+      font-size: 22px;
+    }
+    .live-map-modal__subhead {
+      font-size: 12px;
+    }
+    .expanded-world-map-shell {
+      margin: 0 12px;
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    .live-map-modal__legend {
+      padding: 10px 20px 14px;
+      gap: 12px;
+    }
+  }
+  .live-map-modal__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px 28px 16px;
+    flex-shrink: 0;
+  }
+  .live-map-modal__eyebrow {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 6px;
+  }
+  .live-map-modal__header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--text);
+    margin: 0 0 6px;
+    line-height: 1.15;
+  }
+  .live-map-modal__subhead {
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin: 0;
+    line-height: 1.4;
+  }
+  .live-map-modal__close {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(10, 13, 17, 0.88);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    line-height: 1;
+    transition: background 150ms ease, border-color 150ms ease;
+    touch-action: manipulation;
+  }
+  .live-map-modal__close:hover {
+    background: rgba(16, 20, 26, 0.95);
+    border-color: var(--amber-bright);
+  }
+  .live-map-modal__close:focus-visible {
+    outline: none;
+    border-color: var(--amber-bright);
+    box-shadow: 0 0 0 2px rgba(244, 181, 42, 0.35);
+  }
+  .expanded-world-map-shell {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0 20px;
+    background: linear-gradient(165deg, #0a0d11 0%, #10151c 55%, #0c1018 100%);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  #expanded-world-map,
+  .expanded-world-map-shell {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #expanded-world-map {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: grab;
+    background: transparent;
+  }
+  #expanded-world-map:active {
+    cursor: grabbing;
+  }
+  .map-interaction-bg {
+    pointer-events: all;
+  }
+  .map-ocean {
+    pointer-events: none;
+  }
+  .map-graticule {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.06);
+    stroke-width: 0.35;
+    pointer-events: none;
+  }
+  .map-land-fill {
+    fill: #1a2029;
+    stroke: #2d3543;
+    stroke-width: 0.45;
+    opacity: 0.92;
+    pointer-events: none;
+  }
+  .map-country-borders {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-width: 0.25;
+    pointer-events: none;
+  }
+  .map-region-label {
+    fill: rgba(255, 255, 255, 0.22);
+    font-family: 'Geist Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+  .map-destination-labels {
+    pointer-events: none;
+  }
+  .map-destination-label {
+    fill: rgba(230, 234, 240, 0.75);
+    font-family: 'Geist', sans-serif;
+    font-size: 6.5px;
+    font-weight: 500;
+    pointer-events: none;
+  }
+  @media (max-width: 700px) {
+    .map-region-label {
+      font-size: 6px;
+      fill: rgba(255, 255, 255, 0.14);
+    }
+  }
+  .live-map-modal__legend {
+    display: flex;
+    gap: 16px;
+    padding: 14px 28px 20px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .live-map-modal__legend span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .live-map-modal__legend .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .map-dot-hit {
+    pointer-events: all;
+  }
+  .live-map-destination-picker {
+    position: absolute;
+    z-index: 4;
+    min-width: 168px;
+    max-width: min(240px, 72vw);
+    padding: 6px;
+    background: rgba(12, 14, 20, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .live-map-destination-picker__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text);
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 120ms ease;
+  }
+  .live-map-destination-picker__item:hover,
+  .live-map-destination-picker__item:focus-visible {
+    background: rgba(255, 255, 255, 0.06);
+    outline: none;
+  }
+  .live-map-destination-picker__dot {
+    flex-shrink: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(12, 16, 24, 0.8);
+  }
+  .live-map-destination-picker__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.3;
+  }
+  body.live-map-modal-open {
+    overflow: hidden;
   }
 
   /* ===== DESTINATION CARDS ===== */
@@ -1333,19 +1624,19 @@
     border: 1px solid rgba(232,163,23,0.22);
   }
   .mover-badge--rising {
-    color: var(--signal-up);
-    background: rgba(127,176,105,0.1);
-    border: 1px solid rgba(127,176,105,0.22);
+    color: var(--status-heating);
+    background: rgba(224,122,106,0.1);
+    border: 1px solid rgba(224,122,106,0.22);
   }
   .mover-badge--cooling {
-    color: var(--signal-down);
-    background: rgba(224,120,86,0.1);
-    border: 1px solid rgba(224,120,86,0.22);
-  }
-  .mover-badge--steady {
-    color: #5B9EA8;
+    color: var(--status-cooling);
     background: rgba(91,158,168,0.1);
     border: 1px solid rgba(91,158,168,0.22);
+  }
+  .mover-badge--steady {
+    color: var(--status-steady);
+    background: rgba(107,203,139,0.1);
+    border: 1px solid rgba(107,203,139,0.22);
   }
   .mover-badge--quiet {
     color: var(--text-faint);
@@ -2023,9 +2314,9 @@
     border-radius: 3px;
     margin-bottom: 16px;
   }
-  .d-vibe.surge { color: var(--signal-up); background: rgba(127, 176, 105, 0.1); border: 1px solid rgba(127, 176, 105, 0.3); }
-  .d-vibe.cool { color: var(--signal-down); background: rgba(224, 120, 86, 0.1); border: 1px solid rgba(224, 120, 86, 0.3); }
-  .d-vibe.steady { color: var(--teal); background: rgba(94, 170, 168, 0.1); border: 1px solid rgba(94, 170, 168, 0.3); }
+  .d-vibe.surge { color: var(--status-heating); background: rgba(224, 122, 106, 0.1); border: 1px solid rgba(224, 122, 106, 0.3); }
+  .d-vibe.cool { color: var(--status-cooling); background: rgba(91, 158, 168, 0.1); border: 1px solid rgba(91, 158, 168, 0.3); }
+  .d-vibe.steady { color: var(--status-steady); background: rgba(107, 203, 139, 0.1); border: 1px solid rgba(107, 203, 139, 0.3); }
   .d-vibe.build { color: var(--amber); background: rgba(232, 163, 23, 0.1); border: 1px solid rgba(232, 163, 23, 0.3); }
   .d-name {
     font-family: 'Fraunces', serif;
@@ -2675,19 +2966,19 @@
   }
 
   .d-vibe.surge {
-    color: var(--signal-up);
-    background: rgba(127, 176, 105, 0.1);
-    border: 1px solid rgba(127, 176, 105, 0.3);
+    color: var(--status-heating);
+    background: rgba(224, 122, 106, 0.1);
+    border: 1px solid rgba(224, 122, 106, 0.3);
   }
   .d-vibe.cool {
-    color: var(--signal-down, #E07856);
-    background: rgba(224, 120, 86, 0.1);
-    border: 1px solid rgba(224, 120, 86, 0.3);
+    color: var(--status-cooling);
+    background: rgba(91, 158, 168, 0.1);
+    border: 1px solid rgba(91, 158, 168, 0.3);
   }
   .d-vibe.steady {
-    color: var(--teal, #5EAAA8);
-    background: rgba(94, 170, 168, 0.1);
-    border: 1px solid rgba(94, 170, 168, 0.3);
+    color: var(--status-steady);
+    background: rgba(107, 203, 139, 0.1);
+    border: 1px solid rgba(107, 203, 139, 0.3);
   }
 
   .d-name {
@@ -3652,9 +3943,9 @@
   flex-shrink: 0;
 }
 
-.d-stack-dot--up { background: var(--signal-up, #7FB069); box-shadow: 0 0 8px rgba(127, 176, 105, 0.5); }
-.d-stack-dot--steady { background: var(--teal, #5EAAA8); box-shadow: 0 0 8px rgba(94, 170, 168, 0.45); }
-.d-stack-dot--down { background: var(--signal-down, #E07856); box-shadow: 0 0 8px rgba(224, 120, 86, 0.45); }
+.d-stack-dot--up { background: var(--status-heating); box-shadow: 0 0 8px rgba(224, 122, 106, 0.5); }
+.d-stack-dot--steady { background: var(--status-steady); box-shadow: 0 0 8px rgba(107, 203, 139, 0.45); }
+.d-stack-dot--down { background: var(--status-cooling); box-shadow: 0 0 8px rgba(91, 158, 168, 0.45); }
 .d-stack-dot--quiet { background: var(--text-faint, #6B6557); }
 
 .d-stack-main {
@@ -3694,9 +3985,9 @@
   min-width: 2px;
 }
 
-.d-stack-bar--up { background: var(--signal-up, #7FB069); }
-.d-stack-bar--steady { background: var(--teal, #5EAAA8); }
-.d-stack-bar--down { background: var(--signal-down, #E07856); }
+.d-stack-bar--up { background: var(--status-heating); }
+.d-stack-bar--steady { background: var(--status-steady); }
+.d-stack-bar--down { background: var(--status-cooling); }
 .d-stack-bar--quiet { background: var(--text-faint, #6B6557); }
 
 .d-stack-score {
@@ -3993,9 +4284,9 @@
   margin-top: 4px;
 }
 
-.d-peer-tier.surge { color: var(--amber, #E8A317); }
-.d-peer-tier.cool { color: var(--signal-down, #E07856); }
-.d-peer-tier.steady { color: var(--teal, #5EAAA8); }
+.d-peer-tier.surge { color: var(--status-heating); }
+.d-peer-tier.cool { color: var(--status-cooling); }
+.d-peer-tier.steady { color: var(--status-steady); }
 
 /* Mobile adjustments */
 @media (max-width: 640px) {
@@ -4640,12 +4931,13 @@
       <h2 class="section-title">Live <em>Map</em></h2>
       <span class="section-meta"><span id="map-dest-count">—</span> destinations · <span id="map-meta-time">04:17z</span></span>
     </div>
-    <div class="world-strip">
+    <div class="world-strip" role="button" tabindex="0" aria-label="Open expanded live map">
+      <span class="world-expand-hint">Expand map</span>
       <svg id="world-map" viewBox="0 0 480 150" preserveAspectRatio="xMidYMid slice"></svg>
       <div class="world-key">
-        <span><span class="dot" style="background:#E8A317"></span>Surge</span>
-        <span><span class="dot" style="background:#5EAAA8"></span>Steady</span>
-        <span><span class="dot" style="background:#E07856"></span>Cool</span>
+        <span><span class="dot" style="background:#E07A6A"></span>Heating</span>
+        <span><span class="dot" style="background:#6BCB8B"></span>Steady</span>
+        <span><span class="dot" style="background:#5B9EA8"></span>Cooling</span>
       </div>
       <div class="world-overlay"><span id="map-overlay-dest-count">—</span> destinations · <span id="map-overlay-time">Hourly refresh</span></div>
     </div>
@@ -5361,6 +5653,30 @@
   </div>
 </div>
 
+<div id="live-map-modal" class="live-map-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="live-map-modal-title" style="display: none;">
+  <div class="live-map-modal__backdrop" data-live-map-modal-close></div>
+  <div class="live-map-modal__panel" role="document">
+    <div class="live-map-modal__header">
+      <div>
+        <div class="live-map-modal__eyebrow">LIVE MAP</div>
+        <h2 id="live-map-modal-title">Where the world's going</h2>
+        <p class="live-map-modal__subhead">Zoom in, pan around, and select a destination.</p>
+      </div>
+      <button class="live-map-modal__close" type="button" data-live-map-modal-close aria-label="Close live map">×</button>
+    </div>
+
+    <div class="expanded-world-map-shell">
+      <svg id="expanded-world-map" viewBox="0 0 480 150" preserveAspectRatio="xMidYMid meet" aria-label="Expanded GoTango live destination map"></svg>
+    </div>
+
+    <div class="live-map-modal__legend">
+      <span><span class="dot" style="background:#E07A6A"></span>Heating</span>
+      <span><span class="dot" style="background:#6BCB8B"></span>Steady</span>
+      <span><span class="dot" style="background:#5B9EA8"></span>Cooling</span>
+    </div>
+  </div>
+</div>
+
 <script>
   // ============ GOTANGO SCORE V2 FEATURE SWITCH ============
   const USE_GOTANGO_SCORE_V2 = typeof window !== 'undefined' && window.USE_GOTANGO_SCORE_V2 !== false;
@@ -5370,6 +5686,19 @@
   const GOTANGO_SCORE_V2_VERSION = 'gotango_score_v2_1_activity_led';
   const GOTANGO_SCORE_V2_MODEL = 'B_ORIGINAL_cap_15';
   const NOW_MIN_PUBLIC_SCORE = 60;
+  const STATUS_UI_COLORS = {
+    heating: '#E07A6A',
+    heating_up: '#E07A6A',
+    warming: '#E07A6A',
+    surge: '#E07A6A',
+    rising: '#E07A6A',
+    steady: '#6BCB8B',
+    in_season: '#6BCB8B',
+    active: '#6BCB8B',
+    cooling: '#5B9EA8',
+    softening: '#5B9EA8',
+    cool: '#5B9EA8',
+  };
   const MOVERS_V2_SECTION_ORDER = ['heating_up', 'in_season', 'steady', 'cooling'];
   const MOVERS_V2_SECTION_META = {
     heating_up: {
@@ -5390,10 +5719,10 @@
     },
   };
   const MOVERS_V2_BADGE_META = {
-    heating_up: { label: 'HEATING UP', className: 'mover-badge--rising', sparkColor: '#7FB069' },
-    in_season: { label: 'IN SEASON', className: 'mover-badge--steady', sparkColor: '#5B9EA8' },
-    steady: { label: 'STEADY', className: 'mover-badge--steady', sparkColor: '#5B9EA8' },
-    cooling: { label: 'COOLING', className: 'mover-badge--cooling', sparkColor: '#E07856' },
+    heating_up: { label: 'HEATING UP', className: 'mover-badge--rising', sparkColor: STATUS_UI_COLORS.heating_up },
+    in_season: { label: 'IN SEASON', className: 'mover-badge--steady', sparkColor: STATUS_UI_COLORS.in_season },
+    steady: { label: 'STEADY', className: 'mover-badge--steady', sparkColor: STATUS_UI_COLORS.steady },
+    cooling: { label: 'COOLING', className: 'mover-badge--cooling', sparkColor: STATUS_UI_COLORS.cooling },
   };
 
   // ============ HERO DATA (PHASE 5A PASS 1) ============
@@ -6752,9 +7081,9 @@
 
   const MOVERS_BADGE_META = {
     top: { label: 'Top Signal', className: 'mover-badge--top', sparkColor: '#E8A317' },
-    rising: { label: 'Rising', className: 'mover-badge--rising', sparkColor: '#7FB069' },
-    cooling: { label: 'Cooling', className: 'mover-badge--cooling', sparkColor: '#E07856' },
-    steady: { label: 'Steady', className: 'mover-badge--steady', sparkColor: '#5B9EA8' },
+    rising: { label: 'Rising', className: 'mover-badge--rising', sparkColor: STATUS_UI_COLORS.rising },
+    cooling: { label: 'Cooling', className: 'mover-badge--cooling', sparkColor: STATUS_UI_COLORS.cooling },
+    steady: { label: 'Steady', className: 'mover-badge--steady', sparkColor: STATUS_UI_COLORS.steady },
     quiet: { label: 'Quiet', className: 'mover-badge--quiet', sparkColor: '#6B6557' },
   };
 
@@ -9011,11 +9340,529 @@
     { id: 'courchevel', name: 'Courchevel', lng:   6.64, lat: 45.40, type: 'cool', size: 7 }
   ];
 
-  const mapColors = { surge: '#E8A317', steady: '#5EAAA8', cool: '#E07856' };
+  const mapColors = { surge: STATUS_UI_COLORS.surge, steady: STATUS_UI_COLORS.steady, cool: STATUS_UI_COLORS.cool };
   const mapGlowOpacity = { surge: 0.75, steady: 0.5, cool: 0.55 };
 
-  function renderWorldMap(arrivalsData) {
-    const svg = d3.select('#world-map');
+  let latestLiveMapArrivalsData = null;
+  let liveMapHandlersAttached = false;
+  let _expandedMapMarkers = [];
+  let _expandedMapZoomTransform = null;
+  let _expandedMapPointerGesture = null;
+
+  const _EXPANDED_MAP_AMBIGUITY_GAP_PX = 8;
+  const _EXPANDED_MAP_TAP_MOVE_THRESHOLD_PX = 6;
+  const _EXPANDED_MAP_MAX_PICKER_CANDIDATES = 6;
+
+  function _isMobileExpandedMap() {
+    return window.matchMedia('(max-width: 700px)').matches;
+  }
+
+  function _getExpandedMapInitialTransform(projection, width, height) {
+    if (!_isMobileExpandedMap()) return d3.zoomIdentity;
+    const initialK = 2.4;
+    const [targetX, targetY] = projection([-78, 27]);
+    return d3.zoomIdentity
+      .translate(width / 2 - initialK * targetX, height / 2 - initialK * targetY)
+      .scale(initialK);
+  }
+
+  function _setExpandedMapHoveredLabel(svg, destinationId) {
+    const destLabels = svg.select('.map-destination-labels');
+    if (destLabels.empty()) return;
+    destLabels.selectAll('.map-destination-label')
+      .style('opacity', function () {
+        return d3.select(this).attr('data-live-map-label-for') === destinationId ? 1 : 0;
+      });
+  }
+
+  function _clearExpandedMapHoveredLabels(svg) {
+    const destLabels = svg.select('.map-destination-labels');
+    if (!destLabels.empty()) {
+      destLabels.selectAll('.map-destination-label').style('opacity', 0);
+    }
+  }
+
+  function _getExpandedMarkerSizing(d, isMobile) {
+    const coreR = d.type === 'surge' ? 2.6 : 2.4;
+    return {
+      coreR,
+      hitR: isMobile ? 18 : 14
+    };
+  }
+
+  function _getExpandedMapSelectionRadius(isMobile) {
+    return isMobile ? 20 : 14;
+  }
+
+  function _pickNearestExpandedMapMarkers(pointerX, pointerY, markers, transform, isMobile) {
+    if (!Array.isArray(markers) || markers.length === 0 || !transform) {
+      return { mode: 'none', candidates: [] };
+    }
+
+    const selectionRadius = _getExpandedMapSelectionRadius(isMobile);
+    const ranked = markers
+      .map((marker) => {
+        const screenX = transform.applyX(marker.x);
+        const screenY = transform.applyY(marker.y);
+        const distance = Math.hypot(pointerX - screenX, pointerY - screenY);
+        return { ...marker, screenX, screenY, distance };
+      })
+      .filter((entry) => entry.distance <= selectionRadius)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, _EXPANDED_MAP_MAX_PICKER_CANDIDATES);
+
+    if (ranked.length === 0) {
+      return { mode: 'none', candidates: [] };
+    }
+    if (ranked.length === 1) {
+      return { mode: 'single', destinationId: ranked[0].id, candidates: ranked };
+    }
+    if (ranked[1].distance - ranked[0].distance < _EXPANDED_MAP_AMBIGUITY_GAP_PX) {
+      return { mode: 'ambiguous', candidates: ranked };
+    }
+    return { mode: 'single', destinationId: ranked[0].id, candidates: ranked };
+  }
+
+  function _getExpandedMapSvgPoint(svgEl, clientX, clientY) {
+    if (!svgEl || typeof svgEl.createSVGPoint !== 'function') return null;
+    const ctm = svgEl.getScreenCTM();
+    if (!ctm) return null;
+    const pt = svgEl.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    return pt.matrixTransform(ctm.inverse());
+  }
+
+  function _closeExpandedMapDestinationPicker() {
+    const picker = document.querySelector('.live-map-destination-picker');
+    if (picker) picker.remove();
+  }
+
+  function _showExpandedMapDestinationPicker(candidates, clientX, clientY, svgEl) {
+    _closeExpandedMapDestinationPicker();
+    const shell = document.querySelector('.expanded-world-map-shell');
+    if (!shell || !Array.isArray(candidates) || candidates.length < 2 || !svgEl) return;
+
+    const shellRect = shell.getBoundingClientRect();
+    const ctm = svgEl.getScreenCTM();
+    if (!ctm) return;
+
+    const picker = document.createElement('div');
+    picker.className = 'live-map-destination-picker';
+    picker.setAttribute('role', 'listbox');
+    picker.setAttribute('aria-label', 'Nearby destinations');
+
+    candidates.forEach((candidate) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'live-map-destination-picker__item';
+      btn.setAttribute('role', 'option');
+      btn.setAttribute('data-destination-id', candidate.id);
+
+      const dot = document.createElement('span');
+      dot.className = 'live-map-destination-picker__dot';
+      dot.style.background = mapColors[candidate.type] || mapColors.steady;
+
+      const label = document.createElement('span');
+      label.className = 'live-map-destination-picker__label';
+      label.textContent = candidate.name || candidate.id;
+
+      btn.appendChild(dot);
+      btn.appendChild(label);
+      picker.appendChild(btn);
+    });
+
+    shell.appendChild(picker);
+
+    const pt = svgEl.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const screenPt = pt.matrixTransform(ctm);
+    const pad = 8;
+    const left = screenPt.x - shellRect.left;
+    const top = screenPt.y - shellRect.top + 12;
+    const pickerWidth = picker.offsetWidth;
+    const pickerHeight = picker.offsetHeight;
+    picker.style.left = `${Math.max(pad, Math.min(left, shellRect.width - pickerWidth - pad))}px`;
+    picker.style.top = `${Math.max(pad, Math.min(top, shellRect.height - pickerHeight - pad))}px`;
+  }
+
+  function _handleExpandedMapSelection(clientX, clientY, svgEl) {
+    const liveMapModal = document.getElementById('live-map-modal');
+    if (!liveMapModal || liveMapModal.style.display === 'none') return;
+
+    const svgPoint = _getExpandedMapSvgPoint(svgEl, clientX, clientY);
+    if (!svgPoint) return;
+
+    const transform = _expandedMapZoomTransform || d3.zoomIdentity;
+    const isMobile = _isMobileExpandedMap();
+    const pick = _pickNearestExpandedMapMarkers(
+      svgPoint.x,
+      svgPoint.y,
+      _expandedMapMarkers,
+      transform,
+      isMobile
+    );
+
+    if (pick.mode === 'none') {
+      _closeExpandedMapDestinationPicker();
+      return;
+    }
+    if (pick.mode === 'single') {
+      _closeExpandedMapDestinationPicker();
+      openDestinationModal(pick.destinationId);
+      return;
+    }
+    if (pick.mode === 'ambiguous') {
+      _showExpandedMapDestinationPicker(pick.candidates, clientX, clientY, svgEl);
+    }
+  }
+
+  function _bindExpandedMapSelectionHandlers(svgEl) {
+    if (!svgEl || svgEl._gotangoExpandedSelectionBound) return;
+    svgEl._gotangoExpandedSelectionBound = true;
+
+    svgEl.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      _expandedMapPointerGesture = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
+    }, { passive: true });
+
+    svgEl.addEventListener('click', (e) => {
+      const liveMapModal = document.getElementById('live-map-modal');
+      if (!liveMapModal || liveMapModal.style.display === 'none') return;
+      if (e.target.closest('.live-map-destination-picker')) return;
+
+      const gesture = _expandedMapPointerGesture;
+      _expandedMapPointerGesture = null;
+      if (gesture && gesture.pointerId === e.pointerId) {
+        const dx = e.clientX - gesture.x;
+        const dy = e.clientY - gesture.y;
+        if (dx * dx + dy * dy > _EXPANDED_MAP_TAP_MOVE_THRESHOLD_PX * _EXPANDED_MAP_TAP_MOVE_THRESHOLD_PX) {
+          return;
+        }
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      _handleExpandedMapSelection(e.clientX, e.clientY, svgEl);
+    });
+  }
+
+  function _updateExpandedMarkerRadii(svg, k) {
+    const safeK = Math.max(k, 0.001);
+    svg.select('.map-dots').selectAll('[data-screen-r]').attr('r', function () {
+      return Number(this.getAttribute('data-screen-r')) / safeK;
+    });
+    svg.select('.map-dots').selectAll('[data-screen-stroke-width]').attr('stroke-width', function () {
+      return Number(this.getAttribute('data-screen-stroke-width')) / safeK;
+    });
+  }
+
+  function _normalizeLiveMapStatusToken(raw) {
+    if (raw == null || raw === '') return '';
+    return String(raw).trim().toLowerCase().replace(/[\s-]+/g, '_');
+  }
+
+  function _buildLiveMapPublicDestinationMap(arrivalsData) {
+    const payload = getArrivalsPayload(arrivalsData);
+    if (!payload || !Array.isArray(payload.destinations)) return null;
+    const okDests = payload.destinations.filter((d) => d && d.ok === true);
+    const enriched = enrichDestinationsWithGoTangoScoreV2(okDests);
+    const map = new Map();
+    for (const dest of enriched) {
+      if (!dest || !dest.id) continue;
+      if (_goTangoScoreV2Active && !dest._gotango_v2) continue;
+      map.set(dest.id, dest);
+    }
+    return map;
+  }
+
+  function _getPublicDestinationForLiveMap(rawDest, publicDestMap) {
+    const id = rawDest && rawDest.id;
+    if (!id) return rawDest;
+    const enriched = publicDestMap && publicDestMap.get(id);
+    if (enriched) return { ...rawDest, ...enriched };
+    if (publicDestMap) {
+      const normName = _normalizeLiveMapDestinationName(rawDest.name || rawDest.label || rawDest.title);
+      if (normName) {
+        for (const publicDest of publicDestMap.values()) {
+          if (_normalizeLiveMapDestinationName(publicDest.name) === normName) {
+            return { ...rawDest, ...publicDest };
+          }
+        }
+      }
+    }
+    return rawDest;
+  }
+
+  function _normalizeLiveMapDestinationName(name) {
+    if (name == null || name === '') return '';
+    return String(name)
+      .trim()
+      .toLowerCase()
+      .replace(/&/g, 'and')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+  }
+
+  function _resolveLiveMapPublicId(dest, publicDestMap) {
+    if (!dest) return '';
+    if (dest._gotango_v2 && dest._gotango_v2.id) return String(dest._gotango_v2.id);
+    if (dest.id && publicDestMap && publicDestMap.has(dest.id)) return String(dest.id);
+    if (publicDestMap) {
+      const normName = _normalizeLiveMapDestinationName(dest.name || dest.label || dest.title);
+      if (normName) {
+        for (const publicDest of publicDestMap.values()) {
+          if (_normalizeLiveMapDestinationName(publicDest.name) === normName) {
+            return String(publicDest.id);
+          }
+        }
+      }
+    }
+    return dest.id ? String(dest.id) : '';
+  }
+
+  function _getLiveMapCanonicalDestinationKey(dest, publicDestMap) {
+    if (!dest) return '';
+    const publicId = _resolveLiveMapPublicId(dest, publicDestMap);
+    if (publicId) return `id:${publicId}`;
+    if (dest.slug) return `slug:${String(dest.slug)}`;
+    const normName = _normalizeLiveMapDestinationName(dest.name || dest.label || dest.title);
+    if (normName) return `name:${normName}`;
+    return '';
+  }
+
+  function _hasValidLiveMapCoords(dest) {
+    return dest && typeof dest.lat === 'number' && typeof dest.lng === 'number';
+  }
+
+  function _pickLiveMapCoords(enrichedDest, rawDest) {
+    if (_hasValidLiveMapCoords(enrichedDest)) {
+      return { lat: enrichedDest.lat, lng: enrichedDest.lng };
+    }
+    if (_hasValidLiveMapCoords(rawDest)) {
+      return { lat: rawDest.lat, lng: rawDest.lng };
+    }
+    return null;
+  }
+
+  function _resolveLiveMapMarkerArrivalsCount(publicDest, rawArrivals) {
+    if (
+      publicDest &&
+      (publicDest.arrivals_count != null ||
+        publicDest.private_arrivals_24h != null ||
+        publicDest.raw_ga_arrivals_24h != null)
+    ) {
+      return _integerArrivals24h(publicDest);
+    }
+    let max = 0;
+    for (const raw of rawArrivals) {
+      max = Math.max(max, _integerArrivals24h(raw));
+    }
+    return max;
+  }
+
+  function _createLiveMapCanonicalEntry(rawDest, publicDest) {
+    const coords = _pickLiveMapCoords(publicDest, rawDest);
+    if (!coords) return null;
+    const id = publicDest.id || rawDest.id;
+    const name = publicDest.name || publicDest.label || publicDest.title ||
+      rawDest.name || rawDest.label || rawDest.title || id;
+    return {
+      publicDest,
+      rawArrivals: [rawDest],
+      id,
+      name,
+      lat: coords.lat,
+      lng: coords.lng,
+    };
+  }
+
+  function _mergeLiveMapCanonicalEntry(existing, rawDest, publicDest) {
+    const mergedPublic = { ...existing.publicDest, ...rawDest, ...publicDest };
+    const rawArrivals = existing.rawArrivals.concat(rawDest);
+    const coords = _pickLiveMapCoords(mergedPublic, rawDest) || {
+      lat: existing.lat,
+      lng: existing.lng,
+    };
+    const id = mergedPublic.id || existing.id || rawDest.id;
+    const name = mergedPublic.name || mergedPublic.label || mergedPublic.title ||
+      existing.name || rawDest.name || rawDest.label || rawDest.title || id;
+    return {
+      publicDest: mergedPublic,
+      rawArrivals,
+      id,
+      name,
+      lat: coords.lat,
+      lng: coords.lng,
+    };
+  }
+
+  // Live map dot color follows the same public status family as destination cards
+  // (getPublicSignalBadgeV2 / _resolvePublicBadgeKeyFromStatus), not score rank.
+  // e.g. confirmed_category 'in_season' (Destin / 30A, Hamptons) -> 'steady' (green).
+  function _getLiveMapVisualType(dest) {
+    if (!dest) return 'steady';
+
+    if (_goTangoScoreV2Active && dest.confirmed_category) {
+      return getPublicSignalBadgeV2(dest).vibeClass;
+    }
+
+    const tokens = [
+      dest.status,
+      dest.v2_status,
+      dest.score_v2_status,
+      dest.category,
+      dest.mover_category,
+      dest.badge,
+      dest.badgeKey,
+      dest.status_label,
+    ].map(_normalizeLiveMapStatusToken).filter(Boolean);
+
+    const heating = new Set(['heating', 'warming', 'heating_up', 'rising', 'surge', 'surging']);
+    const cooling = new Set(['cooling', 'softening', 'cooling_down', 'cool', 'off_season']);
+    const steady = new Set(['in_season', 'active', 'steady', 'established', 'holding', 'busy', 'normal']);
+
+    for (const t of tokens) {
+      if (heating.has(t)) return 'surge';
+      if (cooling.has(t)) return 'cool';
+      if (steady.has(t)) return 'steady';
+    }
+
+    return 'steady';
+  }
+
+  function resolveWorldMapDestinations(arrivalsData) {
+    let resolvedMapDestinations = mapDestinations;
+    const allDests = arrivalsData && arrivalsData.data && Array.isArray(arrivalsData.data.destinations)
+      ? arrivalsData.data.destinations
+      : null;
+    if (allDests && allDests.length > 0) {
+      const publicDestMap = _buildLiveMapPublicDestinationMap(arrivalsData);
+      const validDests = allDests
+        .filter(dest => typeof dest.lat === 'number' && typeof dest.lng === 'number')
+        .sort((a, b) => Number(b.signal_score || 0) - Number(a.signal_score || 0));
+      if (validDests.length > 0) {
+        const byCanonical = new Map();
+        for (const dest of validDests) {
+          const publicDest = _getPublicDestinationForLiveMap(dest, publicDestMap);
+          const key = _getLiveMapCanonicalDestinationKey(publicDest, publicDestMap);
+          if (!key) continue;
+          const existing = byCanonical.get(key);
+          byCanonical.set(
+            key,
+            existing
+              ? _mergeLiveMapCanonicalEntry(existing, dest, publicDest)
+              : _createLiveMapCanonicalEntry(dest, publicDest),
+          );
+        }
+        resolvedMapDestinations = Array.from(byCanonical.values())
+          .filter(Boolean)
+          .map((entry) => {
+            const arrivalsCount = _resolveLiveMapMarkerArrivalsCount(entry.publicDest, entry.rawArrivals);
+            const type = _getLiveMapVisualType(entry.publicDest);
+            const size = arrivalsCount <= 0 ? 2 : Math.max(2, Math.min(8, 2 + (arrivalsCount / 5)));
+            return {
+              id: entry.id,
+              name: entry.name,
+              lng: entry.lng,
+              lat: entry.lat,
+              type,
+              size,
+            };
+          });
+      }
+    }
+    return resolvedMapDestinations;
+  }
+
+  const EXPANDED_MAP_REGION_LABELS = [
+    { text: 'Atlantic', lng: -42, lat: 28 },
+    { text: 'Pacific', lng: -158, lat: 8 },
+    { text: 'Europe', lng: 18, lat: 52 },
+    { text: 'Caribbean', lng: -72, lat: 16 },
+    { text: 'U.S.', lng: -96, lat: 40 },
+    { text: 'Mediterranean', lng: 20, lat: 36 }
+  ];
+
+  function renderExpandedMapBaseLayers(mapRoot, world, projection, pathGen, width, height, isMobile) {
+    const defs = mapRoot.append('defs');
+    const oceanGrad = defs.append('linearGradient')
+      .attr('id', 'map-ocean-gradient')
+      .attr('x1', '0%').attr('y1', '0%')
+      .attr('x2', '100%').attr('y2', '100%');
+    oceanGrad.append('stop').attr('offset', '0%').attr('stop-color', '#0c1018');
+    oceanGrad.append('stop').attr('offset', '100%').attr('stop-color', '#121820');
+
+    mapRoot.append('rect')
+      .attr('class', 'map-ocean')
+      .attr('width', width)
+      .attr('height', height)
+      .attr('fill', 'url(#map-ocean-gradient)');
+
+    mapRoot.append('path')
+      .datum(d3.geoGraticule()())
+      .attr('class', 'map-graticule')
+      .attr('d', pathGen);
+
+    const land = topojson.feature(world, world.objects.land);
+    mapRoot.append('path')
+      .datum(land)
+      .attr('class', 'map-land-fill')
+      .attr('d', pathGen);
+
+    try {
+      if (world.objects && world.objects.countries) {
+        const borders = topojson.mesh(world, world.objects.countries, (a, b) => a !== b);
+        mapRoot.append('path')
+          .datum(borders)
+          .attr('class', 'map-country-borders')
+          .attr('d', pathGen);
+      }
+    } catch (borderErr) {
+      console.warn('Expanded map: country borders unavailable');
+    }
+
+    if (!isMobile) {
+      const regionLabelGroup = mapRoot.append('g').attr('class', 'map-region-labels');
+      EXPANDED_MAP_REGION_LABELS.forEach((label) => {
+        const [x, y] = projection([label.lng, label.lat]);
+        regionLabelGroup.append('text')
+          .attr('x', x)
+          .attr('y', y)
+          .attr('class', 'map-region-label')
+          .attr('text-anchor', 'middle')
+          .text(label.text);
+      });
+    }
+  }
+
+  function renderWorldMap(arrivalsData, options = {}) {
+    const opts = {
+      svgSelector: '#world-map',
+      mode: 'compact',
+      enableZoom: false,
+      enableDestinationClicks: false,
+      ...options
+    };
+    const isExpanded = opts.mode === 'expanded';
+    const isMobileExpandedMap = isExpanded && _isMobileExpandedMap();
+
+    if (isExpanded) {
+      const expandedSvgEl = document.querySelector(opts.svgSelector);
+      if (expandedSvgEl) {
+        expandedSvgEl.setAttribute(
+          'preserveAspectRatio',
+          isMobileExpandedMap ? 'xMidYMid slice' : 'xMidYMid meet'
+        );
+      }
+    }
+
+    if (opts.mode === 'compact' && arrivalsData != null) {
+      latestLiveMapArrivalsData = arrivalsData;
+    }
+
+    const svg = d3.select(opts.svgSelector);
     if (svg.empty()) return;
 
     const width = 480, height = 150;
@@ -9025,95 +9872,304 @@
     const pathGen = d3.geoPath().projection(projection);
 
     d3.json(WORLD_TOPO_URL).then(world => {
-      const overlayTimeEl = document.getElementById('map-overlay-time');
-      const metaTimeEl = document.getElementById('map-meta-time');
-      const savedAtRaw = arrivalsData && arrivalsData.meta && arrivalsData.meta.saved_at;
-      const savedAtDate = savedAtRaw ? new Date(savedAtRaw) : null;
-      const hasValidSavedAt = savedAtDate instanceof Date && !Number.isNaN(savedAtDate.getTime());
-      if (overlayTimeEl) {
-        if (hasValidSavedAt) {
-          const hh = String(savedAtDate.getUTCHours()).padStart(2, '0');
-          const mm = String(savedAtDate.getUTCMinutes()).padStart(2, '0');
-          overlayTimeEl.textContent = `Updated ${hh}:${mm}z`;
-        } else {
-          overlayTimeEl.textContent = 'Hourly refresh';
+      if (opts.mode === 'compact') {
+        const overlayTimeEl = document.getElementById('map-overlay-time');
+        const metaTimeEl = document.getElementById('map-meta-time');
+        const savedAtRaw = arrivalsData && arrivalsData.meta && arrivalsData.meta.saved_at;
+        const savedAtDate = savedAtRaw ? new Date(savedAtRaw) : null;
+        const hasValidSavedAt = savedAtDate instanceof Date && !Number.isNaN(savedAtDate.getTime());
+        if (overlayTimeEl) {
+          if (hasValidSavedAt) {
+            const hh = String(savedAtDate.getUTCHours()).padStart(2, '0');
+            const mm = String(savedAtDate.getUTCMinutes()).padStart(2, '0');
+            overlayTimeEl.textContent = `Updated ${hh}:${mm}z`;
+          } else {
+            overlayTimeEl.textContent = 'Hourly refresh';
+          }
         }
-      }
-      if (metaTimeEl) {
-        if (hasValidSavedAt) {
-          const hh = String(savedAtDate.getUTCHours()).padStart(2, '0');
-          const mm = String(savedAtDate.getUTCMinutes()).padStart(2, '0');
-          metaTimeEl.textContent = `${hh}:${mm}z`;
-        } else {
-          metaTimeEl.textContent = '—';
-        }
-      }
-
-      let resolvedMapDestinations = mapDestinations;
-      const allDests = arrivalsData && arrivalsData.data && Array.isArray(arrivalsData.data.destinations)
-        ? arrivalsData.data.destinations
-        : null;
-      if (allDests && allDests.length > 0) {
-        const validDests = allDests
-          .filter(dest => typeof dest.lat === 'number' && typeof dest.lng === 'number')
-          .sort((a, b) => Number(b.signal_score || 0) - Number(a.signal_score || 0));
-        if (validDests.length > 0) {
-          resolvedMapDestinations = validDests.map((dest) => {
-            const arrivalsCount = _integerArrivals24h(dest);
-            const type = _computeTier(dest, validDests);
-            const size = arrivalsCount <= 0 ? 2 : Math.max(2, Math.min(8, 2 + (arrivalsCount / 5)));
-            return {
-              id: dest.id,
-              lng: dest.lng,
-              lat: dest.lat,
-              type,
-              size
-            };
-          });
+        if (metaTimeEl) {
+          if (hasValidSavedAt) {
+            const hh = String(savedAtDate.getUTCHours()).padStart(2, '0');
+            const mm = String(savedAtDate.getUTCMinutes()).padStart(2, '0');
+            metaTimeEl.textContent = `${hh}:${mm}z`;
+          } else {
+            metaTimeEl.textContent = '—';
+          }
         }
       }
 
-      const land = topojson.feature(world, world.objects.land);
+      const resolvedMapDestinations = resolveWorldMapDestinations(arrivalsData);
 
-      svg.append('g')
-        .selectAll('path')
-        .data([land])
-        .join('path')
-        .attr('d', pathGen)
-        .attr('fill', '#1E242E')
-        .attr('stroke', '#313945')
-        .attr('stroke-width', 0.4)
-        .attr('opacity', 0.85);
+      svg.selectAll('*').remove();
 
-      const dotGroup = svg.append('g').attr('class', 'map-dots');
+      const mapRoot = opts.enableZoom
+        ? svg.append('g').attr('class', 'map-viewport')
+        : svg;
+
+      if (isExpanded) {
+        if (opts.enableZoom) {
+          mapRoot.insert('rect', ':first-child')
+            .attr('class', 'map-interaction-bg')
+            .attr('x', -width * 2)
+            .attr('y', -height * 2)
+            .attr('width', width * 5)
+            .attr('height', height * 5)
+            .attr('fill', 'transparent')
+            .style('pointer-events', 'all');
+        }
+        renderExpandedMapBaseLayers(mapRoot, world, projection, pathGen, width, height, isMobileExpandedMap);
+      } else {
+        const land = topojson.feature(world, world.objects.land);
+        mapRoot.append('g')
+          .selectAll('path')
+          .data([land])
+          .join('path')
+          .attr('d', pathGen)
+          .attr('fill', '#1E242E')
+          .attr('stroke', '#313945')
+          .attr('stroke-width', 0.4)
+          .attr('opacity', 0.85);
+      }
+
+      const dotGroup = mapRoot.append('g').attr('class', 'map-dots');
+      const destinationLabelEntries = [];
+      const expandedMarkerRecords = [];
+
       resolvedMapDestinations.forEach(d => {
         const [x, y] = projection([d.lng, d.lat]);
         const color = mapColors[d.type];
         const opac = mapGlowOpacity[d.type];
+        const destName = d.name || d.id;
 
-        dotGroup.append('circle')
-          .attr('cx', x).attr('cy', y).attr('r', d.size)
-          .attr('class', 'map-dot')
-          .attr('data-destination-id', d.id)
-          .attr('fill', color).attr('opacity', 0)
-          .transition().duration(600).attr('opacity', opac * 0.3);
+        if (isExpanded) {
+          expandedMarkerRecords.push({
+            id: d.id,
+            name: destName,
+            type: d.type,
+            x,
+            y
+          });
 
-        dotGroup.append('circle')
-          .attr('cx', x).attr('cy', y).attr('r', d.size * 0.55)
-          .attr('class', 'map-dot')
-          .attr('data-destination-id', d.id)
-          .attr('fill', color).attr('opacity', 0)
-          .transition().duration(600).attr('opacity', opac * 0.6);
+          const sizing = _getExpandedMarkerSizing(d, isMobileExpandedMap);
 
-        dotGroup.append('circle')
-          .attr('cx', x).attr('cy', y)
-          .attr('r', d.type === 'surge' ? 3 : 2)
-          .attr('class', 'map-dot')
-          .attr('data-destination-id', d.id)
-          .attr('fill', color).attr('opacity', 0)
-          .transition().duration(600).attr('opacity', 1);
+          dotGroup.append('circle')
+            .attr('cx', x).attr('cy', y)
+            .attr('r', sizing.coreR)
+            .attr('class', 'map-dot')
+            .attr('data-screen-r', sizing.coreR)
+            .attr('data-marker-layer', 'core')
+            .attr('data-screen-stroke-width', 0.6)
+            .attr('fill', color)
+            .attr('stroke', '#0c1018')
+            .attr('stroke-width', 0.6)
+            .attr('opacity', 0)
+            .transition().duration(600).attr('opacity', 1);
+
+          if (opts.enableDestinationClicks) {
+            dotGroup.append('circle')
+              .attr('cx', x).attr('cy', y)
+              .attr('r', sizing.hitR)
+              .attr('class', 'map-dot-hit')
+              .attr('data-screen-r', sizing.hitR)
+              .attr('data-marker-layer', 'hit')
+              .attr('data-live-map-destination-id', d.id)
+              .attr('aria-label', destName)
+              .attr('title', destName)
+              .style('fill', 'transparent')
+              .style('pointer-events', 'all')
+              .style('cursor', 'pointer');
+          }
+        } else {
+          dotGroup.append('circle')
+            .attr('cx', x).attr('cy', y).attr('r', d.size)
+            .attr('class', 'map-dot')
+            .attr('fill', color).attr('opacity', 0)
+            .transition().duration(600).attr('opacity', opac * 0.3);
+
+          dotGroup.append('circle')
+            .attr('cx', x).attr('cy', y).attr('r', d.size * 0.55)
+            .attr('class', 'map-dot')
+            .attr('fill', color).attr('opacity', 0)
+            .transition().duration(600).attr('opacity', opac * 0.6);
+
+          dotGroup.append('circle')
+            .attr('cx', x).attr('cy', y)
+            .attr('r', d.type === 'surge' ? 3 : 2)
+            .attr('class', 'map-dot')
+            .attr('fill', color).attr('opacity', 0)
+            .transition().duration(600).attr('opacity', 1);
+        }
+
+        if (isExpanded && !isMobileExpandedMap) {
+          const sizing = _getExpandedMarkerSizing(d, false);
+          destinationLabelEntries.push({
+            id: d.id,
+            x,
+            y,
+            name: destName,
+            offset: sizing.coreR + 3
+          });
+        }
       });
+
+      if (isExpanded && opts.enableDestinationClicks) {
+        dotGroup.selectAll('.map-dot-hit')
+          .on('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            _handleExpandedMapSelection(event.clientX, event.clientY, svg.node());
+          });
+      }
+
+      if (isExpanded && !isMobileExpandedMap && destinationLabelEntries.length > 0) {
+        const destLabelGroup = mapRoot.append('g')
+          .attr('class', 'map-destination-labels');
+        destinationLabelEntries.forEach((entry) => {
+          destLabelGroup.append('text')
+            .attr('x', entry.x)
+            .attr('y', entry.y - entry.offset)
+            .attr('class', 'map-destination-label')
+            .attr('data-live-map-label-for', entry.id)
+            .attr('text-anchor', 'middle')
+            .style('opacity', 0)
+            .text(entry.name);
+        });
+
+        dotGroup.selectAll('.map-dot-hit')
+          .on('mouseenter focus', function () {
+            _setExpandedMapHoveredLabel(svg, d3.select(this).attr('data-live-map-destination-id'));
+          })
+          .on('mouseleave blur', function () {
+            _clearExpandedMapHoveredLabels(svg);
+          });
+      }
+
+      if (isExpanded && opts.enableDestinationClicks) {
+        _expandedMapMarkers = expandedMarkerRecords;
+        _expandedMapZoomTransform = d3.zoomIdentity;
+        _bindExpandedMapSelectionHandlers(svg.node());
+      }
+
+      if (opts.enableZoom) {
+        const panPaddingX = width * 3;
+        const panPaddingY = height * 3;
+        const zoom = d3.zoom()
+          .scaleExtent([1, 8])
+          .extent([[0, 0], [width, height]])
+          .translateExtent([
+            [-panPaddingX, -panPaddingY],
+            [width + panPaddingX, height + panPaddingY]
+          ])
+          .filter((event) => {
+            return (!event.ctrlKey || event.type === 'wheel') && !event.button;
+          })
+          .on('zoom', (event) => {
+            const k = event.transform.k;
+            svg.select('.map-viewport').attr('transform', event.transform);
+            _expandedMapZoomTransform = event.transform;
+            if (isExpanded) {
+              _updateExpandedMarkerRadii(svg, k);
+              _closeExpandedMapDestinationPicker();
+            }
+          });
+        svg.call(zoom);
+        if (isExpanded) {
+          const initialTransform = _getExpandedMapInitialTransform(projection, width, height);
+          svg.call(zoom.transform, initialTransform);
+          _expandedMapZoomTransform = initialTransform;
+        }
+      }
     }).catch(err => console.error('Map load failed:', err));
+  }
+
+  function openLiveMapModal() {
+    const modal = document.getElementById('live-map-modal');
+    if (!modal) return;
+
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('live-map-modal-open');
+
+    renderWorldMap(latestLiveMapArrivalsData, {
+      svgSelector: '#expanded-world-map',
+      mode: 'expanded',
+      enableZoom: true,
+      enableDestinationClicks: true
+    });
+
+    setTimeout(() => {
+      const closeBtn = modal.querySelector('.live-map-modal__close');
+      if (closeBtn) closeBtn.focus();
+    }, 50);
+  }
+
+  function closeLiveMapModal() {
+    const modal = document.getElementById('live-map-modal');
+    if (!modal) return;
+    if (_modalCurrentDestId) return;
+
+    _closeExpandedMapDestinationPicker();
+    _expandedMapMarkers = [];
+    _expandedMapZoomTransform = null;
+    _expandedMapPointerGesture = null;
+
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('live-map-modal-open');
+
+    const expandedSvg = d3.select('#expanded-world-map');
+    if (!expandedSvg.empty()) {
+      expandedSvg.on('.zoom', null);
+      expandedSvg.selectAll('*').remove();
+    }
+  }
+
+  function attachLiveMapModalHandlers() {
+    if (liveMapHandlersAttached) return;
+    liveMapHandlersAttached = true;
+
+    const worldStrip = document.querySelector('.world-strip');
+    if (worldStrip) {
+      worldStrip.addEventListener('click', () => {
+        openLiveMapModal();
+      });
+      worldStrip.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        openLiveMapModal();
+      });
+    }
+
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('[data-live-map-modal-close]')) {
+        closeLiveMapModal();
+        return;
+      }
+
+      const pickerItem = e.target.closest('.live-map-destination-picker__item');
+      if (pickerItem) {
+        e.preventDefault();
+        e.stopPropagation();
+        const destinationId = pickerItem.getAttribute('data-destination-id');
+        _closeExpandedMapDestinationPicker();
+        if (destinationId) openDestinationModal(destinationId);
+        return;
+      }
+
+      const picker = document.querySelector('.live-map-destination-picker');
+      if (picker && !picker.contains(e.target) && !e.target.closest('#expanded-world-map')) {
+        _closeExpandedMapDestinationPicker();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const liveMapModal = document.getElementById('live-map-modal');
+      if (!liveMapModal || liveMapModal.style.display === 'none') return;
+      if (_modalCurrentDestId) return;
+      closeLiveMapModal();
+    });
+
   }
 
   // === Destination Detail Modal ===
@@ -10437,6 +11493,14 @@
     document.body.classList.remove('dest-modal-open');
     _modalCurrentDestId = null;
 
+    const liveMapModal = document.getElementById('live-map-modal');
+    if (liveMapModal && liveMapModal.style.display !== 'none') {
+      setTimeout(() => {
+        const closeBtn = liveMapModal.querySelector('.live-map-modal__close');
+        if (closeBtn) closeBtn.focus();
+      }, 50);
+    }
+
     // Remove deep-link param from URL
     try {
       const url = new URL(window.location.href);
@@ -11525,6 +12589,7 @@
     renderCoolingDown(arrivalsData);
     renderMoversIndex(arrivalsData, moversIndexData);
     renderWorldMap(arrivalsData);
+    attachLiveMapModalHandlers();
     attachWatchDelegation();
     attachMoverActionDelegation();
     _watchCanUseStorage();
