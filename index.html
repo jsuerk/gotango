@@ -704,7 +704,7 @@
     flex: 1 1 auto;
     min-height: 0;
     margin: 0 20px;
-    background: var(--surface);
+    background: linear-gradient(165deg, #0a0d11 0%, #10151c 55%, #0c1018 100%);
     border: 1px solid var(--border);
     border-radius: 10px;
     overflow: hidden;
@@ -714,9 +714,50 @@
     height: 100%;
     display: block;
     cursor: grab;
+    background: transparent;
   }
   #expanded-world-map:active {
     cursor: grabbing;
+  }
+  .map-ocean {
+    pointer-events: none;
+  }
+  .map-graticule {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.06);
+    stroke-width: 0.35;
+    pointer-events: none;
+  }
+  .map-land-fill {
+    fill: #1a2029;
+    stroke: #2d3543;
+    stroke-width: 0.45;
+    opacity: 0.92;
+    pointer-events: none;
+  }
+  .map-country-borders {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-width: 0.25;
+    pointer-events: none;
+  }
+  .map-region-label {
+    fill: rgba(255, 255, 255, 0.22);
+    font-family: 'Geist Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+  .map-destination-labels {
+    pointer-events: none;
+  }
+  .map-destination-label {
+    fill: rgba(230, 234, 240, 0.75);
+    font-family: 'Geist', sans-serif;
+    font-size: 6.5px;
+    font-weight: 500;
+    pointer-events: none;
   }
   .live-map-controls {
     position: absolute;
@@ -9284,6 +9325,65 @@
     return resolvedMapDestinations;
   }
 
+  const EXPANDED_MAP_REGION_LABELS = [
+    { text: 'Atlantic', lng: -42, lat: 28 },
+    { text: 'Pacific', lng: -158, lat: 8 },
+    { text: 'Europe', lng: 18, lat: 52 },
+    { text: 'Caribbean', lng: -72, lat: 16 },
+    { text: 'U.S.', lng: -96, lat: 40 },
+    { text: 'Mediterranean', lng: 20, lat: 36 }
+  ];
+
+  function renderExpandedMapBaseLayers(mapRoot, world, projection, pathGen, width, height) {
+    const defs = mapRoot.append('defs');
+    const oceanGrad = defs.append('linearGradient')
+      .attr('id', 'map-ocean-gradient')
+      .attr('x1', '0%').attr('y1', '0%')
+      .attr('x2', '100%').attr('y2', '100%');
+    oceanGrad.append('stop').attr('offset', '0%').attr('stop-color', '#0c1018');
+    oceanGrad.append('stop').attr('offset', '100%').attr('stop-color', '#121820');
+
+    mapRoot.append('rect')
+      .attr('class', 'map-ocean')
+      .attr('width', width)
+      .attr('height', height)
+      .attr('fill', 'url(#map-ocean-gradient)');
+
+    mapRoot.append('path')
+      .datum(d3.geoGraticule()())
+      .attr('class', 'map-graticule')
+      .attr('d', pathGen);
+
+    const land = topojson.feature(world, world.objects.land);
+    mapRoot.append('path')
+      .datum(land)
+      .attr('class', 'map-land-fill')
+      .attr('d', pathGen);
+
+    try {
+      if (world.objects && world.objects.countries) {
+        const borders = topojson.mesh(world, world.objects.countries, (a, b) => a !== b);
+        mapRoot.append('path')
+          .datum(borders)
+          .attr('class', 'map-country-borders')
+          .attr('d', pathGen);
+      }
+    } catch (borderErr) {
+      console.warn('Expanded map: country borders unavailable');
+    }
+
+    const regionLabelGroup = mapRoot.append('g').attr('class', 'map-region-labels');
+    EXPANDED_MAP_REGION_LABELS.forEach((label) => {
+      const [x, y] = projection([label.lng, label.lat]);
+      regionLabelGroup.append('text')
+        .attr('x', x)
+        .attr('y', y)
+        .attr('class', 'map-region-label')
+        .attr('text-anchor', 'middle')
+        .text(label.text);
+    });
+  }
+
   function renderWorldMap(arrivalsData, options = {}) {
     const opts = {
       svgSelector: '#world-map',
@@ -9292,6 +9392,7 @@
       enableDestinationClicks: false,
       ...options
     };
+    const isExpanded = opts.mode === 'expanded';
 
     if (opts.mode === 'compact' && arrivalsData != null) {
       latestLiveMapArrivalsData = arrivalsData;
@@ -9334,7 +9435,6 @@
       }
 
       const resolvedMapDestinations = resolveWorldMapDestinations(arrivalsData);
-      const land = topojson.feature(world, world.objects.land);
 
       svg.selectAll('*').remove();
 
@@ -9342,17 +9442,24 @@
         ? svg.append('g').attr('class', 'map-viewport')
         : svg;
 
-      mapRoot.append('g')
-        .selectAll('path')
-        .data([land])
-        .join('path')
-        .attr('d', pathGen)
-        .attr('fill', '#1E242E')
-        .attr('stroke', '#313945')
-        .attr('stroke-width', 0.4)
-        .attr('opacity', 0.85);
+      if (isExpanded) {
+        renderExpandedMapBaseLayers(mapRoot, world, projection, pathGen, width, height);
+      } else {
+        const land = topojson.feature(world, world.objects.land);
+        mapRoot.append('g')
+          .selectAll('path')
+          .data([land])
+          .join('path')
+          .attr('d', pathGen)
+          .attr('fill', '#1E242E')
+          .attr('stroke', '#313945')
+          .attr('stroke-width', 0.4)
+          .attr('opacity', 0.85);
+      }
 
       const dotGroup = mapRoot.append('g').attr('class', 'map-dots');
+      const destinationLabelEntries = [];
+
       resolvedMapDestinations.forEach(d => {
         const [x, y] = projection([d.lng, d.lat]);
         const color = mapColors[d.type];
@@ -9390,7 +9497,30 @@
             .style('pointer-events', 'all')
             .style('cursor', 'pointer');
         }
+
+        if (isExpanded) {
+          destinationLabelEntries.push({
+            x,
+            y,
+            name: destName,
+            offset: Math.max(d.size, 6) + 3
+          });
+        }
       });
+
+      if (isExpanded && destinationLabelEntries.length > 0) {
+        const destLabelGroup = mapRoot.append('g')
+          .attr('class', 'map-destination-labels')
+          .style('opacity', 0);
+        destinationLabelEntries.forEach((entry) => {
+          destLabelGroup.append('text')
+            .attr('x', entry.x)
+            .attr('y', entry.y - entry.offset)
+            .attr('class', 'map-destination-label')
+            .attr('text-anchor', 'middle')
+            .text(entry.name);
+        });
+      }
 
       if (opts.enableZoom) {
         const zoom = d3.zoom()
@@ -9405,6 +9535,12 @@
           })
           .on('zoom', (event) => {
             svg.select('.map-viewport').attr('transform', event.transform);
+            if (isExpanded) {
+              const destLabels = svg.select('.map-destination-labels');
+              if (!destLabels.empty()) {
+                destLabels.style('opacity', event.transform.k >= 2.2 ? 1 : 0);
+              }
+            }
           });
         svg.call(zoom);
         _liveMapZoom = zoom;
