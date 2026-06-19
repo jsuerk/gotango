@@ -9373,7 +9373,7 @@
   }
 
   function _getExpandedMarkerSizing(d, isMobile) {
-    const coreR = d.type === 'surge' ? 3.25 : 2.9;
+    const coreR = d.type === 'surge' ? 2.6 : 2.4;
     return {
       coreR,
       hitR: isMobile ? 18 : 14
@@ -9591,10 +9591,10 @@
             .attr('class', 'map-dot')
             .attr('data-screen-r', sizing.coreR)
             .attr('data-marker-layer', 'core')
-            .attr('data-screen-stroke-width', 0.8)
+            .attr('data-screen-stroke-width', 0.6)
             .attr('fill', color)
             .attr('stroke', '#0c1018')
-            .attr('stroke-width', 0.8)
+            .attr('stroke-width', 0.6)
             .attr('opacity', 0)
             .transition().duration(600).attr('opacity', 1);
 
