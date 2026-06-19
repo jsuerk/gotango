@@ -282,7 +282,9 @@ function _buildLiveMapPublicDestinationMap(arrivalsData, v2Map) {
   const enriched = enrichDestinationsWithGoTangoScoreV2(okDests, v2Map);
   const map = new Map();
   for (const dest of enriched) {
-    if (dest && dest.id) map.set(dest.id, dest);
+    if (!dest || !dest.id) continue;
+    if (v2Map && v2Map.size > 0 && !dest._gotango_v2) continue;
+    map.set(dest.id, dest);
   }
   return map;
 }
@@ -291,7 +293,166 @@ function _getPublicDestinationForLiveMap(rawDest, publicDestMap) {
   const id = rawDest && rawDest.id;
   if (!id) return rawDest;
   const enriched = publicDestMap && publicDestMap.get(id);
-  return enriched ? { ...rawDest, ...enriched } : rawDest;
+  if (enriched) return { ...rawDest, ...enriched };
+  if (publicDestMap) {
+    const normName = _normalizeLiveMapDestinationName(rawDest.name || rawDest.label || rawDest.title);
+    if (normName) {
+      for (const publicDest of publicDestMap.values()) {
+        if (_normalizeLiveMapDestinationName(publicDest.name) === normName) {
+          return { ...rawDest, ...publicDest };
+        }
+      }
+    }
+  }
+  return rawDest;
+}
+
+function _normalizeLiveMapDestinationName(name) {
+  if (name == null || name === '') return '';
+  return String(name)
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function _resolveLiveMapPublicId(dest, publicDestMap) {
+  if (!dest) return '';
+  if (dest._gotango_v2 && dest._gotango_v2.id) return String(dest._gotango_v2.id);
+  if (dest.id && publicDestMap && publicDestMap.has(dest.id)) return String(dest.id);
+  if (publicDestMap) {
+    const normName = _normalizeLiveMapDestinationName(dest.name || dest.label || dest.title);
+    if (normName) {
+      for (const publicDest of publicDestMap.values()) {
+        if (_normalizeLiveMapDestinationName(publicDest.name) === normName) {
+          return String(publicDest.id);
+        }
+      }
+    }
+  }
+  return dest.id ? String(dest.id) : '';
+}
+
+function _getLiveMapCanonicalDestinationKey(dest, publicDestMap) {
+  if (!dest) return '';
+  const publicId = _resolveLiveMapPublicId(dest, publicDestMap);
+  if (publicId) return `id:${publicId}`;
+  if (dest.slug) return `slug:${String(dest.slug)}`;
+  const normName = _normalizeLiveMapDestinationName(dest.name || dest.label || dest.title);
+  if (normName) return `name:${normName}`;
+  return '';
+}
+
+function _integerArrivals24h(dest) {
+  if (!dest) return 0;
+  const n = Number(dest.arrivals_count ?? dest.private_arrivals_24h ?? dest.raw_ga_arrivals_24h);
+  return Number.isFinite(n) ? Math.round(n) : 0;
+}
+
+function _hasValidLiveMapCoords(dest) {
+  return dest && typeof dest.lat === 'number' && typeof dest.lng === 'number';
+}
+
+function _pickLiveMapCoords(enrichedDest, rawDest) {
+  if (_hasValidLiveMapCoords(enrichedDest)) {
+    return { lat: enrichedDest.lat, lng: enrichedDest.lng };
+  }
+  if (_hasValidLiveMapCoords(rawDest)) {
+    return { lat: rawDest.lat, lng: rawDest.lng };
+  }
+  return null;
+}
+
+function _resolveLiveMapMarkerArrivalsCount(publicDest, rawArrivals) {
+  if (
+    publicDest &&
+    (publicDest.arrivals_count != null ||
+      publicDest.private_arrivals_24h != null ||
+      publicDest.raw_ga_arrivals_24h != null)
+  ) {
+    return _integerArrivals24h(publicDest);
+  }
+  let max = 0;
+  for (const raw of rawArrivals) {
+    max = Math.max(max, _integerArrivals24h(raw));
+  }
+  return max;
+}
+
+function _createLiveMapCanonicalEntry(rawDest, publicDest) {
+  const coords = _pickLiveMapCoords(publicDest, rawDest);
+  if (!coords) return null;
+  const id = publicDest.id || rawDest.id;
+  const name = publicDest.name || publicDest.label || publicDest.title ||
+    rawDest.name || rawDest.label || rawDest.title || id;
+  return {
+    publicDest,
+    rawArrivals: [rawDest],
+    id,
+    name,
+    lat: coords.lat,
+    lng: coords.lng,
+  };
+}
+
+function _mergeLiveMapCanonicalEntry(existing, rawDest, publicDest) {
+  const mergedPublic = { ...existing.publicDest, ...rawDest, ...publicDest };
+  const rawArrivals = existing.rawArrivals.concat(rawDest);
+  const coords = _pickLiveMapCoords(mergedPublic, rawDest) || {
+    lat: existing.lat,
+    lng: existing.lng,
+  };
+  const id = mergedPublic.id || existing.id || rawDest.id;
+  const name = mergedPublic.name || mergedPublic.label || mergedPublic.title ||
+    existing.name || rawDest.name || rawDest.label || rawDest.title || id;
+  return {
+    publicDest: mergedPublic,
+    rawArrivals,
+    id,
+    name,
+    lat: coords.lat,
+    lng: coords.lng,
+  };
+}
+
+function resolveWorldMapDestinationsForTest(arrivalsData, v2Map) {
+  const allDests = arrivalsData && arrivalsData.data && Array.isArray(arrivalsData.data.destinations)
+    ? arrivalsData.data.destinations
+    : null;
+  if (!allDests || allDests.length === 0) return [];
+  const publicDestMap = _buildLiveMapPublicDestinationMap(arrivalsData, v2Map);
+  const validDests = allDests
+    .filter((dest) => _hasValidLiveMapCoords(dest))
+    .sort((a, b) => Number(b.signal_score || 0) - Number(a.signal_score || 0));
+  const byCanonical = new Map();
+  for (const dest of validDests) {
+    const publicDest = _getPublicDestinationForLiveMap(dest, publicDestMap);
+    const key = _getLiveMapCanonicalDestinationKey(publicDest, publicDestMap);
+    if (!key) continue;
+    const existing = byCanonical.get(key);
+    byCanonical.set(
+      key,
+      existing
+        ? _mergeLiveMapCanonicalEntry(existing, dest, publicDest)
+        : _createLiveMapCanonicalEntry(dest, publicDest),
+    );
+  }
+  return Array.from(byCanonical.values())
+    .filter(Boolean)
+    .map((entry) => {
+      const arrivalsCount = _resolveLiveMapMarkerArrivalsCount(entry.publicDest, entry.rawArrivals);
+      const type = _getLiveMapVisualType(entry.publicDest, true);
+      const size = arrivalsCount <= 0 ? 2 : Math.max(2, Math.min(8, 2 + (arrivalsCount / 5)));
+      return {
+        id: entry.id,
+        name: entry.name,
+        lng: entry.lng,
+        lat: entry.lat,
+        type,
+        size,
+      };
+    });
 }
 
 function resolveLiveMapTypeForRawDest(rawDest, arrivalsData, v2Map) {
@@ -997,7 +1158,7 @@ test('Live Map dot color uses enriched public category, not raw arrivals status 
   assert.match(html, /function _getPublicDestinationForLiveMap\(/);
   assert.match(html, /getPublicSignalBadgeV2\(dest\)\.vibeClass/);
   assert.match(html, /const publicDest = _getPublicDestinationForLiveMap\(dest, publicDestMap\)/);
-  assert.match(html, /const type = _getLiveMapVisualType\(publicDest\)/);
+  assert.match(html, /const type = _getLiveMapVisualType\(entry\.publicDest\)/);
   assert.match(html, /function _computeTier\(dest, allDestinations\)/);
 
   const v2Map = new Map([
@@ -1047,4 +1208,44 @@ test('Live Map dot color uses enriched public category, not raw arrivals status 
   );
   assert.equal(publicDest.confirmed_category, 'in_season');
   assert.equal(_getLiveMapVisualType(publicDest, true), 'steady');
+});
+
+test('Live Map dedupes duplicate raw rows to one marker per public destination', () => {
+  const html = readFileSync(INDEX_HTML, 'utf8');
+  assert.match(html, /function _getLiveMapCanonicalDestinationKey\(/);
+  assert.match(html, /const byCanonical = new Map\(\)/);
+
+  const v2Map = new Map([
+    ['jackson-hole', { id: 'jackson-hole', confirmed_category: 'cooling', go_tango_score: 42 }],
+    ['destin-30a', { id: 'destin-30a', confirmed_category: 'in_season', go_tango_score: 73 }],
+    ['hilton-head', { id: 'hilton-head', confirmed_category: 'cooling', go_tango_score: 55 }],
+  ]);
+
+  const arrivalsData = {
+    data: {
+      destinations: [
+        { id: 'jackson-hole', ok: true, name: 'Jackson Hole', lat: 43.6073, lng: -110.7377, signal_score: 50, status: 'heating', arrivals_count: 8 },
+        { id: 'kjac', ok: true, name: 'Jackson Hole', lat: 43.61, lng: -110.74, signal_score: 48, status: 'heating', arrivals_count: 12 },
+        { id: 'destin-30a', ok: true, name: 'Destin / 30A', lat: 30.4, lng: -86.5, signal_score: 95, status: 'heating', arrivals_count: 4 },
+        { id: 'destin-30a', ok: true, name: 'Destin / 30A', lat: 30.41, lng: -86.48, signal_score: 94, status: 'heating', arrivals_count: 9 },
+        { id: 'hilton-head', ok: true, name: 'Hilton Head', lat: 32.2, lng: -80.7, signal_score: 20, status: 'heating', arrivals_count: 6 },
+        { id: 'hilton-head', ok: true, name: 'Hilton Head', lat: 32.22, lng: -80.69, signal_score: 19, status: 'heating', arrivals_count: 10 },
+      ],
+    },
+  };
+
+  const markers = resolveWorldMapDestinationsForTest(arrivalsData, v2Map);
+  assert.equal(markers.length, 3, 'duplicate raw rows should collapse to one marker per destination');
+
+  const jackson = markers.find((m) => m.id === 'jackson-hole');
+  assert.ok(jackson, 'Jackson Hole marker should use public destination id');
+  assert.equal(jackson.type, 'cool', 'enriched public category should win over raw heating status');
+
+  const destin = markers.find((m) => m.id === 'destin-30a');
+  assert.ok(destin, 'Destin / 30A marker should remain');
+  assert.equal(destin.type, 'steady', 'IN SEASON public category should stay green on the map');
+
+  const hilton = markers.find((m) => m.id === 'hilton-head');
+  assert.ok(hilton, 'Hilton Head marker should remain');
+  assert.equal(hilton.type, 'cool', 'cooling public category should stay blue on the map');
 });
