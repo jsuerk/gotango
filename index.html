@@ -9373,26 +9373,10 @@
   }
 
   function _getExpandedMarkerSizing(d, isMobile) {
-    const opac = mapGlowOpacity[d.type];
-    if (isMobile) {
-      const coreR = d.type === 'surge' ? 4 : 3.5;
-      return {
-        coreR,
-        innerGlowR: 8,
-        outerGlowR: 12,
-        hitR: 18,
-        innerOpacity: opac * 0.4,
-        outerOpacity: opac * 0.18
-      };
-    }
-    const coreR = d.type === 'surge' ? 4.5 : 4;
+    const coreR = d.type === 'surge' ? 4 : 3.5;
     return {
       coreR,
-      innerGlowR: coreR + 6,
-      outerGlowR: coreR + 14,
-      hitR: 19,
-      innerOpacity: opac * 0.6,
-      outerOpacity: opac * 0.3
+      hitR: isMobile ? 18 : 14
     };
   }
 
@@ -9400,6 +9384,9 @@
     const safeK = Math.max(k, 0.001);
     svg.select('.map-dots').selectAll('[data-screen-r]').attr('r', function () {
       return Number(this.getAttribute('data-screen-r')) / safeK;
+    });
+    svg.select('.map-dots').selectAll('[data-screen-stroke-width]').attr('stroke-width', function () {
+      return Number(this.getAttribute('data-screen-stroke-width')) / safeK;
     });
   }
 
@@ -9600,29 +9587,15 @@
 
           dotGroup.append('circle')
             .attr('cx', x).attr('cy', y)
-            .attr('r', sizing.outerGlowR)
-            .attr('class', 'map-dot')
-            .attr('data-screen-r', sizing.outerGlowR)
-            .attr('data-marker-layer', 'glow-outer')
-            .attr('fill', color).attr('opacity', 0)
-            .transition().duration(600).attr('opacity', sizing.outerOpacity);
-
-          dotGroup.append('circle')
-            .attr('cx', x).attr('cy', y)
-            .attr('r', sizing.innerGlowR)
-            .attr('class', 'map-dot')
-            .attr('data-screen-r', sizing.innerGlowR)
-            .attr('data-marker-layer', 'glow-inner')
-            .attr('fill', color).attr('opacity', 0)
-            .transition().duration(600).attr('opacity', sizing.innerOpacity);
-
-          dotGroup.append('circle')
-            .attr('cx', x).attr('cy', y)
             .attr('r', sizing.coreR)
             .attr('class', 'map-dot')
             .attr('data-screen-r', sizing.coreR)
             .attr('data-marker-layer', 'core')
-            .attr('fill', color).attr('opacity', 0)
+            .attr('data-screen-stroke-width', 1)
+            .attr('fill', color)
+            .attr('stroke', '#0c1018')
+            .attr('stroke-width', 1)
+            .attr('opacity', 0)
             .transition().duration(600).attr('opacity', 1);
 
           if (opts.enableDestinationClicks) {
