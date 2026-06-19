@@ -461,6 +461,50 @@ function resolveLiveMapTypeForRawDest(rawDest, arrivalsData, v2Map) {
   return _getLiveMapVisualType(publicDest, true);
 }
 
+/** Mirrors index.html expanded Live Map nearest-marker selection. */
+function _getExpandedMapSelectionRadius(isMobile) {
+  return isMobile ? 20 : 14;
+}
+
+const _EXPANDED_MAP_AMBIGUITY_GAP_PX = 8;
+const _EXPANDED_MAP_MAX_PICKER_CANDIDATES = 6;
+
+function _pickNearestExpandedMapMarkers(pointerX, pointerY, markers, transform, isMobile) {
+  if (!Array.isArray(markers) || markers.length === 0 || !transform) {
+    return { mode: 'none', candidates: [] };
+  }
+
+  const selectionRadius = _getExpandedMapSelectionRadius(isMobile);
+  const ranked = markers
+    .map((marker) => {
+      const screenX = transform.applyX(marker.x);
+      const screenY = transform.applyY(marker.y);
+      const distance = Math.hypot(pointerX - screenX, pointerY - screenY);
+      return { ...marker, screenX, screenY, distance };
+    })
+    .filter((entry) => entry.distance <= selectionRadius)
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, _EXPANDED_MAP_MAX_PICKER_CANDIDATES);
+
+  if (ranked.length === 0) {
+    return { mode: 'none', candidates: [] };
+  }
+  if (ranked.length === 1) {
+    return { mode: 'single', destinationId: ranked[0].id, candidates: ranked };
+  }
+  if (ranked[1].distance - ranked[0].distance < _EXPANDED_MAP_AMBIGUITY_GAP_PX) {
+    return { mode: 'ambiguous', candidates: ranked };
+  }
+  return { mode: 'single', destinationId: ranked[0].id, candidates: ranked };
+}
+
+function createIdentityTransform() {
+  return {
+    applyX: (x) => x,
+    applyY: (y) => y,
+  };
+}
+
 test('shared human-language templates', () => {
   assert.equal(
     buildGoTangoSignalRead({
@@ -1248,4 +1292,48 @@ test('Live Map dedupes duplicate raw rows to one marker per public destination',
   const hilton = markers.find((m) => m.id === 'hilton-head');
   assert.ok(hilton, 'Hilton Head marker should remain');
   assert.equal(hilton.type, 'cool', 'cooling public category should stay blue on the map');
+});
+
+test('expanded Live Map nearest-marker selection uses pointer distance, not topmost marker', () => {
+  const html = readFileSync(INDEX_HTML, 'utf8');
+  assert.match(html, /function _pickNearestExpandedMapMarkers\(/);
+  assert.match(html, /function _showExpandedMapDestinationPicker\(/);
+  assert.match(html, /function _bindExpandedMapSelectionHandlers\(/);
+  assert.doesNotMatch(
+    html,
+    /closest\('\[data-live-map-destination-id\]'\)[\s\S]*?openDestinationModal/,
+  );
+
+  const transform = createIdentityTransform();
+  const cluster = [
+    { id: 'st-barth', name: 'St. Barth', type: 'surge', x: 100, y: 80 },
+    { id: 'mustique', name: 'Mustique', type: 'steady', x: 108, y: 80 },
+    { id: 'anguilla', name: 'Anguilla', type: 'cool', x: 116, y: 80 },
+  ];
+
+  const ambiguous = _pickNearestExpandedMapMarkers(104, 80, cluster, transform, false);
+  assert.equal(ambiguous.mode, 'ambiguous');
+  assert.ok(ambiguous.candidates.length >= 2);
+  assert.equal(ambiguous.candidates[0].id, 'st-barth');
+  assert.equal(ambiguous.candidates[1].id, 'mustique');
+
+  const nearest = _pickNearestExpandedMapMarkers(108, 80, cluster, transform, false);
+  assert.equal(nearest.mode, 'single');
+  assert.equal(nearest.destinationId, 'mustique', 'closest dot center should win over overlapping hit target');
+});
+
+test('expanded Live Map isolated marker resolves directly without picker', () => {
+  const transform = createIdentityTransform();
+  const markers = [
+    { id: 'santa-fe', name: 'Santa Fe', type: 'steady', x: 200, y: 90 },
+    { id: 'aspen', name: 'Aspen', type: 'cool', x: 260, y: 88 },
+  ];
+
+  const pick = _pickNearestExpandedMapMarkers(201, 90, markers, transform, false);
+  assert.equal(pick.mode, 'single');
+  assert.equal(pick.destinationId, 'santa-fe');
+
+  const miss = _pickNearestExpandedMapMarkers(150, 90, markers, transform, false);
+  assert.equal(miss.mode, 'none');
+  assert.equal(miss.candidates.length, 0);
 });

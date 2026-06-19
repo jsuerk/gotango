@@ -821,6 +821,52 @@
   .map-dot-hit {
     pointer-events: all;
   }
+  .live-map-destination-picker {
+    position: absolute;
+    z-index: 4;
+    min-width: 168px;
+    max-width: min(240px, 72vw);
+    padding: 6px;
+    background: rgba(12, 14, 20, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .live-map-destination-picker__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text);
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 120ms ease;
+  }
+  .live-map-destination-picker__item:hover,
+  .live-map-destination-picker__item:focus-visible {
+    background: rgba(255, 255, 255, 0.06);
+    outline: none;
+  }
+  .live-map-destination-picker__dot {
+    flex-shrink: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(12, 16, 24, 0.8);
+  }
+  .live-map-destination-picker__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.3;
+  }
   body.live-map-modal-open {
     overflow: hidden;
   }
@@ -9299,6 +9345,13 @@
 
   let latestLiveMapArrivalsData = null;
   let liveMapHandlersAttached = false;
+  let _expandedMapMarkers = [];
+  let _expandedMapZoomTransform = null;
+  let _expandedMapPointerGesture = null;
+
+  const _EXPANDED_MAP_AMBIGUITY_GAP_PX = 8;
+  const _EXPANDED_MAP_TAP_MOVE_THRESHOLD_PX = 6;
+  const _EXPANDED_MAP_MAX_PICKER_CANDIDATES = 6;
 
   function _isMobileExpandedMap() {
     return window.matchMedia('(max-width: 700px)').matches;
@@ -9335,6 +9388,164 @@
       coreR,
       hitR: isMobile ? 18 : 14
     };
+  }
+
+  function _getExpandedMapSelectionRadius(isMobile) {
+    return isMobile ? 20 : 14;
+  }
+
+  function _pickNearestExpandedMapMarkers(pointerX, pointerY, markers, transform, isMobile) {
+    if (!Array.isArray(markers) || markers.length === 0 || !transform) {
+      return { mode: 'none', candidates: [] };
+    }
+
+    const selectionRadius = _getExpandedMapSelectionRadius(isMobile);
+    const ranked = markers
+      .map((marker) => {
+        const screenX = transform.applyX(marker.x);
+        const screenY = transform.applyY(marker.y);
+        const distance = Math.hypot(pointerX - screenX, pointerY - screenY);
+        return { ...marker, screenX, screenY, distance };
+      })
+      .filter((entry) => entry.distance <= selectionRadius)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, _EXPANDED_MAP_MAX_PICKER_CANDIDATES);
+
+    if (ranked.length === 0) {
+      return { mode: 'none', candidates: [] };
+    }
+    if (ranked.length === 1) {
+      return { mode: 'single', destinationId: ranked[0].id, candidates: ranked };
+    }
+    if (ranked[1].distance - ranked[0].distance < _EXPANDED_MAP_AMBIGUITY_GAP_PX) {
+      return { mode: 'ambiguous', candidates: ranked };
+    }
+    return { mode: 'single', destinationId: ranked[0].id, candidates: ranked };
+  }
+
+  function _getExpandedMapSvgPoint(svgEl, clientX, clientY) {
+    if (!svgEl || typeof svgEl.createSVGPoint !== 'function') return null;
+    const ctm = svgEl.getScreenCTM();
+    if (!ctm) return null;
+    const pt = svgEl.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    return pt.matrixTransform(ctm.inverse());
+  }
+
+  function _closeExpandedMapDestinationPicker() {
+    const picker = document.querySelector('.live-map-destination-picker');
+    if (picker) picker.remove();
+  }
+
+  function _showExpandedMapDestinationPicker(candidates, clientX, clientY, svgEl) {
+    _closeExpandedMapDestinationPicker();
+    const shell = document.querySelector('.expanded-world-map-shell');
+    if (!shell || !Array.isArray(candidates) || candidates.length < 2 || !svgEl) return;
+
+    const shellRect = shell.getBoundingClientRect();
+    const ctm = svgEl.getScreenCTM();
+    if (!ctm) return;
+
+    const picker = document.createElement('div');
+    picker.className = 'live-map-destination-picker';
+    picker.setAttribute('role', 'listbox');
+    picker.setAttribute('aria-label', 'Nearby destinations');
+
+    candidates.forEach((candidate) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'live-map-destination-picker__item';
+      btn.setAttribute('role', 'option');
+      btn.setAttribute('data-destination-id', candidate.id);
+
+      const dot = document.createElement('span');
+      dot.className = 'live-map-destination-picker__dot';
+      dot.style.background = mapColors[candidate.type] || mapColors.steady;
+
+      const label = document.createElement('span');
+      label.className = 'live-map-destination-picker__label';
+      label.textContent = candidate.name || candidate.id;
+
+      btn.appendChild(dot);
+      btn.appendChild(label);
+      picker.appendChild(btn);
+    });
+
+    shell.appendChild(picker);
+
+    const pt = svgEl.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const screenPt = pt.matrixTransform(ctm);
+    const pad = 8;
+    const left = screenPt.x - shellRect.left;
+    const top = screenPt.y - shellRect.top + 12;
+    const pickerWidth = picker.offsetWidth;
+    const pickerHeight = picker.offsetHeight;
+    picker.style.left = `${Math.max(pad, Math.min(left, shellRect.width - pickerWidth - pad))}px`;
+    picker.style.top = `${Math.max(pad, Math.min(top, shellRect.height - pickerHeight - pad))}px`;
+  }
+
+  function _handleExpandedMapSelection(clientX, clientY, svgEl) {
+    const liveMapModal = document.getElementById('live-map-modal');
+    if (!liveMapModal || liveMapModal.style.display === 'none') return;
+
+    const svgPoint = _getExpandedMapSvgPoint(svgEl, clientX, clientY);
+    if (!svgPoint) return;
+
+    const transform = _expandedMapZoomTransform || d3.zoomIdentity;
+    const isMobile = _isMobileExpandedMap();
+    const pick = _pickNearestExpandedMapMarkers(
+      svgPoint.x,
+      svgPoint.y,
+      _expandedMapMarkers,
+      transform,
+      isMobile
+    );
+
+    if (pick.mode === 'none') {
+      _closeExpandedMapDestinationPicker();
+      return;
+    }
+    if (pick.mode === 'single') {
+      _closeExpandedMapDestinationPicker();
+      openDestinationModal(pick.destinationId);
+      return;
+    }
+    if (pick.mode === 'ambiguous') {
+      _showExpandedMapDestinationPicker(pick.candidates, clientX, clientY, svgEl);
+    }
+  }
+
+  function _bindExpandedMapSelectionHandlers(svgEl) {
+    if (!svgEl || svgEl._gotangoExpandedSelectionBound) return;
+    svgEl._gotangoExpandedSelectionBound = true;
+
+    svgEl.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      _expandedMapPointerGesture = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
+    }, { passive: true });
+
+    svgEl.addEventListener('click', (e) => {
+      const liveMapModal = document.getElementById('live-map-modal');
+      if (!liveMapModal || liveMapModal.style.display === 'none') return;
+      if (e.target.closest('.live-map-destination-picker')) return;
+
+      const gesture = _expandedMapPointerGesture;
+      _expandedMapPointerGesture = null;
+      if (gesture && gesture.pointerId === e.pointerId) {
+        const dx = e.clientX - gesture.x;
+        const dy = e.clientY - gesture.y;
+        if (dx * dx + dy * dy > _EXPANDED_MAP_TAP_MOVE_THRESHOLD_PX * _EXPANDED_MAP_TAP_MOVE_THRESHOLD_PX) {
+          return;
+        }
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      _handleExpandedMapSelection(e.clientX, e.clientY, svgEl);
+    });
   }
 
   function _updateExpandedMarkerRadii(svg, k) {
@@ -9722,6 +9933,7 @@
 
       const dotGroup = mapRoot.append('g').attr('class', 'map-dots');
       const destinationLabelEntries = [];
+      const expandedMarkerRecords = [];
 
       resolvedMapDestinations.forEach(d => {
         const [x, y] = projection([d.lng, d.lat]);
@@ -9730,6 +9942,14 @@
         const destName = d.name || d.id;
 
         if (isExpanded) {
+          expandedMarkerRecords.push({
+            id: d.id,
+            name: destName,
+            type: d.type,
+            x,
+            y
+          });
+
           const sizing = _getExpandedMarkerSizing(d, isMobileExpandedMap);
 
           dotGroup.append('circle')
@@ -9792,6 +10012,15 @@
         }
       });
 
+      if (isExpanded && opts.enableDestinationClicks) {
+        dotGroup.selectAll('.map-dot-hit')
+          .on('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            _handleExpandedMapSelection(event.clientX, event.clientY, svg.node());
+          });
+      }
+
       if (isExpanded && !isMobileExpandedMap && destinationLabelEntries.length > 0) {
         const destLabelGroup = mapRoot.append('g')
           .attr('class', 'map-destination-labels');
@@ -9815,6 +10044,12 @@
           });
       }
 
+      if (isExpanded && opts.enableDestinationClicks) {
+        _expandedMapMarkers = expandedMarkerRecords;
+        _expandedMapZoomTransform = d3.zoomIdentity;
+        _bindExpandedMapSelectionHandlers(svg.node());
+      }
+
       if (opts.enableZoom) {
         const panPaddingX = width * 3;
         const panPaddingY = height * 3;
@@ -9831,14 +10066,17 @@
           .on('zoom', (event) => {
             const k = event.transform.k;
             svg.select('.map-viewport').attr('transform', event.transform);
+            _expandedMapZoomTransform = event.transform;
             if (isExpanded) {
               _updateExpandedMarkerRadii(svg, k);
+              _closeExpandedMapDestinationPicker();
             }
           });
         svg.call(zoom);
         if (isExpanded) {
           const initialTransform = _getExpandedMapInitialTransform(projection, width, height);
           svg.call(zoom.transform, initialTransform);
+          _expandedMapZoomTransform = initialTransform;
         }
       }
     }).catch(err => console.error('Map load failed:', err));
@@ -9869,6 +10107,11 @@
     const modal = document.getElementById('live-map-modal');
     if (!modal) return;
     if (_modalCurrentDestId) return;
+
+    _closeExpandedMapDestinationPicker();
+    _expandedMapMarkers = [];
+    _expandedMapZoomTransform = null;
+    _expandedMapPointerGesture = null;
 
     modal.style.display = 'none';
     modal.setAttribute('aria-hidden', 'true');
@@ -9903,16 +10146,20 @@
         return;
       }
 
-      const marker = e.target.closest('[data-live-map-destination-id]');
-      if (!marker) return;
-      const liveMapModal = document.getElementById('live-map-modal');
-      if (!liveMapModal || liveMapModal.style.display === 'none') return;
+      const pickerItem = e.target.closest('.live-map-destination-picker__item');
+      if (pickerItem) {
+        e.preventDefault();
+        e.stopPropagation();
+        const destinationId = pickerItem.getAttribute('data-destination-id');
+        _closeExpandedMapDestinationPicker();
+        if (destinationId) openDestinationModal(destinationId);
+        return;
+      }
 
-      e.preventDefault();
-      e.stopPropagation();
-      const destinationId = marker.getAttribute('data-live-map-destination-id');
-      if (!destinationId) return;
-      openDestinationModal(destinationId);
+      const picker = document.querySelector('.live-map-destination-picker');
+      if (picker && !picker.contains(e.target) && !e.target.closest('#expanded-world-map')) {
+        _closeExpandedMapDestinationPicker();
+      }
     });
 
     document.addEventListener('keydown', (e) => {
