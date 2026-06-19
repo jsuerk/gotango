@@ -802,13 +802,28 @@
     transition: background 150ms ease, border-color 150ms ease;
     touch-action: manipulation;
   }
-  .live-map-controls button[data-live-map-zoom="reset"] {
+  .live-map-controls button[data-live-map-zoom="reset"],
+  .live-map-controls button[data-live-map-zoom="world"] {
     width: auto;
     min-width: 36px;
     padding: 0 10px;
     font-size: 10px;
     letter-spacing: 0.06em;
     text-transform: uppercase;
+  }
+  .live-map-controls button[data-live-map-zoom="world"] {
+    display: none;
+  }
+  @media (max-width: 700px) {
+    .live-map-controls button[data-live-map-zoom="world"] {
+      display: block;
+      font-size: 9px;
+      padding: 0 8px;
+    }
+    .map-region-label {
+      font-size: 6px;
+      fill: rgba(255, 255, 255, 0.14);
+    }
   }
   .live-map-controls button:hover {
     background: rgba(16, 20, 26, 0.95);
@@ -5648,6 +5663,7 @@
         <button type="button" data-live-map-zoom="in" aria-label="Zoom in">+</button>
         <button type="button" data-live-map-zoom="out" aria-label="Zoom out">−</button>
         <button type="button" data-live-map-zoom="reset" aria-label="Reset map">Reset</button>
+        <button type="button" data-live-map-zoom="world" aria-label="Show full world">World</button>
       </div>
     </div>
 
@@ -9347,6 +9363,43 @@
     }
   }
 
+  function _getExpandedMarkerSizing(d, isMobile) {
+    const coreR = d.type === 'surge' ? (isMobile ? 4 : 4.5) : (isMobile ? 3.5 : 4);
+    const innerPad = isMobile ? 5 : 6;
+    const outerPad = isMobile ? 12 : 14;
+    const hitR = isMobile ? 17 : 19;
+    const opac = mapGlowOpacity[d.type];
+    return {
+      coreR,
+      innerGlowR: coreR + innerPad,
+      outerGlowR: coreR + outerPad,
+      hitR,
+      innerOpacity: opac * 0.6,
+      outerOpacity: opac * 0.3
+    };
+  }
+
+  function _updateExpandedMarkerRadii(svg, k) {
+    const safeK = Math.max(k, 0.001);
+    svg.select('.map-dots').selectAll('circle[data-base-r]').each(function () {
+      const el = d3.select(this);
+      const baseR = +el.attr('data-base-r');
+      el.attr('r', baseR / safeK);
+    });
+  }
+
+  function _updateExpandedRegionLabels(svg, k, isMobile) {
+    if (!isMobile) return;
+    const baseOpacity = 0.14;
+    const fadeStart = 1.6;
+    const fadeEnd = 2.6;
+    let opacity = baseOpacity;
+    if (k > fadeStart) {
+      opacity = baseOpacity * Math.max(0, 1 - (k - fadeStart) / (fadeEnd - fadeStart));
+    }
+    svg.selectAll('.map-region-label').style('opacity', opacity);
+  }
+
   function resolveWorldMapDestinations(arrivalsData) {
     let resolvedMapDestinations = mapDestinations;
     const allDests = arrivalsData && arrivalsData.data && Array.isArray(arrivalsData.data.destinations)
@@ -9527,45 +9580,82 @@
         const opac = mapGlowOpacity[d.type];
         const destName = d.name || d.id;
 
-        dotGroup.append('circle')
-          .attr('cx', x).attr('cy', y).attr('r', d.size)
-          .attr('class', 'map-dot')
-          .attr('fill', color).attr('opacity', 0)
-          .transition().duration(600).attr('opacity', opac * 0.3);
+        if (isExpanded) {
+          const sizing = _getExpandedMarkerSizing(d, isMobileExpandedMap);
 
-        dotGroup.append('circle')
-          .attr('cx', x).attr('cy', y).attr('r', d.size * 0.55)
-          .attr('class', 'map-dot')
-          .attr('fill', color).attr('opacity', 0)
-          .transition().duration(600).attr('opacity', opac * 0.6);
-
-        dotGroup.append('circle')
-          .attr('cx', x).attr('cy', y)
-          .attr('r', d.type === 'surge' ? 3 : 2)
-          .attr('class', 'map-dot')
-          .attr('fill', color).attr('opacity', 0)
-          .transition().duration(600).attr('opacity', 1);
-
-        if (opts.enableDestinationClicks) {
           dotGroup.append('circle')
             .attr('cx', x).attr('cy', y)
-            .attr('r', Math.max(10, d.size + 8))
-            .attr('class', 'map-dot-hit')
-            .attr('data-live-map-destination-id', d.id)
-            .attr('aria-label', destName)
-            .attr('title', destName)
-            .style('fill', 'transparent')
-            .style('pointer-events', 'all')
-            .style('cursor', 'pointer');
+            .attr('r', sizing.outerGlowR)
+            .attr('class', 'map-dot')
+            .attr('data-base-r', sizing.outerGlowR)
+            .attr('data-base-opacity', sizing.outerOpacity)
+            .attr('data-layer', 'glow-outer')
+            .attr('fill', color).attr('opacity', 0)
+            .transition().duration(600).attr('opacity', sizing.outerOpacity);
+
+          dotGroup.append('circle')
+            .attr('cx', x).attr('cy', y)
+            .attr('r', sizing.innerGlowR)
+            .attr('class', 'map-dot')
+            .attr('data-base-r', sizing.innerGlowR)
+            .attr('data-base-opacity', sizing.innerOpacity)
+            .attr('data-layer', 'glow-inner')
+            .attr('fill', color).attr('opacity', 0)
+            .transition().duration(600).attr('opacity', sizing.innerOpacity);
+
+          dotGroup.append('circle')
+            .attr('cx', x).attr('cy', y)
+            .attr('r', sizing.coreR)
+            .attr('class', 'map-dot')
+            .attr('data-base-r', sizing.coreR)
+            .attr('data-base-opacity', 1)
+            .attr('data-layer', 'core')
+            .attr('fill', color).attr('opacity', 0)
+            .transition().duration(600).attr('opacity', 1);
+
+          if (opts.enableDestinationClicks) {
+            dotGroup.append('circle')
+              .attr('cx', x).attr('cy', y)
+              .attr('r', sizing.hitR)
+              .attr('class', 'map-dot-hit')
+              .attr('data-base-r', sizing.hitR)
+              .attr('data-layer', 'hit')
+              .attr('data-live-map-destination-id', d.id)
+              .attr('aria-label', destName)
+              .attr('title', destName)
+              .style('fill', 'transparent')
+              .style('pointer-events', 'all')
+              .style('cursor', 'pointer');
+          }
+        } else {
+          dotGroup.append('circle')
+            .attr('cx', x).attr('cy', y).attr('r', d.size)
+            .attr('class', 'map-dot')
+            .attr('fill', color).attr('opacity', 0)
+            .transition().duration(600).attr('opacity', opac * 0.3);
+
+          dotGroup.append('circle')
+            .attr('cx', x).attr('cy', y).attr('r', d.size * 0.55)
+            .attr('class', 'map-dot')
+            .attr('fill', color).attr('opacity', 0)
+            .transition().duration(600).attr('opacity', opac * 0.6);
+
+          dotGroup.append('circle')
+            .attr('cx', x).attr('cy', y)
+            .attr('r', d.type === 'surge' ? 3 : 2)
+            .attr('class', 'map-dot')
+            .attr('fill', color).attr('opacity', 0)
+            .transition().duration(600).attr('opacity', 1);
         }
 
         if (isExpanded && !isMobileExpandedMap) {
+          const sizing = _getExpandedMarkerSizing(d, false);
           destinationLabelEntries.push({
             id: d.id,
             x,
             y,
             name: destName,
-            offset: Math.max(d.size, 6) + 3
+            offset: sizing.coreR + 3
           });
         }
       });
@@ -9596,6 +9686,8 @@
       if (opts.enableZoom) {
         const zoom = d3.zoom()
           .scaleExtent([1, 8])
+          .extent([[0, 0], [width, height]])
+          .translateExtent([[-width * 1.5, -height * 1.5], [width * 2.5, height * 2.5]])
           .filter((event) => {
             const target = event.target;
             if (target && target.closest) {
@@ -9605,7 +9697,12 @@
             return (!event.ctrlKey || event.type === 'wheel') && !event.button;
           })
           .on('zoom', (event) => {
+            const k = event.transform.k;
             svg.select('.map-viewport').attr('transform', event.transform);
+            if (isExpanded) {
+              _updateExpandedMarkerRadii(svg, k);
+              _updateExpandedRegionLabels(svg, k, isMobileExpandedMap);
+            }
           });
         svg.call(zoom);
         _liveMapZoom = zoom;
@@ -9715,6 +9812,8 @@
       } else if (action === 'reset') {
         const resetTransform = _liveMapInitialTransform || d3.zoomIdentity;
         _liveMapZoomSvg.transition().duration(150).call(_liveMapZoom.transform, resetTransform);
+      } else if (action === 'world') {
+        _liveMapZoomSvg.transition().duration(150).call(_liveMapZoom.transform, d3.zoomIdentity);
       }
     });
   }
