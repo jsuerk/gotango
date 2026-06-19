@@ -42,6 +42,9 @@
     --signal-up: #7FB069;
     --signal-down: #E07856;
     --teal: #5EAAA8;
+    --status-heating: #E07A6A;
+    --status-steady: #6BCB8B;
+    --status-cooling: #5B9EA8;
     --coral: #E58C5E;
     --fs-micro: clamp(0.72rem, 0.68rem + 0.18vw, 0.82rem);
     --fs-label: clamp(0.78rem, 0.72rem + 0.24vw, 0.92rem);
@@ -493,7 +496,7 @@
 
   .hero-stats .hero-stat-value--private { color: var(--text); }
   .hero-stats .hero-stat-value--heating { color: var(--text); }
-  .hero-stats .hero-stat-value--cooling { color: var(--teal); }
+  .hero-stats .hero-stat-value--cooling { color: var(--status-cooling); }
   .hero-stats .hero-stat-delta {
     font-family: 'Geist Mono', monospace;
     font-size: var(--fs-label);
@@ -1624,19 +1627,19 @@
     border: 1px solid rgba(232,163,23,0.22);
   }
   .mover-badge--rising {
-    color: var(--signal-up);
-    background: rgba(127,176,105,0.1);
-    border: 1px solid rgba(127,176,105,0.22);
+    color: var(--status-heating);
+    background: rgba(224,122,106,0.1);
+    border: 1px solid rgba(224,122,106,0.22);
   }
   .mover-badge--cooling {
-    color: var(--signal-down);
-    background: rgba(224,120,86,0.1);
-    border: 1px solid rgba(224,120,86,0.22);
-  }
-  .mover-badge--steady {
-    color: #5B9EA8;
+    color: var(--status-cooling);
     background: rgba(91,158,168,0.1);
     border: 1px solid rgba(91,158,168,0.22);
+  }
+  .mover-badge--steady {
+    color: var(--status-steady);
+    background: rgba(107,203,139,0.1);
+    border: 1px solid rgba(107,203,139,0.22);
   }
   .mover-badge--quiet {
     color: var(--text-faint);
@@ -2314,9 +2317,9 @@
     border-radius: 3px;
     margin-bottom: 16px;
   }
-  .d-vibe.surge { color: var(--signal-up); background: rgba(127, 176, 105, 0.1); border: 1px solid rgba(127, 176, 105, 0.3); }
-  .d-vibe.cool { color: var(--signal-down); background: rgba(224, 120, 86, 0.1); border: 1px solid rgba(224, 120, 86, 0.3); }
-  .d-vibe.steady { color: var(--teal); background: rgba(94, 170, 168, 0.1); border: 1px solid rgba(94, 170, 168, 0.3); }
+  .d-vibe.surge { color: var(--status-heating); background: rgba(224, 122, 106, 0.1); border: 1px solid rgba(224, 122, 106, 0.3); }
+  .d-vibe.cool { color: var(--status-cooling); background: rgba(91, 158, 168, 0.1); border: 1px solid rgba(91, 158, 168, 0.3); }
+  .d-vibe.steady { color: var(--status-steady); background: rgba(107, 203, 139, 0.1); border: 1px solid rgba(107, 203, 139, 0.3); }
   .d-vibe.build { color: var(--amber); background: rgba(232, 163, 23, 0.1); border: 1px solid rgba(232, 163, 23, 0.3); }
   .d-name {
     font-family: 'Fraunces', serif;
@@ -2966,19 +2969,19 @@
   }
 
   .d-vibe.surge {
-    color: var(--signal-up);
-    background: rgba(127, 176, 105, 0.1);
-    border: 1px solid rgba(127, 176, 105, 0.3);
+    color: var(--status-heating);
+    background: rgba(224, 122, 106, 0.1);
+    border: 1px solid rgba(224, 122, 106, 0.3);
   }
   .d-vibe.cool {
-    color: var(--signal-down, #E07856);
-    background: rgba(224, 120, 86, 0.1);
-    border: 1px solid rgba(224, 120, 86, 0.3);
+    color: var(--status-cooling);
+    background: rgba(91, 158, 168, 0.1);
+    border: 1px solid rgba(91, 158, 168, 0.3);
   }
   .d-vibe.steady {
-    color: var(--teal, #5EAAA8);
-    background: rgba(94, 170, 168, 0.1);
-    border: 1px solid rgba(94, 170, 168, 0.3);
+    color: var(--status-steady);
+    background: rgba(107, 203, 139, 0.1);
+    border: 1px solid rgba(107, 203, 139, 0.3);
   }
 
   .d-name {
@@ -3943,9 +3946,9 @@
   flex-shrink: 0;
 }
 
-.d-stack-dot--up { background: var(--signal-up, #7FB069); box-shadow: 0 0 8px rgba(127, 176, 105, 0.5); }
-.d-stack-dot--steady { background: var(--teal, #5EAAA8); box-shadow: 0 0 8px rgba(94, 170, 168, 0.45); }
-.d-stack-dot--down { background: var(--signal-down, #E07856); box-shadow: 0 0 8px rgba(224, 120, 86, 0.45); }
+.d-stack-dot--up { background: var(--status-heating); box-shadow: 0 0 8px rgba(224, 122, 106, 0.5); }
+.d-stack-dot--steady { background: var(--status-steady); box-shadow: 0 0 8px rgba(107, 203, 139, 0.45); }
+.d-stack-dot--down { background: var(--status-cooling); box-shadow: 0 0 8px rgba(91, 158, 168, 0.45); }
 .d-stack-dot--quiet { background: var(--text-faint, #6B6557); }
 
 .d-stack-main {
@@ -3985,9 +3988,9 @@
   min-width: 2px;
 }
 
-.d-stack-bar--up { background: var(--signal-up, #7FB069); }
-.d-stack-bar--steady { background: var(--teal, #5EAAA8); }
-.d-stack-bar--down { background: var(--signal-down, #E07856); }
+.d-stack-bar--up { background: var(--status-heating); }
+.d-stack-bar--steady { background: var(--status-steady); }
+.d-stack-bar--down { background: var(--status-cooling); }
 .d-stack-bar--quiet { background: var(--text-faint, #6B6557); }
 
 .d-stack-score {
@@ -4284,9 +4287,9 @@
   margin-top: 4px;
 }
 
-.d-peer-tier.surge { color: var(--amber, #E8A317); }
-.d-peer-tier.cool { color: var(--signal-down, #E07856); }
-.d-peer-tier.steady { color: var(--teal, #5EAAA8); }
+.d-peer-tier.surge { color: var(--status-heating); }
+.d-peer-tier.cool { color: var(--status-cooling); }
+.d-peer-tier.steady { color: var(--status-steady); }
 
 /* Mobile adjustments */
 @media (max-width: 640px) {
@@ -5693,6 +5696,19 @@
   const GOTANGO_SCORE_V2_VERSION = 'gotango_score_v2_1_activity_led';
   const GOTANGO_SCORE_V2_MODEL = 'B_ORIGINAL_cap_15';
   const NOW_MIN_PUBLIC_SCORE = 60;
+  const STATUS_UI_COLORS = {
+    heating: '#E07A6A',
+    heating_up: '#E07A6A',
+    warming: '#E07A6A',
+    surge: '#E07A6A',
+    rising: '#E07A6A',
+    steady: '#6BCB8B',
+    in_season: '#6BCB8B',
+    active: '#6BCB8B',
+    cooling: '#5B9EA8',
+    softening: '#5B9EA8',
+    cool: '#5B9EA8',
+  };
   const MOVERS_V2_SECTION_ORDER = ['heating_up', 'in_season', 'steady', 'cooling'];
   const MOVERS_V2_SECTION_META = {
     heating_up: {
@@ -5713,10 +5729,10 @@
     },
   };
   const MOVERS_V2_BADGE_META = {
-    heating_up: { label: 'HEATING UP', className: 'mover-badge--rising', sparkColor: '#7FB069' },
-    in_season: { label: 'IN SEASON', className: 'mover-badge--steady', sparkColor: '#5B9EA8' },
-    steady: { label: 'STEADY', className: 'mover-badge--steady', sparkColor: '#5B9EA8' },
-    cooling: { label: 'COOLING', className: 'mover-badge--cooling', sparkColor: '#E07856' },
+    heating_up: { label: 'HEATING UP', className: 'mover-badge--rising', sparkColor: STATUS_UI_COLORS.heating_up },
+    in_season: { label: 'IN SEASON', className: 'mover-badge--steady', sparkColor: STATUS_UI_COLORS.in_season },
+    steady: { label: 'STEADY', className: 'mover-badge--steady', sparkColor: STATUS_UI_COLORS.steady },
+    cooling: { label: 'COOLING', className: 'mover-badge--cooling', sparkColor: STATUS_UI_COLORS.cooling },
   };
 
   // ============ HERO DATA (PHASE 5A PASS 1) ============
@@ -7075,9 +7091,9 @@
 
   const MOVERS_BADGE_META = {
     top: { label: 'Top Signal', className: 'mover-badge--top', sparkColor: '#E8A317' },
-    rising: { label: 'Rising', className: 'mover-badge--rising', sparkColor: '#7FB069' },
-    cooling: { label: 'Cooling', className: 'mover-badge--cooling', sparkColor: '#E07856' },
-    steady: { label: 'Steady', className: 'mover-badge--steady', sparkColor: '#5B9EA8' },
+    rising: { label: 'Rising', className: 'mover-badge--rising', sparkColor: STATUS_UI_COLORS.rising },
+    cooling: { label: 'Cooling', className: 'mover-badge--cooling', sparkColor: STATUS_UI_COLORS.cooling },
+    steady: { label: 'Steady', className: 'mover-badge--steady', sparkColor: STATUS_UI_COLORS.steady },
     quiet: { label: 'Quiet', className: 'mover-badge--quiet', sparkColor: '#6B6557' },
   };
 
@@ -9334,7 +9350,7 @@
     { id: 'courchevel', name: 'Courchevel', lng:   6.64, lat: 45.40, type: 'cool', size: 7 }
   ];
 
-  const mapColors = { surge: '#E07A6A', steady: '#6BCB8B', cool: '#5B9EA8' };
+  const mapColors = { surge: STATUS_UI_COLORS.surge, steady: STATUS_UI_COLORS.steady, cool: STATUS_UI_COLORS.cool };
   const mapGlowOpacity = { surge: 0.75, steady: 0.5, cool: 0.55 };
 
   let latestLiveMapArrivalsData = null;
