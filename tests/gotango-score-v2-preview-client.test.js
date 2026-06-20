@@ -1463,3 +1463,39 @@ test('expanded Live Map initial transform centers Americas view', () => {
   assert.equal(desktop.k, 1.12);
   assert.ok(desktop.x < width / 2);
 });
+
+function _clampExpandedMapTransformYForTest(transform, height) {
+  const k = transform.k;
+  const margin = height * 0.07;
+  const yMin = height * (1 - k) - margin;
+  const yMax = margin;
+  let y = transform.y;
+  if (y < yMin) y = yMin;
+  else if (y > yMax) y = yMax;
+  else return transform;
+  return { ...transform, y };
+}
+
+test('expanded Live Map Y clamp keeps transform within scale-aware vertical bounds', () => {
+  const html = readFileSync(INDEX_HTML, 'utf8');
+  assert.match(html, /function _clampExpandedMapTransformY\(/);
+
+  const height = 150;
+  const k = 1.08;
+  const margin = height * 0.07;
+  const yMin = height * (1 - k) - margin;
+  const yMax = margin;
+
+  const within = _clampExpandedMapTransformYForTest({ k, x: 100, y: 5 }, height);
+  assert.equal(within.y, 5, 'in-range y should pass through unchanged');
+
+  const tooHigh = _clampExpandedMapTransformYForTest({ k, x: 100, y: 80 }, height);
+  assert.equal(tooHigh.y, yMax, 'large positive y should clamp to top margin');
+
+  const tooLow = _clampExpandedMapTransformYForTest({ k, x: 100, y: -80 }, height);
+  assert.equal(tooLow.y, yMin, 'large negative y should clamp to bottom bound');
+
+  const zoomed = _clampExpandedMapTransformYForTest({ k: 4, x: 50, y: -200 }, height);
+  assert.ok(zoomed.y >= height * (1 - 4) - margin, 'zoomed-in pan should allow wider negative y');
+  assert.ok(zoomed.y <= margin, 'zoomed-in pan should still respect top margin');
+});

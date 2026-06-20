@@ -786,15 +786,15 @@
   #expanded-world-map .map-land-fill {
     fill: #1a2029;
     fill-opacity: 0.92;
-    stroke: rgba(232, 163, 23, 0.28);
-    stroke-width: 0.35;
+    stroke: rgba(232, 163, 23, 0.38);
+    stroke-width: 0.42;
     vector-effect: non-scaling-stroke;
     pointer-events: none;
   }
   #expanded-world-map .map-country-borders {
     fill: none;
-    stroke: rgba(232, 163, 23, 0.34);
-    stroke-width: 0.32;
+    stroke: rgba(232, 163, 23, 0.46);
+    stroke-width: 0.40;
     vector-effect: non-scaling-stroke;
     pointer-events: none;
   }
@@ -9390,11 +9390,11 @@
   const _EXPANDED_MAP_AMBIGUITY_GAP_PX = 8;
   const _EXPANDED_MAP_TAP_MOVE_THRESHOLD_PX = 6;
   const _EXPANDED_MAP_MAX_PICKER_CANDIDATES = 6;
-  const _EXPANDED_MAP_INERTIA_MIN_VELOCITY = 0.25;
-  const _EXPANDED_MAP_INERTIA_FRICTION = 0.935;
-  const _EXPANDED_MAP_INERTIA_MAX_MS = 850;
-  const _EXPANDED_MAP_INERTIA_MAX_VELOCITY = 2.5;
-  const _EXPANDED_MAP_INERTIA_VERTICAL_FACTOR = 0.35;
+  const _EXPANDED_MAP_INERTIA_MIN_VELOCITY = 0.35;
+  const _EXPANDED_MAP_INERTIA_FRICTION = 0.89;
+  const _EXPANDED_MAP_INERTIA_MAX_MS = 520;
+  const _EXPANDED_MAP_INERTIA_MAX_VELOCITY = 1.55;
+  const _EXPANDED_MAP_INERTIA_VERTICAL_FACTOR = 0.08;
 
   function _isMobileExpandedMap() {
     return window.matchMedia('(max-width: 700px)').matches;
@@ -9464,6 +9464,18 @@
     return d3.zoomIdentity.translate(x, transform.y).scale(transform.k);
   }
 
+  function _clampExpandedMapTransformY(transform, height) {
+    const k = transform.k;
+    const margin = height * 0.07;
+    const yMin = height * (1 - k) - margin;
+    const yMax = margin;
+    let y = transform.y;
+    if (y < yMin) y = yMin;
+    else if (y > yMax) y = yMax;
+    else return transform;
+    return d3.zoomIdentity.translate(transform.x, y).scale(k);
+  }
+
   function _getExpandedMapInitialTransform(projection, width, height) {
     const isMobile = _isMobileExpandedMap();
     const initialK = isMobile ? 1.08 : 1.12;
@@ -9480,7 +9492,7 @@
     }
   }
 
-  function _startExpandedMapInertia(svg, zoom, vx, vy) {
+  function _startExpandedMapInertia(svg, zoom, vx, vy, height) {
     _stopExpandedMapInertia();
     const friction = _EXPANDED_MAP_INERTIA_FRICTION;
     const maxMs = _EXPANDED_MAP_INERTIA_MAX_MS;
@@ -9504,7 +9516,10 @@
       const current = _expandedMapZoomTransform || d3.zoomIdentity;
       const newX = current.x + velocityX * dt;
       const newY = current.y + velocityY * dt;
-      const newTransform = d3.zoomIdentity.translate(newX, newY).scale(current.k);
+      const newTransform = _clampExpandedMapTransformY(
+        d3.zoomIdentity.translate(newX, newY).scale(current.k),
+        height
+      );
       svg.call(zoom.transform, newTransform);
 
       const decay = Math.pow(friction, dt / 16);
@@ -9516,7 +9531,7 @@
     _expandedMapInertiaRaf = requestAnimationFrame(tick);
   }
 
-  function _bindExpandedMapInertiaHandlers(svgEl, zoom) {
+  function _bindExpandedMapInertiaHandlers(svgEl, zoom, height) {
     if (!svgEl || !_isMobileExpandedMap()) return;
     if (svgEl._gotangoExpandedInertiaBound) return;
     svgEl._gotangoExpandedInertiaBound = true;
@@ -9600,7 +9615,8 @@
         svg,
         zoom,
         vel.vx,
-        vel.vy * _EXPANDED_MAP_INERTIA_VERTICAL_FACTOR
+        vel.vy * _EXPANDED_MAP_INERTIA_VERTICAL_FACTOR,
+        height
       );
     };
 
@@ -10081,8 +10097,8 @@
         .attr('d', pathGen)
         .attr('fill', '#1a2029')
         .attr('fill-opacity', 0.92)
-        .style('stroke', 'rgba(232, 163, 23, 0.28)')
-        .style('stroke-width', '0.35px')
+        .style('stroke', 'rgba(232, 163, 23, 0.38)')
+        .style('stroke-width', '0.42px')
         .style('vector-effect', 'non-scaling-stroke')
         .style('pointer-events', 'none');
     });
@@ -10096,8 +10112,8 @@
             .attr('class', 'map-country-borders')
             .attr('d', pathGen)
             .attr('fill', 'none')
-            .style('stroke', 'rgba(232, 163, 23, 0.34)')
-            .style('stroke-width', '0.32px')
+            .style('stroke', 'rgba(232, 163, 23, 0.46)')
+            .style('stroke-width', '0.40px')
             .style('vector-effect', 'non-scaling-stroke')
             .style('pointer-events', 'none');
         });
@@ -10356,7 +10372,7 @@
 
       if (opts.enableZoom) {
         const panPaddingX = width * 30;
-        const panPaddingY = height * 3;
+        const panPaddingY = height * 0.5;
         const zoom = d3.zoom()
           .scaleExtent([1, 8])
           .extent([[0, 0], [width, height]])
@@ -10371,7 +10387,14 @@
             if (event.sourceEvent) _stopExpandedMapInertia();
           })
           .on('zoom', (event) => {
-            const transform = event.transform;
+            let transform = event.transform;
+            if (isExpanded) {
+              const clamped = _clampExpandedMapTransformY(transform, height);
+              if (clamped.y !== transform.y) {
+                svg.call(zoom.transform, clamped);
+                return;
+              }
+            }
             const k = transform.k;
             svg.select('.map-viewport').attr('transform', transform);
             _expandedMapZoomTransform = transform;
@@ -10386,7 +10409,7 @@
           svg.call(zoom.transform, initialTransform);
           _expandedMapZoomTransform = initialTransform;
           if (opts.enableDestinationClicks) {
-            _bindExpandedMapInertiaHandlers(svg.node(), zoom);
+            _bindExpandedMapInertiaHandlers(svg.node(), zoom, height);
           }
         }
       }
