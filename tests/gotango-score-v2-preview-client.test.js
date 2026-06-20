@@ -513,8 +513,8 @@ function _dedupeExpandedMapCandidatesById(candidates) {
 }
 
 function _getExpandedMapInitialTransformForTest(projection, width, height, isMobile) {
-  const initialK = isMobile ? 1.25 : 1.2;
-  const [targetX, targetY] = projection([-82, 22]);
+  const initialK = isMobile ? 1.08 : 1.12;
+  const [targetX, targetY] = projection([-82, 17]);
   return {
     k: initialK,
     x: width / 2 - initialK * targetX,
@@ -1433,7 +1433,7 @@ test('expanded Live Map picker dedupes wrapped copies by destination id', () => 
 test('expanded Live Map initial transform centers Americas view', () => {
   const html = readFileSync(INDEX_HTML, 'utf8');
   assert.match(html, /function _getExpandedMapInitialTransform\(/);
-  assert.match(html, /projection\(\[-82, 22\]\)/);
+  assert.match(html, /projection\(\[-82, 17\]\)/);
 
   const width = 480;
   const height = 150;
@@ -1455,11 +1455,11 @@ test('expanded Live Map initial transform centers Americas view', () => {
   ];
 
   const mobile = _getExpandedMapInitialTransformForTest(geoLike, width, height, true);
-  assert.equal(mobile.k, 1.25);
+  assert.equal(mobile.k, 1.08);
   assert.ok(mobile.x < width / 2, 'Americas center should shift viewport west of map midpoint');
   assert.ok(mobile.y < height / 2, 'Americas center should shift viewport north of map midpoint');
 
   const desktop = _getExpandedMapInitialTransformForTest(geoLike, width, height, false);
-  assert.equal(desktop.k, 1.2);
+  assert.equal(desktop.k, 1.12);
   assert.ok(desktop.x < width / 2);
 });

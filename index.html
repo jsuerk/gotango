@@ -785,15 +785,17 @@
   }
   .map-land-fill {
     fill: #1a2029;
-    stroke: #2d3543;
-    stroke-width: 0.45;
+    stroke: rgba(232, 163, 23, 0.12);
+    stroke-width: 0.22;
+    vector-effect: non-scaling-stroke;
     opacity: 0.92;
     pointer-events: none;
   }
   .map-country-borders {
     fill: none;
-    stroke: rgba(255, 255, 255, 0.08);
-    stroke-width: 0.25;
+    stroke: rgba(232, 163, 23, 0.18);
+    stroke-width: 0.22;
+    vector-effect: non-scaling-stroke;
     pointer-events: none;
   }
   .map-region-label {
@@ -9383,10 +9385,16 @@
   let _expandedMapMarkers = [];
   let _expandedMapZoomTransform = null;
   let _expandedMapPointerGesture = null;
+  let _expandedMapInertiaRaf = null;
 
   const _EXPANDED_MAP_AMBIGUITY_GAP_PX = 8;
   const _EXPANDED_MAP_TAP_MOVE_THRESHOLD_PX = 6;
   const _EXPANDED_MAP_MAX_PICKER_CANDIDATES = 6;
+  const _EXPANDED_MAP_INERTIA_MIN_VELOCITY = 0.25;
+  const _EXPANDED_MAP_INERTIA_FRICTION = 0.935;
+  const _EXPANDED_MAP_INERTIA_MAX_MS = 850;
+  const _EXPANDED_MAP_INERTIA_MAX_VELOCITY = 2.5;
+  const _EXPANDED_MAP_INERTIA_VERTICAL_FACTOR = 0.35;
 
   function _isMobileExpandedMap() {
     return window.matchMedia('(max-width: 700px)').matches;
@@ -9458,11 +9466,146 @@
 
   function _getExpandedMapInitialTransform(projection, width, height) {
     const isMobile = _isMobileExpandedMap();
-    const initialK = isMobile ? 1.25 : 1.2;
-    const [targetX, targetY] = projection([-82, 22]);
+    const initialK = isMobile ? 1.08 : 1.12;
+    const [targetX, targetY] = projection([-82, 17]);
     return d3.zoomIdentity
       .translate(width / 2 - initialK * targetX, height / 2 - initialK * targetY)
       .scale(initialK);
+  }
+
+  function _stopExpandedMapInertia() {
+    if (_expandedMapInertiaRaf) {
+      cancelAnimationFrame(_expandedMapInertiaRaf);
+      _expandedMapInertiaRaf = null;
+    }
+  }
+
+  function _startExpandedMapInertia(svg, zoom, vx, vy) {
+    _stopExpandedMapInertia();
+    const friction = _EXPANDED_MAP_INERTIA_FRICTION;
+    const maxMs = _EXPANDED_MAP_INERTIA_MAX_MS;
+    const startTime = performance.now();
+    let lastTime = startTime;
+    let velocityX = vx;
+    let velocityY = vy;
+
+    const tick = (now) => {
+      const dt = Math.min(now - lastTime, 32);
+      lastTime = now;
+      if (now - startTime > maxMs) {
+        _expandedMapInertiaRaf = null;
+        return;
+      }
+      if (Math.abs(velocityX) < 0.02 && Math.abs(velocityY) < 0.02) {
+        _expandedMapInertiaRaf = null;
+        return;
+      }
+
+      const current = _expandedMapZoomTransform || d3.zoomIdentity;
+      const newX = current.x + velocityX * dt;
+      const newY = current.y + velocityY * dt;
+      const newTransform = d3.zoomIdentity.translate(newX, newY).scale(current.k);
+      svg.call(zoom.transform, newTransform);
+
+      const decay = Math.pow(friction, dt / 16);
+      velocityX *= decay;
+      velocityY *= decay;
+
+      _expandedMapInertiaRaf = requestAnimationFrame(tick);
+    };
+    _expandedMapInertiaRaf = requestAnimationFrame(tick);
+  }
+
+  function _bindExpandedMapInertiaHandlers(svgEl, zoom) {
+    if (!svgEl || !_isMobileExpandedMap()) return;
+    if (svgEl._gotangoExpandedInertiaBound) return;
+    svgEl._gotangoExpandedInertiaBound = true;
+
+    const svg = d3.select(svgEl);
+    let velocitySamples = [];
+    const activePointers = new Map();
+
+    const recordSample = (x, y) => {
+      const t = performance.now();
+      velocitySamples.push({ x, y, t });
+      const cutoff = t - 120;
+      velocitySamples = velocitySamples.filter((sample) => sample.t >= cutoff);
+      while (velocitySamples.length > 6) velocitySamples.shift();
+    };
+
+    const computeVelocity = () => {
+      if (velocitySamples.length < 2) return null;
+      const newest = velocitySamples[velocitySamples.length - 1];
+      let oldest = velocitySamples[0];
+      for (let i = velocitySamples.length - 2; i >= 0; i -= 1) {
+        if (newest.t - velocitySamples[i].t >= 50) {
+          oldest = velocitySamples[i];
+          break;
+        }
+      }
+      const dt = newest.t - oldest.t;
+      if (dt < 16) return null;
+      let vx = (newest.x - oldest.x) / dt;
+      let vy = (newest.y - oldest.y) / dt;
+      const speed = Math.hypot(vx, vy);
+      if (speed > _EXPANDED_MAP_INERTIA_MAX_VELOCITY) {
+        const scale = _EXPANDED_MAP_INERTIA_MAX_VELOCITY / speed;
+        vx *= scale;
+        vy *= scale;
+      }
+      return { vx, vy, speed: Math.hypot(vx, vy) };
+    };
+
+    svgEl.addEventListener('pointerdown', (e) => {
+      _stopExpandedMapInertia();
+      if (e.pointerType === 'mouse') return;
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (activePointers.size === 1) {
+        velocitySamples = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
+      } else {
+        velocitySamples = [];
+      }
+    }, { passive: true });
+
+    svgEl.addEventListener('pointermove', (e) => {
+      if (!activePointers.has(e.pointerId) || activePointers.size !== 1) return;
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      recordSample(e.clientX, e.clientY);
+    }, { passive: true });
+
+    const onPointerEnd = (e) => {
+      if (!activePointers.has(e.pointerId)) return;
+      const wasSingle = activePointers.size === 1;
+      activePointers.delete(e.pointerId);
+      if (!wasSingle || activePointers.size > 0) {
+        velocitySamples = [];
+        return;
+      }
+
+      recordSample(e.clientX, e.clientY);
+      const vel = computeVelocity();
+      velocitySamples = [];
+      if (!vel || vel.speed < _EXPANDED_MAP_INERTIA_MIN_VELOCITY) return;
+
+      const gesture = _expandedMapPointerGesture;
+      if (gesture && gesture.pointerId === e.pointerId) {
+        const dx = e.clientX - gesture.x;
+        const dy = e.clientY - gesture.y;
+        if (dx * dx + dy * dy <= _EXPANDED_MAP_TAP_MOVE_THRESHOLD_PX * _EXPANDED_MAP_TAP_MOVE_THRESHOLD_PX) {
+          return;
+        }
+      }
+
+      _startExpandedMapInertia(
+        svg,
+        zoom,
+        vel.vx,
+        vel.vy * _EXPANDED_MAP_INERTIA_VERTICAL_FACTOR
+      );
+    };
+
+    svgEl.addEventListener('pointerup', onPointerEnd, { passive: true });
+    svgEl.addEventListener('pointercancel', onPointerEnd, { passive: true });
   }
 
   function _setExpandedMapHoveredLabel(svg, destinationId) {
@@ -9610,6 +9753,7 @@
     }
     if (pick.mode === 'single') {
       _closeExpandedMapDestinationPicker();
+      _stopExpandedMapInertia();
       openDestinationModal(pick.destinationId);
       return;
     }
@@ -10200,7 +10344,7 @@
       }
 
       if (opts.enableZoom) {
-        const panPaddingX = width * 20;
+        const panPaddingX = width * 30;
         const panPaddingY = height * 3;
         const zoom = d3.zoom()
           .scaleExtent([1, 8])
@@ -10211,6 +10355,9 @@
           ])
           .filter((event) => {
             return (!event.ctrlKey || event.type === 'wheel') && !event.button;
+          })
+          .on('start', (event) => {
+            if (event.sourceEvent) _stopExpandedMapInertia();
           })
           .on('zoom', (event) => {
             const transform = event.transform;
@@ -10227,6 +10374,9 @@
           const initialTransform = _getExpandedMapInitialTransform(projection, width, height);
           svg.call(zoom.transform, initialTransform);
           _expandedMapZoomTransform = initialTransform;
+          if (opts.enableDestinationClicks) {
+            _bindExpandedMapInertiaHandlers(svg.node(), zoom);
+          }
         }
       }
     }).catch(err => console.error('Map load failed:', err));
@@ -10259,6 +10409,7 @@
     if (_modalCurrentDestId) return;
 
     _closeExpandedMapDestinationPicker();
+    _stopExpandedMapInertia();
     _expandedMapMarkers = [];
     _expandedMapZoomTransform = null;
     _expandedMapPointerGesture = null;
@@ -10271,6 +10422,11 @@
     if (!expandedSvg.empty()) {
       expandedSvg.on('.zoom', null);
       expandedSvg.selectAll('*').remove();
+      const expandedSvgEl = expandedSvg.node();
+      if (expandedSvgEl) {
+        expandedSvgEl._gotangoExpandedSelectionBound = false;
+        expandedSvgEl._gotangoExpandedInertiaBound = false;
+      }
     }
   }
 
