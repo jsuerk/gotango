@@ -6097,21 +6097,11 @@
   }
 
   function _buildNowHeatingShortlist(destinations) {
-    const eligible = destinations.filter((d) => {
-      const v2 = d && d._gotango_v2;
-      return v2 && _isNowHeatingDisplayEligible(v2) && _passesNowMinimumPublicScore(v2);
-    });
-    eligible.sort(_sortNowHeatingShortlist);
-    return eligible.slice(0, 6);
+    return assignMoverSectionsV2(destinations).heating_up;
   }
 
   function _buildNowCoolingShortlist(destinations) {
-    const eligible = destinations.filter((d) => {
-      const v2 = d && d._gotango_v2;
-      return v2 && _isNowCoolingDisplayEligible(v2) && _passesNowMinimumPublicScore(v2);
-    });
-    eligible.sort(_sortNowCoolingShortlist);
-    return eligible.slice(0, 3);
+    return assignMoverSectionsV2(destinations).cooling;
   }
 
   function _buildV2ScorePointsForChart(dest) {

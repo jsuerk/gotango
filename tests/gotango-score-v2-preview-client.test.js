@@ -181,22 +181,46 @@ function sortNowCoolingShortlist(a, b) {
   );
 }
 
-function buildNowHeatingShortlist(destinations) {
-  const eligible = destinations.filter((d) => {
-    const v2 = d && d._gotango_v2;
-    return v2 && isNowHeatingDisplayEligible(v2) && passesNowMinimumPublicScore(v2);
+function moverPrivateArrivals24h(dest) {
+  if (!dest) return 0;
+  const n = Number(dest.private_arrivals_24h ?? dest.raw_ga_arrivals_24h ?? dest.arrivals_count ?? 0);
+  return Number.isFinite(n) ? Math.round(n) : 0;
+}
+
+function sortMoversDestinationsV2(a, b) {
+  const scoreDiff = Number(b.go_tango_score ?? b.signal_score ?? 0) - Number(a.go_tango_score ?? a.signal_score ?? 0);
+  if (scoreDiff !== 0) return scoreDiff;
+  const arrDiff = moverPrivateArrivals24h(b) - moverPrivateArrivals24h(a);
+  if (arrDiff !== 0) return arrDiff;
+  return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+}
+
+const MOVERS_V2_SECTION_ORDER = ['heating_up', 'in_season', 'steady', 'cooling'];
+
+function assignMoverSectionsV2(destinations) {
+  const sections = {
+    heating_up: [],
+    in_season: [],
+    steady: [],
+    cooling: [],
+  };
+  for (const dest of destinations) {
+    const key = dest.confirmed_category || 'steady';
+    if (sections[key]) sections[key].push(dest);
+    else sections.steady.push(dest);
+  }
+  MOVERS_V2_SECTION_ORDER.forEach((key) => {
+    sections[key].sort(sortMoversDestinationsV2);
   });
-  eligible.sort(sortNowHeatingShortlist);
-  return eligible.slice(0, 6);
+  return sections;
+}
+
+function buildNowHeatingShortlist(destinations) {
+  return assignMoverSectionsV2(destinations).heating_up;
 }
 
 function buildNowCoolingShortlist(destinations) {
-  const eligible = destinations.filter((d) => {
-    const v2 = d && d._gotango_v2;
-    return v2 && isNowCoolingDisplayEligible(v2) && passesNowMinimumPublicScore(v2);
-  });
-  eligible.sort(sortNowCoolingShortlist);
-  return eligible.slice(0, 3);
+  return assignMoverSectionsV2(destinations).cooling;
 }
 
 const V2_BADGE_LABELS = {
@@ -729,6 +753,8 @@ test('index.html contains v2.1 preview client wiring', () => {
   assert.match(html, /function buildGoTangoSignalRead\(/);
   assert.match(html, /function _modalUsesGoTangoV2Score\(/);
   assert.match(html, /function _buildNowCoolingShortlist\(/);
+  assert.match(html, /function _buildNowHeatingShortlist\([\s\S]*?assignMoverSectionsV2\(destinations\)\.heating_up/);
+  assert.match(html, /function _buildNowCoolingShortlist\([\s\S]*?assignMoverSectionsV2\(destinations\)\.cooling/);
   assert.match(html, /label: 'HEATING UP'/);
   assert.match(html, /GOTANGO SCORE/);
   assert.match(html, /Cooling has slowed, and activity picked up today\./);
@@ -827,11 +853,13 @@ test('low-activity heating copy uses natural phrasing without analytical terms',
   );
 });
 
-test('Now minimum public score 60 filters low-score cooling cards', () => {
+test('Now Cooling includes all Movers cooling destinations regardless of public score', () => {
   const destinations = [
     {
       id: 'tulum',
       name: 'Tulum & Cancún',
+      confirmed_category: 'cooling',
+      go_tango_score: 70,
       _gotango_v2: {
         confirmed_category: 'cooling',
         data_confidence: 'high',
@@ -851,6 +879,8 @@ test('Now minimum public score 60 filters low-score cooling cards', () => {
     {
       id: 'quiet-cool',
       name: 'Quiet Cool',
+      confirmed_category: 'cooling',
+      go_tango_score: 55,
       _gotango_v2: {
         confirmed_category: 'cooling',
         data_confidence: 'high',
@@ -869,8 +899,9 @@ test('Now minimum public score 60 filters low-score cooling cards', () => {
     },
   ];
   const cooling = buildNowCoolingShortlist(destinations);
-  assert.equal(cooling.length, 1);
-  assert.equal(cooling[0].id, 'tulum');
+  const moversCooling = assignMoverSectionsV2(destinations).cooling;
+  assert.equal(cooling.length, 2);
+  assert.deepEqual(cooling.map((d) => d.id), moversCooling.map((d) => d.id));
 });
 
 test('client score band boundaries are gap-free', () => {
@@ -900,6 +931,8 @@ function makeHeatingDest({
   return {
     id,
     name,
+    confirmed_category: 'heating_up',
+    go_tango_score: publicScore,
     weighted_private_signal_24h: weightedSignal,
     _gotango_v2: {
       name,
@@ -921,7 +954,7 @@ function makeHeatingDest({
   };
 }
 
-test('Now Heating Up sorts by internal GoTango Score descending', () => {
+test('Now Heating Up uses Movers heating_up order (public score descending)', () => {
   const destinations = [
     makeHeatingDest({
       id: 'santa-fe',
@@ -976,21 +1009,15 @@ test('Now Heating Up sorts by internal GoTango Score descending', () => {
   ];
 
   const ordered = buildNowHeatingShortlist(destinations);
+  const moversHeating = assignMoverSectionsV2(destinations).heating_up;
+  assert.deepEqual(ordered.map((d) => d.id), moversHeating.map((d) => d.id));
   assert.deepEqual(
     ordered.map((d) => d.id),
     ['hamptons', 'nantucket', 'mallorca', 'destin-30a', 'santa-fe'],
   );
-  assert.ok(
-    ordered.findIndex((d) => d.id === 'hamptons') <
-      ordered.findIndex((d) => d.id === 'nantucket'),
-  );
-  assert.ok(
-    ordered.findIndex((d) => d.id === 'nantucket') <
-      ordered.findIndex((d) => d.id === 'santa-fe'),
-  );
 });
 
-test('active versus pending-exit is only a tie-breaker on equal internal score', () => {
+test('Now Heating Up includes pending-exit destinations in Movers category', () => {
   const active = makeHeatingDest({
     id: 'active-low',
     name: 'Active Low',
@@ -1035,10 +1062,10 @@ test('active versus pending-exit is only a tie-breaker on equal internal score',
     weightedSignal: 8,
   });
   const tiedOrder = buildNowHeatingShortlist([tiedPending, tiedActive]);
-  assert.deepEqual(tiedOrder.map((d) => d.id), ['alpha-active', 'beta-pending']);
+  assert.deepEqual(tiedOrder.map((d) => d.id), assignMoverSectionsV2([tiedPending, tiedActive]).heating_up.map((d) => d.id));
 });
 
-test('internal decimal score beats rounded public integer for Now ordering', () => {
+test('Now Heating Up tie-breaks equal public scores by Movers name order', () => {
   const higherInternal = makeHeatingDest({
     id: 'decimal-winner',
     name: 'Decimal Winner',
@@ -1060,14 +1087,19 @@ test('internal decimal score beats rounded public integer for Now ordering', () 
     weightedSignal: 20,
   });
   const ordered = buildNowHeatingShortlist([lowerInternal, higherInternal]);
-  assert.deepEqual(ordered.map((d) => d.id), ['decimal-winner', 'decimal-loser']);
+  assert.deepEqual(
+    ordered.map((d) => d.id),
+    assignMoverSectionsV2([lowerInternal, higherInternal]).heating_up.map((d) => d.id),
+  );
 });
 
-test('Now Cooling Watch sorts by internal GoTango Score descending', () => {
+test('Now Cooling Watch uses Movers cooling order (public score descending)', () => {
   const destinations = [
     {
       id: 'cool-high',
       name: 'Cool High',
+      confirmed_category: 'cooling',
+      go_tango_score: 70,
       weighted_private_signal_24h: 20,
       _gotango_v2: {
         name: 'Cool High',
@@ -1087,6 +1119,8 @@ test('Now Cooling Watch sorts by internal GoTango Score descending', () => {
     {
       id: 'cool-low',
       name: 'Cool Low',
+      confirmed_category: 'cooling',
+      go_tango_score: 62,
       weighted_private_signal_24h: 30,
       _gotango_v2: {
         name: 'Cool Low',
@@ -1105,10 +1139,11 @@ test('Now Cooling Watch sorts by internal GoTango Score descending', () => {
     },
   ];
   const ordered = buildNowCoolingShortlist(destinations);
+  assert.deepEqual(ordered.map((d) => d.id), assignMoverSectionsV2(destinations).cooling.map((d) => d.id));
   assert.deepEqual(ordered.map((d) => d.id), ['cool-high', 'cool-low']);
 });
 
-test('Now shortlist limits and minimum score remain unchanged', () => {
+test('Now category lists mirror Movers without caps and match hero counts', () => {
   const manyHeating = Array.from({ length: 8 }, (_, i) =>
     makeHeatingDest({
       id: `heat-${i}`,
@@ -1121,7 +1156,11 @@ test('Now shortlist limits and minimum score remain unchanged', () => {
       weightedSignal: 5,
     }),
   );
-  assert.equal(buildNowHeatingShortlist(manyHeating).length, 6);
+  const heating = buildNowHeatingShortlist(manyHeating);
+  const moversHeating = assignMoverSectionsV2(manyHeating).heating_up;
+  assert.equal(heating.length, 8);
+  assert.equal(heating.length, moversHeating.length);
+  assert.deepEqual(heating.map((d) => d.id), moversHeating.map((d) => d.id));
 
   const belowMin = makeHeatingDest({
     id: 'below-min',
@@ -1139,14 +1178,19 @@ test('Now shortlist limits and minimum score remain unchanged', () => {
     nowHeatingEligible: true,
     direction: 'strengthening',
   });
-  const heating = buildNowHeatingShortlist([belowMin, aboveMin]);
-  assert.equal(heating.length, 1);
-  assert.equal(heating[0].id, 'above-min');
+  const mixedHeating = buildNowHeatingShortlist([belowMin, aboveMin]);
+  assert.equal(mixedHeating.length, 2);
+  assert.deepEqual(
+    mixedHeating.map((d) => d.id),
+    assignMoverSectionsV2([belowMin, aboveMin]).heating_up.map((d) => d.id),
+  );
 
   const coolingMany = Array.from({ length: 5 }, (_, i) => ({
     id: `cool-${i}`,
     name: `Cool ${i}`,
     weighted_private_signal_24h: 10,
+    confirmed_category: 'cooling',
+    go_tango_score: 80 - i,
     _gotango_v2: {
       name: `Cool ${i}`,
       confirmed_category: 'cooling',
@@ -1162,7 +1206,24 @@ test('Now shortlist limits and minimum score remain unchanged', () => {
       candidate_direction: 'easing',
     },
   }));
-  assert.equal(buildNowCoolingShortlist(coolingMany).length, 3);
+  const cooling = buildNowCoolingShortlist(coolingMany);
+  const moversCooling = assignMoverSectionsV2(coolingMany).cooling;
+  assert.equal(cooling.length, 5);
+  assert.equal(cooling.length, moversCooling.length);
+  assert.deepEqual(cooling.map((d) => d.id), moversCooling.map((d) => d.id));
+
+  const steadyOnly = [{
+    id: 'steady-one',
+    name: 'Steady One',
+    confirmed_category: 'steady',
+    go_tango_score: 70,
+    _gotango_v2: {
+      confirmed_category: 'steady',
+      go_tango_score: 70,
+    },
+  }];
+  assert.equal(buildNowHeatingShortlist(steadyOnly).length, 0);
+  assert.equal(buildNowCoolingShortlist(steadyOnly).length, 0);
 });
 
 test('Heating Up pending-exit day 1 wording is consistent across surfaces', () => {
