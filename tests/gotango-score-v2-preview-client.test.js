@@ -1664,3 +1664,16 @@ test('Movers section collapse state is independent per section and Now lists sta
   assert.equal(nowHeating.length, moversHeating.length);
   assert.deepEqual(nowHeating.map((d) => d.id), moversHeating.map((d) => d.id));
 });
+
+test('Now page destination cards use two-digit rank formatting like Movers', () => {
+  const html = readFileSync(INDEX_HTML, 'utf8');
+
+  assert.match(html, /function formatTwoDigitRank\(index\) \{[\s\S]*?padStart\(2, '0'\)/);
+  assert.match(html, /function renderHeatingUp\([\s\S]*?formatTwoDigitRank\(i\)/);
+  assert.match(html, /function renderCoolingDestinationCard\([\s\S]*?formatTwoDigitRank\(rankIndex\)/);
+  assert.match(html, /function renderHeatingUp\([\s\S]*?rank\.className = 'mover-rank'/);
+  assert.match(html, /function renderCoolingDestinationCard\([\s\S]*?rank\.className = 'mover-rank'/);
+  assert.doesNotMatch(html, /function renderHeatingUp\([\s\S]*?const romans =/);
+  assert.doesNotMatch(html, /function renderCoolingDestinationCard\([\s\S]*?const romans =/);
+  assert.match(html, /function renderMoverRow\([\s\S]*?rankEl\.className = 'mover-rank'[\s\S]*?padStart\(2, '0'\)/);
+});
