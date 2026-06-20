@@ -1569,6 +1569,41 @@
     max-width: calc(100% - 40px);
     box-sizing: border-box;
   }
+  .movers-section-toggle-wrap {
+    margin: 0 20px 28px;
+    display: flex;
+    justify-content: center;
+  }
+  #tab-movers .movers-section-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 10px 18px;
+    margin: 0;
+    background: transparent;
+    border: 1px solid rgba(232, 163, 23, 0.35);
+    border-radius: 8px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  #tab-movers .movers-section-toggle:hover {
+    color: var(--amber-bright);
+    border-color: rgba(244, 181, 42, 0.55);
+    background: rgba(232, 163, 23, 0.06);
+  }
+  #tab-movers .movers-section-toggle:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
   .mover-row {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
@@ -4813,6 +4848,10 @@
       padding-left: 16px;
       padding-right: 16px;
     }
+    #tab-movers .movers-section-toggle-wrap {
+      margin-left: 16px;
+      margin-right: 16px;
+    }
     #tab-movers .mover-row {
       padding: 14px;
       gap: 10px 12px;
@@ -5734,6 +5773,13 @@
     cool: '#5B9EA8',
   };
   const MOVERS_V2_SECTION_ORDER = ['heating_up', 'in_season', 'steady', 'cooling'];
+  const MOVERS_V2_SECTION_COLLAPSE_LIMIT = 3;
+  const moversExpandedSections = {
+    heating_up: false,
+    in_season: false,
+    steady: false,
+    cooling: false,
+  };
   const MOVERS_V2_SECTION_META = {
     heating_up: {
       label: 'Heating Up',
@@ -7652,6 +7698,21 @@
     return sections;
   }
 
+  function getMoversVisibleDestinations(sectionKey, destinations, expandedState, limit = MOVERS_V2_SECTION_COLLAPSE_LIMIT) {
+    const fullList = Array.isArray(destinations) ? destinations : [];
+    const isExpanded = expandedState && expandedState[sectionKey] === true;
+    if (isExpanded || fullList.length <= limit) return fullList;
+    return fullList.slice(0, limit);
+  }
+
+  function shouldShowMoversSectionToggle(fullList, limit = MOVERS_V2_SECTION_COLLAPSE_LIMIT) {
+    return Array.isArray(fullList) && fullList.length > limit;
+  }
+
+  function getMoversSectionToggleLabel(isExpanded) {
+    return isExpanded ? 'Show Less' : 'See More Destinations';
+  }
+
   function renderMoversIndexV2(arrivalsData) {
     const indexEl = document.getElementById('movers-index');
     const fallbackEl = document.getElementById('movers-static-fallback');
@@ -7673,12 +7734,15 @@
     let renderedDestinations = 0;
 
     MOVERS_V2_SECTION_ORDER.forEach((sectionKey) => {
-      const list = grouped[sectionKey];
+      const fullList = grouped[sectionKey];
       const meta = MOVERS_V2_SECTION_META[sectionKey];
-      const countLabel = list.length === 1 ? '1 destination' : `${list.length} destinations`;
+      const countLabel = fullList.length === 1 ? '1 destination' : `${fullList.length} destinations`;
+      const isExpanded = moversExpandedSections[sectionKey] === true;
+      const visibleList = getMoversVisibleDestinations(sectionKey, fullList, moversExpandedSections);
 
       const head = document.createElement('div');
       head.className = 'section-head';
+      head.setAttribute('data-movers-section-head', sectionKey);
 
       const title = document.createElement('h2');
       title.className = 'section-title';
@@ -7694,13 +7758,30 @@
 
       const group = document.createElement('div');
       group.className = 'movers-group';
+      group.id = `movers-section-${sectionKey}`;
 
-      list.forEach((dest, i) => {
+      visibleList.forEach((dest, i) => {
         renderedDestinations += 1;
         group.appendChild(renderMoverRow(dest, i + 1, sectionKey, { showActions: true }));
       });
 
       indexEl.appendChild(group);
+
+      if (shouldShowMoversSectionToggle(fullList)) {
+        const toggleWrap = document.createElement('div');
+        toggleWrap.className = 'movers-section-toggle-wrap';
+
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'movers-section-toggle';
+        toggleBtn.setAttribute('data-movers-section-toggle', sectionKey);
+        toggleBtn.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+        toggleBtn.setAttribute('aria-controls', group.id);
+        toggleBtn.textContent = getMoversSectionToggleLabel(isExpanded);
+
+        toggleWrap.appendChild(toggleBtn);
+        indexEl.appendChild(toggleWrap);
+      }
     });
 
     if (renderedDestinations === 0) {
@@ -7785,6 +7866,42 @@
 
   // ============ MOVERS CARD ACTIONS ============
   let _moverActionDelegationBound = false;
+  let _moversSectionToggleBound = false;
+
+  function _scrollMoversSectionHeadIntoViewIfNeeded(sectionKey) {
+    requestAnimationFrame(() => {
+      const head = document.querySelector(`#tab-movers [data-movers-section-head="${sectionKey}"]`);
+      if (!head) return;
+      const rect = head.getBoundingClientRect();
+      if (rect.top < 0 || rect.bottom > window.innerHeight) {
+        head.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
+
+  function attachMoversSectionToggleDelegation() {
+    if (_moversSectionToggleBound) return;
+    _moversSectionToggleBound = true;
+
+    document.addEventListener('click', (e) => {
+      const toggleBtn = e.target.closest('#tab-movers [data-movers-section-toggle]');
+      if (!toggleBtn) return;
+
+      e.preventDefault();
+
+      const sectionKey = toggleBtn.getAttribute('data-movers-section-toggle');
+      if (!sectionKey || !Object.prototype.hasOwnProperty.call(moversExpandedSections, sectionKey)) return;
+
+      const wasExpanded = moversExpandedSections[sectionKey] === true;
+      moversExpandedSections[sectionKey] = !wasExpanded;
+
+      renderMoversIndex(_modalArrivalsData, _modalMoversIndexData);
+
+      if (wasExpanded) {
+        _scrollMoversSectionHeadIntoViewIfNeeded(sectionKey);
+      }
+    });
+  }
 
   function _applyMoverWatchButtonState(btn, destId) {
     if (!btn || !destId) return;
@@ -12885,6 +13002,7 @@
     attachLiveMapModalHandlers();
     attachWatchDelegation();
     attachMoverActionDelegation();
+    attachMoversSectionToggleDelegation();
     _watchCanUseStorage();
     getWatchlistIds();
     _updateWatchStorageError();

@@ -223,6 +223,32 @@ function buildNowCoolingShortlist(destinations) {
   return assignMoverSectionsV2(destinations).cooling;
 }
 
+const MOVERS_V2_SECTION_COLLAPSE_LIMIT = 3;
+
+function getMoversVisibleDestinations(sectionKey, destinations, expandedState, limit = MOVERS_V2_SECTION_COLLAPSE_LIMIT) {
+  const fullList = Array.isArray(destinations) ? destinations : [];
+  const isExpanded = expandedState && expandedState[sectionKey] === true;
+  if (isExpanded || fullList.length <= limit) return fullList;
+  return fullList.slice(0, limit);
+}
+
+function shouldShowMoversSectionToggle(fullList, limit = MOVERS_V2_SECTION_COLLAPSE_LIMIT) {
+  return Array.isArray(fullList) && fullList.length > limit;
+}
+
+function getMoversSectionToggleLabel(isExpanded) {
+  return isExpanded ? 'Show Less' : 'See More Destinations';
+}
+
+function makeMoversSectionDest(id, category, score) {
+  return {
+    id,
+    name: id,
+    confirmed_category: category,
+    go_tango_score: score,
+  };
+}
+
 const V2_BADGE_LABELS = {
   heating_up: 'HEATING UP',
   in_season: 'IN SEASON',
@@ -1559,4 +1585,82 @@ test('expanded Live Map Y clamp keeps transform within scale-aware vertical boun
   const zoomed = _clampExpandedMapTransformYForTest({ k: 4, x: 50, y: -200 }, height);
   assert.ok(zoomed.y >= height * (1 - 4) - margin, 'zoomed-in pan should allow wider negative y');
   assert.ok(zoomed.y <= margin, 'zoomed-in pan should still respect top margin');
+});
+
+test('Movers section collapse helpers cap visible destinations at three by default', () => {
+  const html = readFileSync(INDEX_HTML, 'utf8');
+  assert.match(html, /function getMoversVisibleDestinations\(/);
+  assert.match(html, /function shouldShowMoversSectionToggle\(/);
+  assert.match(html, /function getMoversSectionToggleLabel\(/);
+  assert.match(html, /const moversExpandedSections = \{/);
+  assert.match(html, /data-movers-section-toggle/);
+  assert.match(html, /See More Destinations/);
+  assert.match(html, /Show Less/);
+
+  const heatingFive = Array.from({ length: 5 }, (_, i) =>
+    makeMoversSectionDest(`heat-${i}`, 'heating_up', 90 - i),
+  );
+  const expandedState = {
+    heating_up: false,
+    in_season: false,
+    steady: false,
+    cooling: false,
+  };
+
+  const collapsed = getMoversVisibleDestinations('heating_up', heatingFive, expandedState);
+  assert.equal(collapsed.length, 3);
+  assert.deepEqual(collapsed.map((d) => d.id), ['heat-0', 'heat-1', 'heat-2']);
+  assert.equal(shouldShowMoversSectionToggle(heatingFive), true);
+  assert.equal(getMoversSectionToggleLabel(false), 'See More Destinations');
+
+  expandedState.heating_up = true;
+  const expanded = getMoversVisibleDestinations('heating_up', heatingFive, expandedState);
+  assert.equal(expanded.length, 5);
+  assert.deepEqual(expanded.map((d) => d.id), heatingFive.map((d) => d.id));
+  assert.equal(getMoversSectionToggleLabel(true), 'Show Less');
+
+  expandedState.heating_up = false;
+  const collapsedAgain = getMoversVisibleDestinations('heating_up', heatingFive, expandedState);
+  assert.equal(collapsedAgain.length, 3);
+});
+
+test('Movers section collapse helpers hide toggle for three or fewer destinations', () => {
+  const threeOrFewer = [
+    makeMoversSectionDest('heat-0', 'heating_up', 90),
+    makeMoversSectionDest('heat-1', 'heating_up', 89),
+    makeMoversSectionDest('heat-2', 'heating_up', 88),
+  ];
+  const expandedState = {
+    heating_up: false,
+    in_season: false,
+    steady: false,
+    cooling: false,
+  };
+
+  assert.equal(getMoversVisibleDestinations('heating_up', threeOrFewer, expandedState).length, 3);
+  assert.equal(shouldShowMoversSectionToggle(threeOrFewer), false);
+  assert.equal(shouldShowMoversSectionToggle([]), false);
+});
+
+test('Movers section collapse state is independent per section and Now lists stay uncapped', () => {
+  const destinations = [
+    ...Array.from({ length: 5 }, (_, i) => makeMoversSectionDest(`heat-${i}`, 'heating_up', 90 - i)),
+    ...Array.from({ length: 4 }, (_, i) => makeMoversSectionDest(`season-${i}`, 'in_season', 80 - i)),
+  ];
+  const grouped = assignMoverSectionsV2(destinations);
+  const expandedState = {
+    heating_up: true,
+    in_season: false,
+    steady: false,
+    cooling: false,
+  };
+
+  assert.equal(getMoversVisibleDestinations('heating_up', grouped.heating_up, expandedState).length, 5);
+  assert.equal(getMoversVisibleDestinations('in_season', grouped.in_season, expandedState).length, 3);
+
+  const nowHeating = buildNowHeatingShortlist(destinations);
+  const moversHeating = assignMoverSectionsV2(destinations).heating_up;
+  assert.equal(nowHeating.length, 5);
+  assert.equal(nowHeating.length, moversHeating.length);
+  assert.deepEqual(nowHeating.map((d) => d.id), moversHeating.map((d) => d.id));
 });
