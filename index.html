@@ -6261,6 +6261,10 @@
   return text;
   }
 
+  function formatTwoDigitRank(index) {
+    return String((index || 0) + 1).padStart(2, '0');
+  }
+
   function _parsePercentChange(label) {
   if (!label) return null;
   const s = String(label).trim();
@@ -6570,15 +6574,14 @@
   }
 
   function renderCoolingDestinationCard(dest, container, whyLine, rankIndex) {
-    const romans = ['I', 'II', 'III'];
     const card = document.createElement('div');
     card.className = 'cooling-card cooling-card--ranked';
     card.dataset.dest = String(dest.id || '');
     card.setAttribute('data-destination-id', String(dest.id || ''));
 
     const rank = document.createElement('div');
-    rank.className = 'dest-rank';
-    rank.textContent = romans[rankIndex] || String((rankIndex || 0) + 1);
+    rank.className = 'mover-rank';
+    rank.textContent = formatTwoDigitRank(rankIndex);
 
     const main = _buildCoolingCardMain(dest, 'cooling');
     main.appendChild(_buildDestPrivateSupport(dest));
@@ -6827,7 +6830,6 @@
     if (!container) return;
 
     try {
-      const romans = ['I', 'II', 'III', 'IV', 'V', 'VI'];
       const payload = data.data;
       let destinations = payload.destinations.filter((d) => d && d.ok === true);
       destinations = enrichDestinationsWithGoTangoScoreV2(destinations);
@@ -6873,8 +6875,8 @@
         card.setAttribute('data-destination-id', String(dest.id || ''));
 
         const rank = document.createElement('div');
-        rank.className = 'dest-rank';
-        rank.textContent = romans[i] || String(i + 1);
+        rank.className = 'mover-rank';
+        rank.textContent = formatTwoDigitRank(i);
 
         const main = document.createElement('div');
         main.className = 'dest-main destination-info';
