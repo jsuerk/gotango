@@ -181,22 +181,72 @@ function sortNowCoolingShortlist(a, b) {
   );
 }
 
-function buildNowHeatingShortlist(destinations) {
-  const eligible = destinations.filter((d) => {
-    const v2 = d && d._gotango_v2;
-    return v2 && isNowHeatingDisplayEligible(v2) && passesNowMinimumPublicScore(v2);
+function moverPrivateArrivals24h(dest) {
+  if (!dest) return 0;
+  const n = Number(dest.private_arrivals_24h ?? dest.raw_ga_arrivals_24h ?? dest.arrivals_count ?? 0);
+  return Number.isFinite(n) ? Math.round(n) : 0;
+}
+
+function sortMoversDestinationsV2(a, b) {
+  const scoreDiff = Number(b.go_tango_score ?? b.signal_score ?? 0) - Number(a.go_tango_score ?? a.signal_score ?? 0);
+  if (scoreDiff !== 0) return scoreDiff;
+  const arrDiff = moverPrivateArrivals24h(b) - moverPrivateArrivals24h(a);
+  if (arrDiff !== 0) return arrDiff;
+  return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+}
+
+const MOVERS_V2_SECTION_ORDER = ['heating_up', 'in_season', 'steady', 'cooling'];
+
+function assignMoverSectionsV2(destinations) {
+  const sections = {
+    heating_up: [],
+    in_season: [],
+    steady: [],
+    cooling: [],
+  };
+  for (const dest of destinations) {
+    const key = dest.confirmed_category || 'steady';
+    if (sections[key]) sections[key].push(dest);
+    else sections.steady.push(dest);
+  }
+  MOVERS_V2_SECTION_ORDER.forEach((key) => {
+    sections[key].sort(sortMoversDestinationsV2);
   });
-  eligible.sort(sortNowHeatingShortlist);
-  return eligible.slice(0, 6);
+  return sections;
+}
+
+function buildNowHeatingShortlist(destinations) {
+  return assignMoverSectionsV2(destinations).heating_up;
 }
 
 function buildNowCoolingShortlist(destinations) {
-  const eligible = destinations.filter((d) => {
-    const v2 = d && d._gotango_v2;
-    return v2 && isNowCoolingDisplayEligible(v2) && passesNowMinimumPublicScore(v2);
-  });
-  eligible.sort(sortNowCoolingShortlist);
-  return eligible.slice(0, 3);
+  return assignMoverSectionsV2(destinations).cooling;
+}
+
+const MOVERS_V2_SECTION_COLLAPSE_LIMIT = 3;
+
+function getMoversVisibleDestinations(sectionKey, destinations, expandedState, limit = MOVERS_V2_SECTION_COLLAPSE_LIMIT) {
+  const fullList = Array.isArray(destinations) ? destinations : [];
+  const isExpanded = expandedState && expandedState[sectionKey] === true;
+  if (isExpanded || fullList.length <= limit) return fullList;
+  return fullList.slice(0, limit);
+}
+
+function shouldShowMoversSectionToggle(fullList, limit = MOVERS_V2_SECTION_COLLAPSE_LIMIT) {
+  return Array.isArray(fullList) && fullList.length > limit;
+}
+
+function getMoversSectionToggleLabel(isExpanded) {
+  return isExpanded ? 'Show Less' : 'See More Destinations';
+}
+
+function makeMoversSectionDest(id, category, score) {
+  return {
+    id,
+    name: id,
+    confirmed_category: category,
+    go_tango_score: score,
+  };
 }
 
 const V2_BADGE_LABELS = {
@@ -466,6 +516,64 @@ function _getExpandedMapSelectionRadius(isMobile) {
   return isMobile ? 20 : 14;
 }
 
+function _getExpandedMapWorldWrapWidth(width) {
+  return width;
+}
+
+function _getExpandedMapWrapOffsets(worldWrapWidth) {
+  return [
+    -3 * worldWrapWidth,
+    -2 * worldWrapWidth,
+    -worldWrapWidth,
+    0,
+    worldWrapWidth,
+    2 * worldWrapWidth,
+    3 * worldWrapWidth
+  ];
+}
+
+function _buildExpandedMapMarkerRecords(baseMarkers, worldWrapWidth) {
+  if (!Array.isArray(baseMarkers) || baseMarkers.length === 0) return [];
+  const offsets = _getExpandedMapWrapOffsets(worldWrapWidth);
+  const records = [];
+  for (const marker of baseMarkers) {
+    for (const wrapOffset of offsets) {
+      records.push({
+        id: marker.id,
+        name: marker.name,
+        type: marker.type,
+        x: marker.x + wrapOffset,
+        y: marker.y,
+        wrapOffset,
+      });
+    }
+  }
+  return records;
+}
+
+function _dedupeExpandedMapCandidatesById(candidates) {
+  const deduped = [];
+  const seen = new Set();
+  for (const entry of candidates) {
+    if (seen.has(entry.id)) continue;
+    seen.add(entry.id);
+    deduped.push(entry);
+  }
+  return deduped;
+}
+
+function _getExpandedMapInitialTransformForTest(projection, width, height, isMobile) {
+  const initialK = isMobile ? 1.08 : 1.12;
+  const [targetX, targetY] = projection([-82, 17]);
+  return {
+    k: initialK,
+    x: width / 2 - initialK * targetX,
+    y: height / 2 - initialK * targetY,
+    applyX: (x) => initialK * x + (width / 2 - initialK * targetX),
+    applyY: (y) => initialK * y + (height / 2 - initialK * targetY),
+  };
+}
+
 const _EXPANDED_MAP_AMBIGUITY_GAP_PX = 8;
 const _EXPANDED_MAP_MAX_PICKER_CANDIDATES = 6;
 
@@ -475,16 +583,17 @@ function _pickNearestExpandedMapMarkers(pointerX, pointerY, markers, transform, 
   }
 
   const selectionRadius = _getExpandedMapSelectionRadius(isMobile);
-  const ranked = markers
-    .map((marker) => {
-      const screenX = transform.applyX(marker.x);
-      const screenY = transform.applyY(marker.y);
-      const distance = Math.hypot(pointerX - screenX, pointerY - screenY);
-      return { ...marker, screenX, screenY, distance };
-    })
-    .filter((entry) => entry.distance <= selectionRadius)
-    .sort((a, b) => a.distance - b.distance)
-    .slice(0, _EXPANDED_MAP_MAX_PICKER_CANDIDATES);
+  const ranked = _dedupeExpandedMapCandidatesById(
+    markers
+      .map((marker) => {
+        const screenX = transform.applyX(marker.x);
+        const screenY = transform.applyY(marker.y);
+        const distance = Math.hypot(pointerX - screenX, pointerY - screenY);
+        return { ...marker, screenX, screenY, distance };
+      })
+      .filter((entry) => entry.distance <= selectionRadius)
+      .sort((a, b) => a.distance - b.distance)
+  ).slice(0, _EXPANDED_MAP_MAX_PICKER_CANDIDATES);
 
   if (ranked.length === 0) {
     return { mode: 'none', candidates: [] };
@@ -670,6 +779,8 @@ test('index.html contains v2.1 preview client wiring', () => {
   assert.match(html, /function buildGoTangoSignalRead\(/);
   assert.match(html, /function _modalUsesGoTangoV2Score\(/);
   assert.match(html, /function _buildNowCoolingShortlist\(/);
+  assert.match(html, /function _buildNowHeatingShortlist\([\s\S]*?assignMoverSectionsV2\(destinations\)\.heating_up/);
+  assert.match(html, /function _buildNowCoolingShortlist\([\s\S]*?assignMoverSectionsV2\(destinations\)\.cooling/);
   assert.match(html, /label: 'HEATING UP'/);
   assert.match(html, /GOTANGO SCORE/);
   assert.match(html, /Cooling has slowed, and activity picked up today\./);
@@ -768,11 +879,13 @@ test('low-activity heating copy uses natural phrasing without analytical terms',
   );
 });
 
-test('Now minimum public score 60 filters low-score cooling cards', () => {
+test('Now Cooling includes all Movers cooling destinations regardless of public score', () => {
   const destinations = [
     {
       id: 'tulum',
       name: 'Tulum & Cancún',
+      confirmed_category: 'cooling',
+      go_tango_score: 70,
       _gotango_v2: {
         confirmed_category: 'cooling',
         data_confidence: 'high',
@@ -792,6 +905,8 @@ test('Now minimum public score 60 filters low-score cooling cards', () => {
     {
       id: 'quiet-cool',
       name: 'Quiet Cool',
+      confirmed_category: 'cooling',
+      go_tango_score: 55,
       _gotango_v2: {
         confirmed_category: 'cooling',
         data_confidence: 'high',
@@ -810,8 +925,9 @@ test('Now minimum public score 60 filters low-score cooling cards', () => {
     },
   ];
   const cooling = buildNowCoolingShortlist(destinations);
-  assert.equal(cooling.length, 1);
-  assert.equal(cooling[0].id, 'tulum');
+  const moversCooling = assignMoverSectionsV2(destinations).cooling;
+  assert.equal(cooling.length, 2);
+  assert.deepEqual(cooling.map((d) => d.id), moversCooling.map((d) => d.id));
 });
 
 test('client score band boundaries are gap-free', () => {
@@ -841,6 +957,8 @@ function makeHeatingDest({
   return {
     id,
     name,
+    confirmed_category: 'heating_up',
+    go_tango_score: publicScore,
     weighted_private_signal_24h: weightedSignal,
     _gotango_v2: {
       name,
@@ -862,7 +980,7 @@ function makeHeatingDest({
   };
 }
 
-test('Now Heating Up sorts by internal GoTango Score descending', () => {
+test('Now Heating Up uses Movers heating_up order (public score descending)', () => {
   const destinations = [
     makeHeatingDest({
       id: 'santa-fe',
@@ -917,21 +1035,15 @@ test('Now Heating Up sorts by internal GoTango Score descending', () => {
   ];
 
   const ordered = buildNowHeatingShortlist(destinations);
+  const moversHeating = assignMoverSectionsV2(destinations).heating_up;
+  assert.deepEqual(ordered.map((d) => d.id), moversHeating.map((d) => d.id));
   assert.deepEqual(
     ordered.map((d) => d.id),
     ['hamptons', 'nantucket', 'mallorca', 'destin-30a', 'santa-fe'],
   );
-  assert.ok(
-    ordered.findIndex((d) => d.id === 'hamptons') <
-      ordered.findIndex((d) => d.id === 'nantucket'),
-  );
-  assert.ok(
-    ordered.findIndex((d) => d.id === 'nantucket') <
-      ordered.findIndex((d) => d.id === 'santa-fe'),
-  );
 });
 
-test('active versus pending-exit is only a tie-breaker on equal internal score', () => {
+test('Now Heating Up includes pending-exit destinations in Movers category', () => {
   const active = makeHeatingDest({
     id: 'active-low',
     name: 'Active Low',
@@ -976,10 +1088,10 @@ test('active versus pending-exit is only a tie-breaker on equal internal score',
     weightedSignal: 8,
   });
   const tiedOrder = buildNowHeatingShortlist([tiedPending, tiedActive]);
-  assert.deepEqual(tiedOrder.map((d) => d.id), ['alpha-active', 'beta-pending']);
+  assert.deepEqual(tiedOrder.map((d) => d.id), assignMoverSectionsV2([tiedPending, tiedActive]).heating_up.map((d) => d.id));
 });
 
-test('internal decimal score beats rounded public integer for Now ordering', () => {
+test('Now Heating Up tie-breaks equal public scores by Movers name order', () => {
   const higherInternal = makeHeatingDest({
     id: 'decimal-winner',
     name: 'Decimal Winner',
@@ -1001,14 +1113,19 @@ test('internal decimal score beats rounded public integer for Now ordering', () 
     weightedSignal: 20,
   });
   const ordered = buildNowHeatingShortlist([lowerInternal, higherInternal]);
-  assert.deepEqual(ordered.map((d) => d.id), ['decimal-winner', 'decimal-loser']);
+  assert.deepEqual(
+    ordered.map((d) => d.id),
+    assignMoverSectionsV2([lowerInternal, higherInternal]).heating_up.map((d) => d.id),
+  );
 });
 
-test('Now Cooling Watch sorts by internal GoTango Score descending', () => {
+test('Now Cooling Watch uses Movers cooling order (public score descending)', () => {
   const destinations = [
     {
       id: 'cool-high',
       name: 'Cool High',
+      confirmed_category: 'cooling',
+      go_tango_score: 70,
       weighted_private_signal_24h: 20,
       _gotango_v2: {
         name: 'Cool High',
@@ -1028,6 +1145,8 @@ test('Now Cooling Watch sorts by internal GoTango Score descending', () => {
     {
       id: 'cool-low',
       name: 'Cool Low',
+      confirmed_category: 'cooling',
+      go_tango_score: 62,
       weighted_private_signal_24h: 30,
       _gotango_v2: {
         name: 'Cool Low',
@@ -1046,10 +1165,11 @@ test('Now Cooling Watch sorts by internal GoTango Score descending', () => {
     },
   ];
   const ordered = buildNowCoolingShortlist(destinations);
+  assert.deepEqual(ordered.map((d) => d.id), assignMoverSectionsV2(destinations).cooling.map((d) => d.id));
   assert.deepEqual(ordered.map((d) => d.id), ['cool-high', 'cool-low']);
 });
 
-test('Now shortlist limits and minimum score remain unchanged', () => {
+test('Now category lists mirror Movers without caps and match hero counts', () => {
   const manyHeating = Array.from({ length: 8 }, (_, i) =>
     makeHeatingDest({
       id: `heat-${i}`,
@@ -1062,7 +1182,11 @@ test('Now shortlist limits and minimum score remain unchanged', () => {
       weightedSignal: 5,
     }),
   );
-  assert.equal(buildNowHeatingShortlist(manyHeating).length, 6);
+  const heating = buildNowHeatingShortlist(manyHeating);
+  const moversHeating = assignMoverSectionsV2(manyHeating).heating_up;
+  assert.equal(heating.length, 8);
+  assert.equal(heating.length, moversHeating.length);
+  assert.deepEqual(heating.map((d) => d.id), moversHeating.map((d) => d.id));
 
   const belowMin = makeHeatingDest({
     id: 'below-min',
@@ -1080,14 +1204,19 @@ test('Now shortlist limits and minimum score remain unchanged', () => {
     nowHeatingEligible: true,
     direction: 'strengthening',
   });
-  const heating = buildNowHeatingShortlist([belowMin, aboveMin]);
-  assert.equal(heating.length, 1);
-  assert.equal(heating[0].id, 'above-min');
+  const mixedHeating = buildNowHeatingShortlist([belowMin, aboveMin]);
+  assert.equal(mixedHeating.length, 2);
+  assert.deepEqual(
+    mixedHeating.map((d) => d.id),
+    assignMoverSectionsV2([belowMin, aboveMin]).heating_up.map((d) => d.id),
+  );
 
   const coolingMany = Array.from({ length: 5 }, (_, i) => ({
     id: `cool-${i}`,
     name: `Cool ${i}`,
     weighted_private_signal_24h: 10,
+    confirmed_category: 'cooling',
+    go_tango_score: 80 - i,
     _gotango_v2: {
       name: `Cool ${i}`,
       confirmed_category: 'cooling',
@@ -1103,7 +1232,24 @@ test('Now shortlist limits and minimum score remain unchanged', () => {
       candidate_direction: 'easing',
     },
   }));
-  assert.equal(buildNowCoolingShortlist(coolingMany).length, 3);
+  const cooling = buildNowCoolingShortlist(coolingMany);
+  const moversCooling = assignMoverSectionsV2(coolingMany).cooling;
+  assert.equal(cooling.length, 5);
+  assert.equal(cooling.length, moversCooling.length);
+  assert.deepEqual(cooling.map((d) => d.id), moversCooling.map((d) => d.id));
+
+  const steadyOnly = [{
+    id: 'steady-one',
+    name: 'Steady One',
+    confirmed_category: 'steady',
+    go_tango_score: 70,
+    _gotango_v2: {
+      confirmed_category: 'steady',
+      go_tango_score: 70,
+    },
+  }];
+  assert.equal(buildNowHeatingShortlist(steadyOnly).length, 0);
+  assert.equal(buildNowCoolingShortlist(steadyOnly).length, 0);
 });
 
 test('Heating Up pending-exit day 1 wording is consistent across surfaces', () => {
@@ -1336,4 +1482,185 @@ test('expanded Live Map isolated marker resolves directly without picker', () =>
   const miss = _pickNearestExpandedMapMarkers(150, 90, markers, transform, false);
   assert.equal(miss.mode, 'none');
   assert.equal(miss.candidates.length, 0);
+});
+
+test('expanded Live Map wrap offsets include ±3 world widths', () => {
+  const worldWrapWidth = 480;
+  assert.deepEqual(
+    _getExpandedMapWrapOffsets(worldWrapWidth),
+    [-1440, -960, -480, 0, 480, 960, 1440]
+  );
+});
+
+test('expanded Live Map wrapped marker records include x offsets for world wrap width', () => {
+  const worldWrapWidth = 480;
+  const base = [{ id: 'miami', name: 'Miami', type: 'surge', x: 200, y: 90 }];
+  const wrapped = _buildExpandedMapMarkerRecords(base, worldWrapWidth);
+
+  assert.equal(wrapped.length, 7);
+  assert.deepEqual(wrapped.map((m) => m.x), [-1240, -760, -280, 200, 680, 1160, 1640]);
+  assert.ok(wrapped.every((m) => m.id === 'miami' && m.y === 90));
+});
+
+test('expanded Live Map picker dedupes wrapped copies by destination id', () => {
+  const transform = createIdentityTransform();
+  const base = [{ id: 'st-barth', name: 'St. Barth', type: 'surge', x: 100, y: 80 }];
+  const wrapped = _buildExpandedMapMarkerRecords(base, 480);
+
+  const pick = _pickNearestExpandedMapMarkers(100, 80, wrapped, transform, false);
+  assert.equal(pick.mode, 'single');
+  assert.equal(pick.destinationId, 'st-barth');
+  assert.equal(pick.candidates.length, 1, 'wrapped copies near the same tap should dedupe to one candidate');
+
+  const nearWrapCopy = _pickNearestExpandedMapMarkers(580, 80, wrapped, transform, false);
+  assert.equal(nearWrapCopy.mode, 'single');
+  assert.equal(nearWrapCopy.destinationId, 'st-barth');
+});
+
+test('expanded Live Map initial transform centers Americas view', () => {
+  const html = readFileSync(INDEX_HTML, 'utf8');
+  assert.match(html, /function _getExpandedMapInitialTransform\(/);
+  assert.match(html, /projection\(\[-82, 17\]\)/);
+
+  const width = 480;
+  const height = 150;
+  const scale = 76;
+  const projection = {
+    apply: ([lng, lat]) => [
+      (lng / 360 + 0.5) * scale * (width / scale) + width / 2 - width / 2,
+      height / 2 + 8 - (lat / 180) * scale,
+    ],
+  };
+  projection.call = ([lng, lat]) => {
+    const x = width / 2 + (lng / 360) * width;
+    const y = height / 2 + 8 - (lat / 180) * scale * 2;
+    return [x, y];
+  };
+  const geoLike = ([lng, lat]) => [
+    width / 2 + (lng / 360) * width,
+    height / 2 + 8 - (lat / 180) * scale * 2,
+  ];
+
+  const mobile = _getExpandedMapInitialTransformForTest(geoLike, width, height, true);
+  assert.equal(mobile.k, 1.08);
+  assert.ok(mobile.x < width / 2, 'Americas center should shift viewport west of map midpoint');
+  assert.ok(mobile.y < height / 2, 'Americas center should shift viewport north of map midpoint');
+
+  const desktop = _getExpandedMapInitialTransformForTest(geoLike, width, height, false);
+  assert.equal(desktop.k, 1.12);
+  assert.ok(desktop.x < width / 2);
+});
+
+function _clampExpandedMapTransformYForTest(transform, height) {
+  const k = transform.k;
+  const margin = height * 0.07;
+  const yMin = height * (1 - k) - margin;
+  const yMax = margin;
+  let y = transform.y;
+  if (y < yMin) y = yMin;
+  else if (y > yMax) y = yMax;
+  else return transform;
+  return { ...transform, y };
+}
+
+test('expanded Live Map Y clamp keeps transform within scale-aware vertical bounds', () => {
+  const html = readFileSync(INDEX_HTML, 'utf8');
+  assert.match(html, /function _clampExpandedMapTransformY\(/);
+
+  const height = 150;
+  const k = 1.08;
+  const margin = height * 0.07;
+  const yMin = height * (1 - k) - margin;
+  const yMax = margin;
+
+  const within = _clampExpandedMapTransformYForTest({ k, x: 100, y: 5 }, height);
+  assert.equal(within.y, 5, 'in-range y should pass through unchanged');
+
+  const tooHigh = _clampExpandedMapTransformYForTest({ k, x: 100, y: 80 }, height);
+  assert.equal(tooHigh.y, yMax, 'large positive y should clamp to top margin');
+
+  const tooLow = _clampExpandedMapTransformYForTest({ k, x: 100, y: -80 }, height);
+  assert.equal(tooLow.y, yMin, 'large negative y should clamp to bottom bound');
+
+  const zoomed = _clampExpandedMapTransformYForTest({ k: 4, x: 50, y: -200 }, height);
+  assert.ok(zoomed.y >= height * (1 - 4) - margin, 'zoomed-in pan should allow wider negative y');
+  assert.ok(zoomed.y <= margin, 'zoomed-in pan should still respect top margin');
+});
+
+test('Movers section collapse helpers cap visible destinations at three by default', () => {
+  const html = readFileSync(INDEX_HTML, 'utf8');
+  assert.match(html, /function getMoversVisibleDestinations\(/);
+  assert.match(html, /function shouldShowMoversSectionToggle\(/);
+  assert.match(html, /function getMoversSectionToggleLabel\(/);
+  assert.match(html, /const moversExpandedSections = \{/);
+  assert.match(html, /data-movers-section-toggle/);
+  assert.match(html, /See More Destinations/);
+  assert.match(html, /Show Less/);
+
+  const heatingFive = Array.from({ length: 5 }, (_, i) =>
+    makeMoversSectionDest(`heat-${i}`, 'heating_up', 90 - i),
+  );
+  const expandedState = {
+    heating_up: false,
+    in_season: false,
+    steady: false,
+    cooling: false,
+  };
+
+  const collapsed = getMoversVisibleDestinations('heating_up', heatingFive, expandedState);
+  assert.equal(collapsed.length, 3);
+  assert.deepEqual(collapsed.map((d) => d.id), ['heat-0', 'heat-1', 'heat-2']);
+  assert.equal(shouldShowMoversSectionToggle(heatingFive), true);
+  assert.equal(getMoversSectionToggleLabel(false), 'See More Destinations');
+
+  expandedState.heating_up = true;
+  const expanded = getMoversVisibleDestinations('heating_up', heatingFive, expandedState);
+  assert.equal(expanded.length, 5);
+  assert.deepEqual(expanded.map((d) => d.id), heatingFive.map((d) => d.id));
+  assert.equal(getMoversSectionToggleLabel(true), 'Show Less');
+
+  expandedState.heating_up = false;
+  const collapsedAgain = getMoversVisibleDestinations('heating_up', heatingFive, expandedState);
+  assert.equal(collapsedAgain.length, 3);
+});
+
+test('Movers section collapse helpers hide toggle for three or fewer destinations', () => {
+  const threeOrFewer = [
+    makeMoversSectionDest('heat-0', 'heating_up', 90),
+    makeMoversSectionDest('heat-1', 'heating_up', 89),
+    makeMoversSectionDest('heat-2', 'heating_up', 88),
+  ];
+  const expandedState = {
+    heating_up: false,
+    in_season: false,
+    steady: false,
+    cooling: false,
+  };
+
+  assert.equal(getMoversVisibleDestinations('heating_up', threeOrFewer, expandedState).length, 3);
+  assert.equal(shouldShowMoversSectionToggle(threeOrFewer), false);
+  assert.equal(shouldShowMoversSectionToggle([]), false);
+});
+
+test('Movers section collapse state is independent per section and Now lists stay uncapped', () => {
+  const destinations = [
+    ...Array.from({ length: 5 }, (_, i) => makeMoversSectionDest(`heat-${i}`, 'heating_up', 90 - i)),
+    ...Array.from({ length: 4 }, (_, i) => makeMoversSectionDest(`season-${i}`, 'in_season', 80 - i)),
+  ];
+  const grouped = assignMoverSectionsV2(destinations);
+  const expandedState = {
+    heating_up: true,
+    in_season: false,
+    steady: false,
+    cooling: false,
+  };
+
+  assert.equal(getMoversVisibleDestinations('heating_up', grouped.heating_up, expandedState).length, 5);
+  assert.equal(getMoversVisibleDestinations('in_season', grouped.in_season, expandedState).length, 3);
+
+  const nowHeating = buildNowHeatingShortlist(destinations);
+  const moversHeating = assignMoverSectionsV2(destinations).heating_up;
+  assert.equal(nowHeating.length, 5);
+  assert.equal(nowHeating.length, moversHeating.length);
+  assert.deepEqual(nowHeating.map((d) => d.id), moversHeating.map((d) => d.id));
 });
