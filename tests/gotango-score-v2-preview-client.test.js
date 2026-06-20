@@ -471,7 +471,7 @@ function _getExpandedMapWorldWrapWidth(width) {
 }
 
 function _getExpandedMapWrapOffsets(worldWrapWidth) {
-  return [-worldWrapWidth, 0, worldWrapWidth];
+  return [-2 * worldWrapWidth, -worldWrapWidth, 0, worldWrapWidth, 2 * worldWrapWidth];
 }
 
 function _buildExpandedMapMarkerRecords(baseMarkers, worldWrapWidth) {
@@ -1389,13 +1389,21 @@ test('expanded Live Map isolated marker resolves directly without picker', () =>
   assert.equal(miss.candidates.length, 0);
 });
 
+test('expanded Live Map wrap offsets include ±2 world widths', () => {
+  const worldWrapWidth = 480;
+  assert.deepEqual(
+    _getExpandedMapWrapOffsets(worldWrapWidth),
+    [-960, -480, 0, 480, 960]
+  );
+});
+
 test('expanded Live Map wrapped marker records include x offsets for world wrap width', () => {
   const worldWrapWidth = 480;
   const base = [{ id: 'miami', name: 'Miami', type: 'surge', x: 200, y: 90 }];
   const wrapped = _buildExpandedMapMarkerRecords(base, worldWrapWidth);
 
-  assert.equal(wrapped.length, 3);
-  assert.deepEqual(wrapped.map((m) => m.x), [-280, 200, 680]);
+  assert.equal(wrapped.length, 5);
+  assert.deepEqual(wrapped.map((m) => m.x), [-760, -280, 200, 680, 1160]);
   assert.ok(wrapped.every((m) => m.id === 'miami' && m.y === 90));
 });
 

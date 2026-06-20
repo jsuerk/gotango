@@ -9397,7 +9397,7 @@
   }
 
   function _getExpandedMapWrapOffsets(worldWrapWidth) {
-    return [-worldWrapWidth, 0, worldWrapWidth];
+    return [-2 * worldWrapWidth, -worldWrapWidth, 0, worldWrapWidth, 2 * worldWrapWidth];
   }
 
   function _buildExpandedMapMarkerRecords(baseMarkers, worldWrapWidth) {
@@ -9435,11 +9435,12 @@
     if (!span) return transform;
     let x = transform.x;
     let changed = false;
-    while (x > span * 3) {
+    const limit = span * 6;
+    while (x > limit) {
       x -= span;
       changed = true;
     }
-    while (x < -span * 3) {
+    while (x < -limit) {
       x += span;
       changed = true;
     }
@@ -10191,7 +10192,7 @@
       }
 
       if (opts.enableZoom) {
-        const panPaddingX = width * 6;
+        const panPaddingX = width * 12;
         const panPaddingY = height * 3;
         const worldWrapWidth = _getExpandedMapWorldWrapWidth(width);
         const zoom = d3.zoom()
@@ -10206,10 +10207,10 @@
           })
           .on('zoom', (event) => {
             let transform = event.transform;
-            if (isExpanded) {
-              transform = _normalizeExpandedMapZoomTransform(transform, worldWrapWidth);
-              if (transform !== event.transform) {
-                svg.call(zoom.transform, transform);
+            if (isExpanded && event.type === 'end') {
+              const normalized = _normalizeExpandedMapZoomTransform(transform, worldWrapWidth);
+              if (normalized !== transform) {
+                svg.call(zoom.transform, normalized);
                 return;
               }
             }
