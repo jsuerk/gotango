@@ -804,6 +804,14 @@
     text-transform: uppercase;
     pointer-events: none;
   }
+  .map-continent-label {
+    fill: rgba(255, 255, 255, 0.13);
+    font-family: 'Geist Mono', monospace;
+    font-size: 5.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
   .map-destination-labels {
     pointer-events: none;
   }
@@ -818,6 +826,10 @@
     .map-region-label {
       font-size: 6px;
       fill: rgba(255, 255, 255, 0.14);
+    }
+    .map-continent-label {
+      font-size: 4.5px;
+      fill: rgba(255, 255, 255, 0.08);
     }
   }
   .live-map-modal__legend {
@@ -9380,10 +9392,65 @@
     return window.matchMedia('(max-width: 700px)').matches;
   }
 
+  function _getExpandedMapWorldWrapWidth(width) {
+    return width;
+  }
+
+  function _getExpandedMapWrapOffsets(worldWrapWidth) {
+    return [-worldWrapWidth, 0, worldWrapWidth];
+  }
+
+  function _buildExpandedMapMarkerRecords(baseMarkers, worldWrapWidth) {
+    if (!Array.isArray(baseMarkers) || baseMarkers.length === 0) return [];
+    const offsets = _getExpandedMapWrapOffsets(worldWrapWidth);
+    const records = [];
+    for (const marker of baseMarkers) {
+      for (const wrapOffset of offsets) {
+        records.push({
+          id: marker.id,
+          name: marker.name,
+          type: marker.type,
+          x: marker.x + wrapOffset,
+          y: marker.y,
+          wrapOffset,
+        });
+      }
+    }
+    return records;
+  }
+
+  function _dedupeExpandedMapCandidatesById(candidates) {
+    const deduped = [];
+    const seen = new Set();
+    for (const entry of candidates) {
+      if (seen.has(entry.id)) continue;
+      seen.add(entry.id);
+      deduped.push(entry);
+    }
+    return deduped;
+  }
+
+  function _normalizeExpandedMapZoomTransform(transform, worldWrapWidth) {
+    const span = worldWrapWidth * transform.k;
+    if (!span) return transform;
+    let x = transform.x;
+    let changed = false;
+    while (x > span * 3) {
+      x -= span;
+      changed = true;
+    }
+    while (x < -span * 3) {
+      x += span;
+      changed = true;
+    }
+    if (!changed) return transform;
+    return d3.zoomIdentity.translate(x, transform.y).scale(transform.k);
+  }
+
   function _getExpandedMapInitialTransform(projection, width, height) {
-    if (!_isMobileExpandedMap()) return d3.zoomIdentity;
-    const initialK = 2.4;
-    const [targetX, targetY] = projection([-78, 27]);
+    const isMobile = _isMobileExpandedMap();
+    const initialK = isMobile ? 1.75 : 1.4;
+    const [targetX, targetY] = projection([-78, 25]);
     return d3.zoomIdentity
       .translate(width / 2 - initialK * targetX, height / 2 - initialK * targetY)
       .scale(initialK);
@@ -9423,16 +9490,17 @@
     }
 
     const selectionRadius = _getExpandedMapSelectionRadius(isMobile);
-    const ranked = markers
-      .map((marker) => {
-        const screenX = transform.applyX(marker.x);
-        const screenY = transform.applyY(marker.y);
-        const distance = Math.hypot(pointerX - screenX, pointerY - screenY);
-        return { ...marker, screenX, screenY, distance };
-      })
-      .filter((entry) => entry.distance <= selectionRadius)
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, _EXPANDED_MAP_MAX_PICKER_CANDIDATES);
+    const ranked = _dedupeExpandedMapCandidatesById(
+      markers
+        .map((marker) => {
+          const screenX = transform.applyX(marker.x);
+          const screenY = transform.applyY(marker.y);
+          const distance = Math.hypot(pointerX - screenX, pointerY - screenY);
+          return { ...marker, screenX, screenY, distance };
+        })
+        .filter((entry) => entry.distance <= selectionRadius)
+        .sort((a, b) => a.distance - b.distance)
+    ).slice(0, _EXPANDED_MAP_MAX_PICKER_CANDIDATES);
 
     if (ranked.length === 0) {
       return { mode: 'none', candidates: [] };
@@ -9799,16 +9867,35 @@
     return resolvedMapDestinations;
   }
 
+  const EXPANDED_MAP_CONTINENT_LABELS = [
+    { text: 'North America', lng: -98, lat: 52 },
+    { text: 'South America', lng: -58, lat: -18 },
+    { text: 'Europe', lng: 15, lat: 54 },
+    { text: 'Africa', lng: 18, lat: 2 },
+    { text: 'Asia', lng: 88, lat: 46 },
+    { text: 'Australia', lng: 134, lat: -26 }
+  ];
+
   const EXPANDED_MAP_REGION_LABELS = [
     { text: 'Atlantic', lng: -42, lat: 28 },
     { text: 'Pacific', lng: -158, lat: 8 },
-    { text: 'Europe', lng: 18, lat: 52 },
     { text: 'Caribbean', lng: -72, lat: 16 },
     { text: 'U.S.', lng: -96, lat: 40 },
     { text: 'Mediterranean', lng: 20, lat: 36 }
   ];
 
+  function _appendExpandedMapWrappedGroups(mapRoot, wrapOffsets, className, fn) {
+    wrapOffsets.forEach((offsetX) => {
+      const g = mapRoot.append('g').attr('class', className);
+      if (offsetX) g.attr('transform', `translate(${offsetX},0)`);
+      fn(g, offsetX);
+    });
+  }
+
   function renderExpandedMapBaseLayers(mapRoot, world, projection, pathGen, width, height, isMobile) {
+    const worldWrapWidth = _getExpandedMapWorldWrapWidth(width);
+    const wrapOffsets = _getExpandedMapWrapOffsets(worldWrapWidth);
+
     const defs = mapRoot.append('defs');
     const oceanGrad = defs.append('linearGradient')
       .attr('id', 'map-ocean-gradient')
@@ -9817,45 +9904,67 @@
     oceanGrad.append('stop').attr('offset', '0%').attr('stop-color', '#0c1018');
     oceanGrad.append('stop').attr('offset', '100%').attr('stop-color', '#121820');
 
-    mapRoot.append('rect')
-      .attr('class', 'map-ocean')
-      .attr('width', width)
-      .attr('height', height)
-      .attr('fill', 'url(#map-ocean-gradient)');
+    _appendExpandedMapWrappedGroups(mapRoot, wrapOffsets, 'map-ocean-wrap', (g) => {
+      g.append('rect')
+        .attr('class', 'map-ocean')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('fill', 'url(#map-ocean-gradient)');
+    });
 
-    mapRoot.append('path')
-      .datum(d3.geoGraticule()())
-      .attr('class', 'map-graticule')
-      .attr('d', pathGen);
+    const graticule = d3.geoGraticule()();
+    _appendExpandedMapWrappedGroups(mapRoot, wrapOffsets, 'map-graticule-wrap', (g) => {
+      g.append('path')
+        .datum(graticule)
+        .attr('class', 'map-graticule')
+        .attr('d', pathGen);
+    });
 
     const land = topojson.feature(world, world.objects.land);
-    mapRoot.append('path')
-      .datum(land)
-      .attr('class', 'map-land-fill')
-      .attr('d', pathGen);
+    _appendExpandedMapWrappedGroups(mapRoot, wrapOffsets, 'map-land-wrap', (g) => {
+      g.append('path')
+        .datum(land)
+        .attr('class', 'map-land-fill')
+        .attr('d', pathGen);
+    });
 
     try {
       if (world.objects && world.objects.countries) {
         const borders = topojson.mesh(world, world.objects.countries, (a, b) => a !== b);
-        mapRoot.append('path')
-          .datum(borders)
-          .attr('class', 'map-country-borders')
-          .attr('d', pathGen);
+        _appendExpandedMapWrappedGroups(mapRoot, wrapOffsets, 'map-border-wrap', (g) => {
+          g.append('path')
+            .datum(borders)
+            .attr('class', 'map-country-borders')
+            .attr('d', pathGen);
+        });
       }
     } catch (borderErr) {
       console.warn('Expanded map: country borders unavailable');
     }
 
-    if (!isMobile) {
-      const regionLabelGroup = mapRoot.append('g').attr('class', 'map-region-labels');
-      EXPANDED_MAP_REGION_LABELS.forEach((label) => {
+    _appendExpandedMapWrappedGroups(mapRoot, wrapOffsets, 'map-continent-labels', (g) => {
+      EXPANDED_MAP_CONTINENT_LABELS.forEach((label) => {
         const [x, y] = projection([label.lng, label.lat]);
-        regionLabelGroup.append('text')
+        g.append('text')
           .attr('x', x)
           .attr('y', y)
-          .attr('class', 'map-region-label')
+          .attr('class', 'map-continent-label')
           .attr('text-anchor', 'middle')
           .text(label.text);
+      });
+    });
+
+    if (!isMobile) {
+      _appendExpandedMapWrappedGroups(mapRoot, wrapOffsets, 'map-region-labels', (g) => {
+        EXPANDED_MAP_REGION_LABELS.forEach((label) => {
+          const [x, y] = projection([label.lng, label.lat]);
+          g.append('text')
+            .attr('x', x)
+            .attr('y', y)
+            .attr('class', 'map-region-label')
+            .attr('text-anchor', 'middle')
+            .text(label.text);
+        });
       });
     }
   }
@@ -9933,9 +10042,9 @@
         if (opts.enableZoom) {
           mapRoot.insert('rect', ':first-child')
             .attr('class', 'map-interaction-bg')
-            .attr('x', -width * 2)
+            .attr('x', -width * 4)
             .attr('y', -height * 2)
-            .attr('width', width * 5)
+            .attr('width', width * 9)
             .attr('height', height * 5)
             .attr('fill', 'transparent')
             .style('pointer-events', 'all');
@@ -9957,9 +10066,10 @@
       const dotGroup = mapRoot.append('g').attr('class', 'map-dots');
       const destinationLabelEntries = [];
       const expandedMarkerRecords = [];
+      const expandedWrapOffsets = isExpanded ? _getExpandedMapWrapOffsets(_getExpandedMapWorldWrapWidth(width)) : null;
 
       resolvedMapDestinations.forEach(d => {
-        const [x, y] = projection([d.lng, d.lat]);
+        const [baseX, y] = projection([d.lng, d.lat]);
         const color = mapColors[d.type];
         const opac = mapGlowOpacity[d.type];
         const destName = d.name || d.id;
@@ -9969,54 +10079,58 @@
             id: d.id,
             name: destName,
             type: d.type,
-            x,
+            x: baseX,
             y
           });
 
           const sizing = _getExpandedMarkerSizing(d, isMobileExpandedMap);
 
-          dotGroup.append('circle')
-            .attr('cx', x).attr('cy', y)
-            .attr('r', sizing.coreR)
-            .attr('class', 'map-dot')
-            .attr('data-screen-r', sizing.coreR)
-            .attr('data-marker-layer', 'core')
-            .attr('data-screen-stroke-width', 0.6)
-            .attr('fill', color)
-            .attr('stroke', '#0c1018')
-            .attr('stroke-width', 0.6)
-            .attr('opacity', 0)
-            .transition().duration(600).attr('opacity', 1);
+          expandedWrapOffsets.forEach((offsetX) => {
+            const x = baseX + offsetX;
 
-          if (opts.enableDestinationClicks) {
             dotGroup.append('circle')
               .attr('cx', x).attr('cy', y)
-              .attr('r', sizing.hitR)
-              .attr('class', 'map-dot-hit')
-              .attr('data-screen-r', sizing.hitR)
-              .attr('data-marker-layer', 'hit')
-              .attr('data-live-map-destination-id', d.id)
-              .attr('aria-label', destName)
-              .attr('title', destName)
-              .style('fill', 'transparent')
-              .style('pointer-events', 'all')
-              .style('cursor', 'pointer');
-          }
+              .attr('r', sizing.coreR)
+              .attr('class', 'map-dot')
+              .attr('data-screen-r', sizing.coreR)
+              .attr('data-marker-layer', 'core')
+              .attr('data-screen-stroke-width', 0.6)
+              .attr('fill', color)
+              .attr('stroke', '#0c1018')
+              .attr('stroke-width', 0.6)
+              .attr('opacity', 0)
+              .transition().duration(600).attr('opacity', 1);
+
+            if (opts.enableDestinationClicks) {
+              dotGroup.append('circle')
+                .attr('cx', x).attr('cy', y)
+                .attr('r', sizing.hitR)
+                .attr('class', 'map-dot-hit')
+                .attr('data-screen-r', sizing.hitR)
+                .attr('data-marker-layer', 'hit')
+                .attr('data-live-map-destination-id', d.id)
+                .attr('aria-label', destName)
+                .attr('title', destName)
+                .style('fill', 'transparent')
+                .style('pointer-events', 'all')
+                .style('cursor', 'pointer');
+            }
+          });
         } else {
           dotGroup.append('circle')
-            .attr('cx', x).attr('cy', y).attr('r', d.size)
+            .attr('cx', baseX).attr('cy', y).attr('r', d.size)
             .attr('class', 'map-dot')
             .attr('fill', color).attr('opacity', 0)
             .transition().duration(600).attr('opacity', opac * 0.3);
 
           dotGroup.append('circle')
-            .attr('cx', x).attr('cy', y).attr('r', d.size * 0.55)
+            .attr('cx', baseX).attr('cy', y).attr('r', d.size * 0.55)
             .attr('class', 'map-dot')
             .attr('fill', color).attr('opacity', 0)
             .transition().duration(600).attr('opacity', opac * 0.6);
 
           dotGroup.append('circle')
-            .attr('cx', x).attr('cy', y)
+            .attr('cx', baseX).attr('cy', y)
             .attr('r', d.type === 'surge' ? 3 : 2)
             .attr('class', 'map-dot')
             .attr('fill', color).attr('opacity', 0)
@@ -10027,7 +10141,7 @@
           const sizing = _getExpandedMarkerSizing(d, false);
           destinationLabelEntries.push({
             id: d.id,
-            x,
+            x: baseX,
             y,
             name: destName,
             offset: sizing.coreR + 3
@@ -10068,14 +10182,18 @@
       }
 
       if (isExpanded && opts.enableDestinationClicks) {
-        _expandedMapMarkers = expandedMarkerRecords;
+        _expandedMapMarkers = _buildExpandedMapMarkerRecords(
+          expandedMarkerRecords,
+          _getExpandedMapWorldWrapWidth(width)
+        );
         _expandedMapZoomTransform = d3.zoomIdentity;
         _bindExpandedMapSelectionHandlers(svg.node());
       }
 
       if (opts.enableZoom) {
-        const panPaddingX = width * 3;
+        const panPaddingX = width * 6;
         const panPaddingY = height * 3;
+        const worldWrapWidth = _getExpandedMapWorldWrapWidth(width);
         const zoom = d3.zoom()
           .scaleExtent([1, 8])
           .extent([[0, 0], [width, height]])
@@ -10087,9 +10205,17 @@
             return (!event.ctrlKey || event.type === 'wheel') && !event.button;
           })
           .on('zoom', (event) => {
-            const k = event.transform.k;
-            svg.select('.map-viewport').attr('transform', event.transform);
-            _expandedMapZoomTransform = event.transform;
+            let transform = event.transform;
+            if (isExpanded) {
+              transform = _normalizeExpandedMapZoomTransform(transform, worldWrapWidth);
+              if (transform !== event.transform) {
+                svg.call(zoom.transform, transform);
+                return;
+              }
+            }
+            const k = transform.k;
+            svg.select('.map-viewport').attr('transform', transform);
+            _expandedMapZoomTransform = transform;
             if (isExpanded) {
               _updateExpandedMarkerRadii(svg, k);
               _closeExpandedMapDestinationPicker();

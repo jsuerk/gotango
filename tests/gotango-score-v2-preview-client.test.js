@@ -466,6 +466,56 @@ function _getExpandedMapSelectionRadius(isMobile) {
   return isMobile ? 20 : 14;
 }
 
+function _getExpandedMapWorldWrapWidth(width) {
+  return width;
+}
+
+function _getExpandedMapWrapOffsets(worldWrapWidth) {
+  return [-worldWrapWidth, 0, worldWrapWidth];
+}
+
+function _buildExpandedMapMarkerRecords(baseMarkers, worldWrapWidth) {
+  if (!Array.isArray(baseMarkers) || baseMarkers.length === 0) return [];
+  const offsets = _getExpandedMapWrapOffsets(worldWrapWidth);
+  const records = [];
+  for (const marker of baseMarkers) {
+    for (const wrapOffset of offsets) {
+      records.push({
+        id: marker.id,
+        name: marker.name,
+        type: marker.type,
+        x: marker.x + wrapOffset,
+        y: marker.y,
+        wrapOffset,
+      });
+    }
+  }
+  return records;
+}
+
+function _dedupeExpandedMapCandidatesById(candidates) {
+  const deduped = [];
+  const seen = new Set();
+  for (const entry of candidates) {
+    if (seen.has(entry.id)) continue;
+    seen.add(entry.id);
+    deduped.push(entry);
+  }
+  return deduped;
+}
+
+function _getExpandedMapInitialTransformForTest(projection, width, height, isMobile) {
+  const initialK = isMobile ? 1.75 : 1.4;
+  const [targetX, targetY] = projection([-78, 25]);
+  return {
+    k: initialK,
+    x: width / 2 - initialK * targetX,
+    y: height / 2 - initialK * targetY,
+    applyX: (x) => initialK * x + (width / 2 - initialK * targetX),
+    applyY: (y) => initialK * y + (height / 2 - initialK * targetY),
+  };
+}
+
 const _EXPANDED_MAP_AMBIGUITY_GAP_PX = 8;
 const _EXPANDED_MAP_MAX_PICKER_CANDIDATES = 6;
 
@@ -475,16 +525,17 @@ function _pickNearestExpandedMapMarkers(pointerX, pointerY, markers, transform, 
   }
 
   const selectionRadius = _getExpandedMapSelectionRadius(isMobile);
-  const ranked = markers
-    .map((marker) => {
-      const screenX = transform.applyX(marker.x);
-      const screenY = transform.applyY(marker.y);
-      const distance = Math.hypot(pointerX - screenX, pointerY - screenY);
-      return { ...marker, screenX, screenY, distance };
-    })
-    .filter((entry) => entry.distance <= selectionRadius)
-    .sort((a, b) => a.distance - b.distance)
-    .slice(0, _EXPANDED_MAP_MAX_PICKER_CANDIDATES);
+  const ranked = _dedupeExpandedMapCandidatesById(
+    markers
+      .map((marker) => {
+        const screenX = transform.applyX(marker.x);
+        const screenY = transform.applyY(marker.y);
+        const distance = Math.hypot(pointerX - screenX, pointerY - screenY);
+        return { ...marker, screenX, screenY, distance };
+      })
+      .filter((entry) => entry.distance <= selectionRadius)
+      .sort((a, b) => a.distance - b.distance)
+  ).slice(0, _EXPANDED_MAP_MAX_PICKER_CANDIDATES);
 
   if (ranked.length === 0) {
     return { mode: 'none', candidates: [] };
@@ -1336,4 +1387,63 @@ test('expanded Live Map isolated marker resolves directly without picker', () =>
   const miss = _pickNearestExpandedMapMarkers(150, 90, markers, transform, false);
   assert.equal(miss.mode, 'none');
   assert.equal(miss.candidates.length, 0);
+});
+
+test('expanded Live Map wrapped marker records include x offsets for world wrap width', () => {
+  const worldWrapWidth = 480;
+  const base = [{ id: 'miami', name: 'Miami', type: 'surge', x: 200, y: 90 }];
+  const wrapped = _buildExpandedMapMarkerRecords(base, worldWrapWidth);
+
+  assert.equal(wrapped.length, 3);
+  assert.deepEqual(wrapped.map((m) => m.x), [-280, 200, 680]);
+  assert.ok(wrapped.every((m) => m.id === 'miami' && m.y === 90));
+});
+
+test('expanded Live Map picker dedupes wrapped copies by destination id', () => {
+  const transform = createIdentityTransform();
+  const base = [{ id: 'st-barth', name: 'St. Barth', type: 'surge', x: 100, y: 80 }];
+  const wrapped = _buildExpandedMapMarkerRecords(base, 480);
+
+  const pick = _pickNearestExpandedMapMarkers(100, 80, wrapped, transform, false);
+  assert.equal(pick.mode, 'single');
+  assert.equal(pick.destinationId, 'st-barth');
+  assert.equal(pick.candidates.length, 1, 'wrapped copies near the same tap should dedupe to one candidate');
+
+  const nearWrapCopy = _pickNearestExpandedMapMarkers(580, 80, wrapped, transform, false);
+  assert.equal(nearWrapCopy.mode, 'single');
+  assert.equal(nearWrapCopy.destinationId, 'st-barth');
+});
+
+test('expanded Live Map initial transform centers Americas view', () => {
+  const html = readFileSync(INDEX_HTML, 'utf8');
+  assert.match(html, /function _getExpandedMapInitialTransform\(/);
+  assert.match(html, /projection\(\[-78, 25\]\)/);
+
+  const width = 480;
+  const height = 150;
+  const scale = 76;
+  const projection = {
+    apply: ([lng, lat]) => [
+      (lng / 360 + 0.5) * scale * (width / scale) + width / 2 - width / 2,
+      height / 2 + 8 - (lat / 180) * scale,
+    ],
+  };
+  projection.call = ([lng, lat]) => {
+    const x = width / 2 + (lng / 360) * width;
+    const y = height / 2 + 8 - (lat / 180) * scale * 2;
+    return [x, y];
+  };
+  const geoLike = ([lng, lat]) => [
+    width / 2 + (lng / 360) * width,
+    height / 2 + 8 - (lat / 180) * scale * 2,
+  ];
+
+  const mobile = _getExpandedMapInitialTransformForTest(geoLike, width, height, true);
+  assert.equal(mobile.k, 1.75);
+  assert.ok(mobile.x < width / 2, 'Americas center should shift viewport west of map midpoint');
+  assert.ok(mobile.y < height / 2, 'Americas center should shift viewport north of map midpoint');
+
+  const desktop = _getExpandedMapInitialTransformForTest(geoLike, width, height, false);
+  assert.equal(desktop.k, 1.4);
+  assert.ok(desktop.x < width / 2);
 });
