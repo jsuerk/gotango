@@ -783,18 +783,18 @@
     stroke-width: 0.35;
     pointer-events: none;
   }
-  .map-land-fill {
+  #expanded-world-map .map-land-fill {
     fill: #1a2029;
-    stroke: rgba(232, 163, 23, 0.12);
-    stroke-width: 0.22;
+    fill-opacity: 0.92;
+    stroke: rgba(232, 163, 23, 0.28);
+    stroke-width: 0.35;
     vector-effect: non-scaling-stroke;
-    opacity: 0.92;
     pointer-events: none;
   }
-  .map-country-borders {
+  #expanded-world-map .map-country-borders {
     fill: none;
-    stroke: rgba(232, 163, 23, 0.18);
-    stroke-width: 0.22;
+    stroke: rgba(232, 163, 23, 0.34);
+    stroke-width: 0.32;
     vector-effect: non-scaling-stroke;
     pointer-events: none;
   }
@@ -10078,7 +10078,13 @@
       g.append('path')
         .datum(land)
         .attr('class', 'map-land-fill')
-        .attr('d', pathGen);
+        .attr('d', pathGen)
+        .attr('fill', '#1a2029')
+        .attr('fill-opacity', 0.92)
+        .style('stroke', 'rgba(232, 163, 23, 0.28)')
+        .style('stroke-width', '0.35px')
+        .style('vector-effect', 'non-scaling-stroke')
+        .style('pointer-events', 'none');
     });
 
     try {
@@ -10088,7 +10094,12 @@
           g.append('path')
             .datum(borders)
             .attr('class', 'map-country-borders')
-            .attr('d', pathGen);
+            .attr('d', pathGen)
+            .attr('fill', 'none')
+            .style('stroke', 'rgba(232, 163, 23, 0.34)')
+            .style('stroke-width', '0.32px')
+            .style('vector-effect', 'non-scaling-stroke')
+            .style('pointer-events', 'none');
         });
       }
     } catch (borderErr) {
