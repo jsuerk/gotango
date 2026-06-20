@@ -1571,38 +1571,6 @@
   }
   .movers-section-toggle-wrap {
     margin: 0 20px 28px;
-    display: flex;
-    justify-content: center;
-  }
-  #tab-movers .movers-section-toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 44px;
-    padding: 10px 18px;
-    margin: 0;
-    background: transparent;
-    border: 1px solid rgba(232, 163, 23, 0.35);
-    border-radius: 8px;
-    font-family: 'Geist Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--amber);
-    cursor: pointer;
-    transition: color 0.15s, border-color 0.15s, background 0.15s;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-  }
-  #tab-movers .movers-section-toggle:hover {
-    color: var(--amber-bright);
-    border-color: rgba(244, 181, 42, 0.55);
-    background: rgba(232, 163, 23, 0.06);
-  }
-  #tab-movers .movers-section-toggle:focus-visible {
-    outline: 2px solid var(--amber);
-    outline-offset: 2px;
   }
   .mover-row {
     display: grid;
@@ -7769,11 +7737,11 @@
 
       if (shouldShowMoversSectionToggle(fullList)) {
         const toggleWrap = document.createElement('div');
-        toggleWrap.className = 'movers-section-toggle-wrap';
+        toggleWrap.className = 'movers-section-toggle-wrap d-section-expand-wrap';
 
         const toggleBtn = document.createElement('button');
         toggleBtn.type = 'button';
-        toggleBtn.className = 'movers-section-toggle';
+        toggleBtn.className = 'd-section-expand-btn';
         toggleBtn.setAttribute('data-movers-section-toggle', sectionKey);
         toggleBtn.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
         toggleBtn.setAttribute('aria-controls', group.id);
