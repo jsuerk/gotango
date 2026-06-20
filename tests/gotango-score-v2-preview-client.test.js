@@ -471,7 +471,15 @@ function _getExpandedMapWorldWrapWidth(width) {
 }
 
 function _getExpandedMapWrapOffsets(worldWrapWidth) {
-  return [-2 * worldWrapWidth, -worldWrapWidth, 0, worldWrapWidth, 2 * worldWrapWidth];
+  return [
+    -3 * worldWrapWidth,
+    -2 * worldWrapWidth,
+    -worldWrapWidth,
+    0,
+    worldWrapWidth,
+    2 * worldWrapWidth,
+    3 * worldWrapWidth
+  ];
 }
 
 function _buildExpandedMapMarkerRecords(baseMarkers, worldWrapWidth) {
@@ -505,8 +513,8 @@ function _dedupeExpandedMapCandidatesById(candidates) {
 }
 
 function _getExpandedMapInitialTransformForTest(projection, width, height, isMobile) {
-  const initialK = isMobile ? 1.75 : 1.4;
-  const [targetX, targetY] = projection([-78, 25]);
+  const initialK = isMobile ? 1.25 : 1.2;
+  const [targetX, targetY] = projection([-82, 22]);
   return {
     k: initialK,
     x: width / 2 - initialK * targetX,
@@ -1389,11 +1397,11 @@ test('expanded Live Map isolated marker resolves directly without picker', () =>
   assert.equal(miss.candidates.length, 0);
 });
 
-test('expanded Live Map wrap offsets include ±2 world widths', () => {
+test('expanded Live Map wrap offsets include ±3 world widths', () => {
   const worldWrapWidth = 480;
   assert.deepEqual(
     _getExpandedMapWrapOffsets(worldWrapWidth),
-    [-960, -480, 0, 480, 960]
+    [-1440, -960, -480, 0, 480, 960, 1440]
   );
 });
 
@@ -1402,8 +1410,8 @@ test('expanded Live Map wrapped marker records include x offsets for world wrap 
   const base = [{ id: 'miami', name: 'Miami', type: 'surge', x: 200, y: 90 }];
   const wrapped = _buildExpandedMapMarkerRecords(base, worldWrapWidth);
 
-  assert.equal(wrapped.length, 5);
-  assert.deepEqual(wrapped.map((m) => m.x), [-760, -280, 200, 680, 1160]);
+  assert.equal(wrapped.length, 7);
+  assert.deepEqual(wrapped.map((m) => m.x), [-1240, -760, -280, 200, 680, 1160, 1640]);
   assert.ok(wrapped.every((m) => m.id === 'miami' && m.y === 90));
 });
 
@@ -1425,7 +1433,7 @@ test('expanded Live Map picker dedupes wrapped copies by destination id', () => 
 test('expanded Live Map initial transform centers Americas view', () => {
   const html = readFileSync(INDEX_HTML, 'utf8');
   assert.match(html, /function _getExpandedMapInitialTransform\(/);
-  assert.match(html, /projection\(\[-78, 25\]\)/);
+  assert.match(html, /projection\(\[-82, 22\]\)/);
 
   const width = 480;
   const height = 150;
@@ -1447,11 +1455,11 @@ test('expanded Live Map initial transform centers Americas view', () => {
   ];
 
   const mobile = _getExpandedMapInitialTransformForTest(geoLike, width, height, true);
-  assert.equal(mobile.k, 1.75);
+  assert.equal(mobile.k, 1.25);
   assert.ok(mobile.x < width / 2, 'Americas center should shift viewport west of map midpoint');
   assert.ok(mobile.y < height / 2, 'Americas center should shift viewport north of map midpoint');
 
   const desktop = _getExpandedMapInitialTransformForTest(geoLike, width, height, false);
-  assert.equal(desktop.k, 1.4);
+  assert.equal(desktop.k, 1.2);
   assert.ok(desktop.x < width / 2);
 });

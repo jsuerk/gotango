@@ -9397,7 +9397,15 @@
   }
 
   function _getExpandedMapWrapOffsets(worldWrapWidth) {
-    return [-2 * worldWrapWidth, -worldWrapWidth, 0, worldWrapWidth, 2 * worldWrapWidth];
+    return [
+      -3 * worldWrapWidth,
+      -2 * worldWrapWidth,
+      -worldWrapWidth,
+      0,
+      worldWrapWidth,
+      2 * worldWrapWidth,
+      3 * worldWrapWidth
+    ];
   }
 
   function _buildExpandedMapMarkerRecords(baseMarkers, worldWrapWidth) {
@@ -9450,8 +9458,8 @@
 
   function _getExpandedMapInitialTransform(projection, width, height) {
     const isMobile = _isMobileExpandedMap();
-    const initialK = isMobile ? 1.75 : 1.4;
-    const [targetX, targetY] = projection([-78, 25]);
+    const initialK = isMobile ? 1.25 : 1.2;
+    const [targetX, targetY] = projection([-82, 22]);
     return d3.zoomIdentity
       .translate(width / 2 - initialK * targetX, height / 2 - initialK * targetY)
       .scale(initialK);
@@ -10192,9 +10200,8 @@
       }
 
       if (opts.enableZoom) {
-        const panPaddingX = width * 12;
+        const panPaddingX = width * 20;
         const panPaddingY = height * 3;
-        const worldWrapWidth = _getExpandedMapWorldWrapWidth(width);
         const zoom = d3.zoom()
           .scaleExtent([1, 8])
           .extent([[0, 0], [width, height]])
@@ -10206,14 +10213,7 @@
             return (!event.ctrlKey || event.type === 'wheel') && !event.button;
           })
           .on('zoom', (event) => {
-            let transform = event.transform;
-            if (isExpanded && event.type === 'end') {
-              const normalized = _normalizeExpandedMapZoomTransform(transform, worldWrapWidth);
-              if (normalized !== transform) {
-                svg.call(zoom.transform, normalized);
-                return;
-              }
-            }
+            const transform = event.transform;
             const k = transform.k;
             svg.select('.map-viewport').attr('transform', transform);
             _expandedMapZoomTransform = transform;
