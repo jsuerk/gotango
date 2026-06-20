@@ -647,7 +647,7 @@
     .live-map-modal__header {
       padding: 16px 20px 10px;
     }
-    .live-map-modal__header h2 {
+    .live-map-modal__title {
       font-size: 22px;
     }
     .live-map-modal__subhead {
@@ -679,13 +679,31 @@
     color: var(--amber);
     margin-bottom: 6px;
   }
-  .live-map-modal__header h2 {
+  .live-map-modal__title {
     font-family: 'Fraunces', serif;
     font-size: 26px;
-    font-weight: 500;
+    font-weight: 400;
+    line-height: 0.98;
+    letter-spacing: -0.028em;
     color: var(--text);
     margin: 0 0 6px;
-    line-height: 1.15;
+  }
+  .live-map-modal__title em {
+    font-style: italic;
+    color: var(--amber);
+    font-weight: 500;
+    position: relative;
+    display: inline-block;
+  }
+  .live-map-modal__title em::after {
+    content: "";
+    position: absolute;
+    bottom: 3px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(to right, var(--amber) 0%, transparent 100%);
+    opacity: 0.25;
   }
   .live-map-modal__subhead {
     font-family: 'Geist', sans-serif;
@@ -701,26 +719,31 @@
     min-width: 40px;
     min-height: 40px;
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 2px solid var(--amber-bright);
     background: rgba(10, 13, 17, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     color: var(--text);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    font-size: 20px;
     line-height: 1;
-    transition: background 150ms ease, border-color 150ms ease;
+    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.45), 0 0 12px rgba(244, 181, 42, 0.12);
+    transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
     touch-action: manipulation;
   }
   .live-map-modal__close:hover {
     background: rgba(16, 20, 26, 0.95);
     border-color: var(--amber-bright);
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.5), 0 0 16px rgba(244, 181, 42, 0.2);
+    transform: scale(1.05);
   }
   .live-map-modal__close:focus-visible {
     outline: none;
     border-color: var(--amber-bright);
-    box-shadow: 0 0 0 2px rgba(244, 181, 42, 0.35);
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.5), 0 0 20px rgba(244, 181, 42, 0.4);
   }
   .expanded-world-map-shell {
     position: relative;
@@ -5659,7 +5682,7 @@
     <div class="live-map-modal__header">
       <div>
         <div class="live-map-modal__eyebrow">LIVE MAP</div>
-        <h2 id="live-map-modal-title">Where the world's going</h2>
+        <h2 id="live-map-modal-title" class="live-map-modal__title">Where the world's<br><em>going.</em></h2>
         <p class="live-map-modal__subhead">Zoom in, pan around, and select a destination.</p>
       </div>
       <button class="live-map-modal__close" type="button" data-live-map-modal-close aria-label="Close live map">×</button>
