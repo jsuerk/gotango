@@ -7,6 +7,7 @@
  *   PEXELS_API_KEY=... node scripts/fetch-pexels-destination-heroes.mjs --force
  *   PEXELS_API_KEY=... node scripts/fetch-pexels-destination-heroes.mjs --force --only turks-caicos,nantucket
  *   PEXELS_API_KEY=... node scripts/fetch-pexels-destination-heroes.mjs --force --specific
+ *   PEXELS_API_KEY=... node scripts/fetch-pexels-destination-heroes.mjs --candidates --specific --only turks-caicos
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
@@ -14,6 +15,12 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import { DESTINATIONS } from '../destinations.config.js';
+import {
+  CANDIDATES_DIR,
+  MAX_CANDIDATES_PER_DESTINATION,
+  ensureDirs,
+  mergeCandidates,
+} from './hero-candidate-utils.mjs';
 import {
   DESTINATION_HERO_PROFILES,
   GENERIC_WEAK_TOKENS,
@@ -30,6 +37,7 @@ const REPORT_PATH = join(ROOT, 'destination-image-selections.md');
 
 const FORCE = process.argv.includes('--force');
 const SPECIFIC = process.argv.includes('--specific');
+const CANDIDATES = process.argv.includes('--candidates');
 const ONLY_IDS = parseOnlyArg();
 const API_KEY = loadApiKey();
 const SEARCH_DELAY_MS = 250;
@@ -438,19 +446,51 @@ function scorePhoto(photo, dest) {
   return score;
 }
 
-function pickBestPhoto(photos, dest, usedPhotoIds, options = {}) {
+function rankPhotos(photos, dest, usedPhotoIds, options = {}) {
   const minScore = options.minScore ?? MIN_ACCEPT_SCORE;
-  const ranked = photos
+  return photos
     .map((photo) => {
       const acceptance = isPhotoAcceptable(photo, dest, usedPhotoIds, options);
       if (!acceptance.acceptable) return null;
       return { photo, score: scorePhoto(photo, dest), acceptance };
     })
     .filter(Boolean)
+    .filter((item) => item.score >= minScore)
     .sort((a, b) => b.score - a.score);
+}
 
-  if (!ranked.length || ranked[0].score < minScore) return null;
+function pickBestPhoto(photos, dest, usedPhotoIds, options = {}) {
+  const ranked = rankPhotos(photos, dest, usedPhotoIds, options);
+  if (!ranked.length) return null;
   return ranked[0];
+}
+
+function photoToCandidate(dest, photo, score, query, pass) {
+  const photographer = photo.photographer || 'Pexels Contributor';
+  const photographerUrl = photo.photographer_url || 'https://www.pexels.com';
+  const sourceUrl = photo.url || `https://www.pexels.com/photo/${photo.id}/`;
+  const previewUrl = photo.src?.large || photo.src?.medium || getDownloadUrl(photo);
+
+  return {
+    candidateId: `pexels-${photo.id}`,
+    source: 'Pexels',
+    previewUrl,
+    downloadUrl: getDownloadUrl(photo),
+    thumbnailUrl: photo.src?.medium || previewUrl,
+    alt: buildAlt(dest, photo),
+    credit: photographer,
+    photographer,
+    photographerUrl,
+    sourceUrl,
+    license: 'Pexels License',
+    pexelsPhotoId: photo.id,
+    width: photo.width || 0,
+    height: photo.height || 0,
+    queryUsed: query,
+    score,
+    notes: pass || (SPECIFIC ? 'specific pass' : 'standard pass'),
+    objectPosition: defaultObjectPosition(dest, photo),
+  };
 }
 
 function collectUsedPhotoIds(manifest, excludeIds) {
@@ -652,6 +692,50 @@ function writeReport(destinations, manifest, reportRows) {
   writeFileSync(REPORT_PATH, lines.join('\n'), 'utf8');
 }
 
+async function findTopCandidatesForDestination(dest, usedPhotoIds, limit = MAX_CANDIDATES_PER_DESTINATION) {
+  const collected = new Map();
+  const queries = buildQueries(dest);
+
+  for (const query of queries) {
+    const photos = await searchPexels(query);
+    await sleep(SEARCH_DELAY_MS);
+    const ranked = rankPhotos(photos, dest, usedPhotoIds);
+    for (const item of ranked) {
+      const id = item.photo.id;
+      if (!collected.has(id)) {
+        collected.set(id, { ...item, query, pass: 'specific' });
+      }
+    }
+    if (collected.size >= limit) break;
+  }
+
+  const profile = getProfile(dest);
+  if (collected.size < limit && profile?.relaxedFallback) {
+    const { queries: relaxedQueries, requiredStrong, minScore } = profile.relaxedFallback;
+    for (const query of relaxedQueries) {
+      const photos = await searchPexels(query);
+      await sleep(SEARCH_DELAY_MS);
+      const ranked = rankPhotos(photos, dest, usedPhotoIds, {
+        requiredStrong,
+        minScore,
+        relaxed: true,
+      });
+      for (const item of ranked) {
+        const id = item.photo.id;
+        if (!collected.has(id)) {
+          collected.set(id, { ...item, query, pass: 'relaxed-fallback' });
+        }
+      }
+      if (collected.size >= limit) break;
+    }
+  }
+
+  return [...collected.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((item) => photoToCandidate(dest, item.photo, item.score, item.query, item.pass));
+}
+
 async function findPhotoForDestination(dest, usedPhotoIds) {
   const queries = buildQueries(dest);
   for (const query of queries) {
@@ -697,6 +781,49 @@ function resolveTargetDestinations() {
   return list;
 }
 
+async function runCandidatesMode(targets) {
+  ensureDirs();
+  const usedPhotoIds = new Set();
+  let updated = 0;
+  let empty = 0;
+
+  const mode = SPECIFIC
+    ? (ONLY_IDS ? `specific, only ${targets.length}` : 'specific, all Pexels destinations')
+    : (ONLY_IDS ? `only ${targets.length} destination(s)` : 'standard');
+  console.log(`Pexels candidate fetch (${mode})`);
+  console.log(`Writing to ${CANDIDATES_DIR}/`);
+
+  for (const dest of targets) {
+    console.log(`Search ${dest.id} (${dest.name})...`);
+    let candidates;
+    try {
+      candidates = await findTopCandidatesForDestination(dest, usedPhotoIds);
+    } catch (err) {
+      die(`Stopped on ${dest.id}: ${err.message}`);
+    }
+
+    if (!candidates.length) {
+      empty += 1;
+      console.log(`  No suitable Pexels results for ${dest.id}`);
+      continue;
+    }
+
+    for (const c of candidates) usedPhotoIds.add(c.pexelsPhotoId);
+    const bundle = mergeCandidates(dest.id, dest.name, candidates, 'Pexels');
+    updated += 1;
+    console.log(
+      `  Saved ${bundle.candidates.length} candidate(s) for ${dest.id} `
+      + `(top score ${candidates[0].score}, query "${candidates[0].queryUsed}")`,
+    );
+    await sleep(SEARCH_DELAY_MS);
+  }
+
+  console.log('\nDone.');
+  console.log(`Destinations with candidates: ${updated}`);
+  console.log(`Destinations with no results: ${empty}`);
+  console.log('Tip: run Wikimedia fetch, then node scripts/build-hero-review.mjs');
+}
+
 async function main() {
   if (!API_KEY) {
     die(
@@ -706,9 +833,14 @@ async function main() {
     );
   }
 
+  const targets = resolveTargetDestinations();
+  if (CANDIDATES) {
+    await runCandidatesMode(targets);
+    return;
+  }
+
   mkdirSync(IMAGES_DIR, { recursive: true });
   const manifest = loadManifest();
-  const targets = resolveTargetDestinations();
   const refetchIds = new Set(targets.map((d) => d.id));
   const usedPhotoIds = collectUsedPhotoIds(manifest, ONLY_IDS ? refetchIds : null);
 

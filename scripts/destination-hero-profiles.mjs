@@ -156,7 +156,7 @@ export const DESTINATION_HERO_PROFILES = {
     iconicQueries: ['Palm Beach inlet Florida aerial', 'Lake Worth lagoon Palm Beach', 'Palm Beach island coastline'],
     requiredStrong: ['palm beach', 'west palm', 'lake worth'],
     iconicBonus: ['palm beach', 'lake worth', 'breakers', 'worth avenue'],
-    forbidden: ['clearwater', 'miami only', 'fort lauderdale only'],
+    forbidden: ['clearwater', 'miami only', 'fort lauderdale only', 'australia', 'nsw', 'barrenjoey', 'sydney'],
   },
   tulum: {
     iconicQueries: ['Tulum Mayan ruins beach', 'Tulum ruins Mexico aerial', 'Tulum archaeological site coast'],
