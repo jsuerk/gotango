@@ -6,6 +6,7 @@
  *   PEXELS_API_KEY=... node scripts/fetch-pexels-destination-heroes.mjs
  *   PEXELS_API_KEY=... node scripts/fetch-pexels-destination-heroes.mjs --force
  *   PEXELS_API_KEY=... node scripts/fetch-pexels-destination-heroes.mjs --force --only turks-caicos,nantucket
+ *   PEXELS_API_KEY=... node scripts/fetch-pexels-destination-heroes.mjs --force --specific
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
@@ -13,6 +14,13 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import { DESTINATIONS } from '../destinations.config.js';
+import {
+  DESTINATION_HERO_PROFILES,
+  GENERIC_WEAK_TOKENS,
+  PEOPLE_SUBJECT_KEYWORDS,
+  WEAK_SUBJECT_KEYWORDS,
+  WIKIMEDIA_DESTINATION_IDS,
+} from './destination-hero-profiles.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -21,10 +29,11 @@ const MANIFEST_PATH = join(ROOT, 'destination-images.config.js');
 const REPORT_PATH = join(ROOT, 'destination-image-selections.md');
 
 const FORCE = process.argv.includes('--force');
+const SPECIFIC = process.argv.includes('--specific');
 const ONLY_IDS = parseOnlyArg();
 const API_KEY = loadApiKey();
 const SEARCH_DELAY_MS = 250;
-const MIN_ACCEPT_SCORE = 25;
+const MIN_ACCEPT_SCORE = SPECIFIC ? 55 : 25;
 const MAX_EDGE_PX = 1800;
 
 const BEACH_ISLAND_IDS = new Set([
@@ -110,104 +119,9 @@ const REGION_COUNTRY_HINTS = {
   'Dominican Republic': 'Dominican Republic coast',
 };
 
-/** Per-destination stricter rules for refetch / quality pass. */
-const DESTINATION_RULES = {
-  'st-barts': {
-    priorityQueries: ['St Barts aerial', 'Saint Barthelemy coastline', 'Caribbean island harbor aerial'],
-    requiredAny: ['bart', 'barth', 'caribbean', 'antilles', 'gustavia'],
-    forbidden: ['australia', 'antalya', 'turkey', 'clearwater'],
-  },
-  'turks-caicos': {
-    priorityQueries: ['Turks and Caicos aerial', 'Grace Bay beach aerial', 'Providenciales coastline'],
-    requiredAny: ['turks', 'caicos', 'providenciales', 'grace bay', 'caribbean'],
-    forbidden: ['antalya', 'turkey', 'australia', 'clearwater'],
-  },
-  mustique: {
-    priorityQueries: ['Grenadines island aerial', 'Caribbean private island aerial', 'Bequia island aerial'],
-    requiredAny: ['caribbean', 'grenadines', 'island', 'mustique', 'bequia', 'antilles'],
-    forbidden: ['australia', 'portsea', 'victoria'],
-  },
-  comporta: {
-    priorityQueries: ['Comporta Portugal coast', 'Alentejo coast Portugal aerial', 'Portugal Atlantic beach aerial'],
-    requiredAny: ['portugal', 'comporta', 'alentejo', 'lisbon', 'atlantic'],
-    forbidden: ['australia', 'victoria', 'portsea'],
-  },
-  'destin-30a': {
-    priorityQueries: ['Destin Florida aerial', 'Emerald Coast Florida aerial', '30A Florida beach aerial'],
-    requiredAny: ['destin', 'emerald', 'panhandle', 'florida', 'gulf'],
-    forbidden: ['clearwater', 'tampa', 'st petersburg'],
-  },
-  'harbour-island': {
-    priorityQueries: ['Harbour Island Bahamas aerial', 'Eleuthera pink sand beach aerial', 'Bahamas island aerial'],
-    requiredAny: ['harbour', 'harbor', 'eleuthera', 'bahamas', 'pink sand'],
-    forbidden: ['nassau city', 'australia', 'antalya'],
-  },
-  nassau: {
-    priorityQueries: ['Nassau Bahamas aerial', 'Paradise Island aerial', 'Bahamas coastline aerial'],
-    requiredAny: ['nassau', 'paradise island', 'bahamas'],
-    forbidden: ['australia', 'antalya', 'eleuthera', 'harbour island', 'harbor island'],
-  },
-  nantucket: {
-    priorityQueries: ['Nantucket island aerial', 'Nantucket Massachusetts coast aerial', 'Nantucket harbor aerial'],
-    requiredAny: ['nantucket'],
-    forbidden: ['chatham', 'cape cod', 'new shoreham', 'block island', 'rhode island'],
-  },
-  'marthas-vineyard': {
-    priorityQueries: ["Martha's Vineyard aerial", 'Marthas Vineyard coast aerial', 'Massachusetts island aerial'],
-    requiredAny: ['vineyard', 'martha', 'edgartown', 'massachusetts'],
-    forbidden: ['new shoreham', 'block island', 'rhode island', 'nantucket'],
-  },
-  'cape-cod': {
-    priorityQueries: ['Cape Cod aerial', 'Chatham lighthouse aerial', 'Hyannis coast Massachusetts aerial'],
-    requiredAny: ['cape cod', 'chatham', 'hyannis', 'massachusetts'],
-    forbidden: ['nantucket', 'new shoreham', 'block island'],
-  },
-  'block-island': {
-    priorityQueries: ['Block Island aerial', 'New Shoreham Rhode Island aerial', 'Rhode Island coast aerial'],
-    requiredAny: ['block island', 'new shoreham', 'rhode island'],
-    forbidden: ['nantucket', 'martha', 'vineyard', 'cape cod'],
-  },
-  antigua: {
-    priorityQueries: ['Antigua Caribbean aerial', 'Antigua coastline aerial', 'Antigua harbor aerial'],
-    requiredAny: ['antigua', 'caribbean', 'west indies'],
-    forbidden: ['australia', 'mediterranean', 'greece'],
-  },
-  charleston: {
-    priorityQueries: ['Charleston South Carolina skyline', 'Charleston harbor aerial', 'Charleston waterfront aerial'],
-    requiredAny: ['charleston', 'south carolina'],
-    forbidden: ['ripped', 'ruins', 'flag on island'],
-  },
-  exuma: {
-    priorityQueries: ['Exuma Bahamas aerial', 'Bahamas turquoise water aerial', 'Exuma cays aerial'],
-    requiredAny: ['exuma', 'bahamas', 'cays', 'george town'],
-    forbidden: ['beach ball', 'australia'],
-  },
-  'jackson-hole': {
-    priorityQueries: ['Grand Teton mountains aerial', 'Jackson Hole valley aerial', 'Teton Range Wyoming aerial'],
-    requiredAny: ['teton', 'jackson', 'wyoming'],
-    forbidden: ['airport', 'airplane', 'aircraft', 'runway'],
-  },
-  verbier: {
-    priorityQueries: ['Verbier Switzerland aerial', 'Valais Alps ski village aerial', 'Swiss Alps Verbier mountains'],
-    requiredAny: ['verbier', 'valais', 'swiss alps'],
-    forbidden: ['klosters', 'australia', 'clearwater'],
-  },
-  'sun-valley': {
-    priorityQueries: ['Sun Valley Idaho aerial', 'Hailey Idaho mountains aerial', 'Idaho mountain valley winter aerial'],
-    requiredAny: ['sun valley', 'hailey', 'idaho', 'wood river'],
-    forbidden: ['santa fe', 'new mexico'],
-  },
-  'santa-fe': {
-    priorityQueries: ['Santa Fe New Mexico aerial', 'Santa Fe desert landscape', 'New Mexico adobe city aerial'],
-    requiredAny: ['santa fe', 'new mexico'],
-    forbidden: ['idaho', 'sun valley'],
-  },
-  'puerto-vallarta': {
-    priorityQueries: ['Puerto Vallarta coastline aerial', 'Banderas Bay Mexico aerial', 'Nayarit coast Mexico aerial'],
-    requiredAny: ['puerto vallarta', 'vallarta', 'nayarit', 'banderas'],
-    forbidden: ['casa demae', 'resort pool', 'hotel room'],
-  },
-};
+function getProfile(dest) {
+  return DESTINATION_HERO_PROFILES[dest.id] || null;
+}
 
 function loadApiKey() {
   if (process.env.PEXELS_API_KEY?.trim()) {
@@ -310,17 +224,17 @@ function getRelevanceTokens(dest) {
   add(dest.region);
   const regionHint = REGION_COUNTRY_HINTS[dest.region];
   if (regionHint) add(regionHint);
-  const rules = DESTINATION_RULES[dest.id];
-  if (rules?.requiredAny) rules.requiredAny.forEach((t) => add(t));
+  const profile = getProfile(dest);
+  if (profile?.requiredStrong) profile.requiredStrong.forEach((t) => add(t));
+  if (profile?.iconicBonus) profile.iconicBonus.forEach((t) => add(t));
   return [...tokens];
 }
 
 function buildQueries(dest) {
   const name = shortDestinationName(dest.name);
-  const region = dest.region;
-  const regionHint = REGION_COUNTRY_HINTS[region] || region;
+  const regionHint = REGION_COUNTRY_HINTS[dest.region] || dest.region;
   const hints = getTypeHints(dest);
-  const rules = DESTINATION_RULES[dest.id];
+  const profile = getProfile(dest);
   const queries = [];
 
   const push = (...items) => {
@@ -330,8 +244,20 @@ function buildQueries(dest) {
     }
   };
 
-  if (rules?.priorityQueries?.length) {
-    push(...rules.priorityQueries);
+  if (profile?.iconicQueries?.length) {
+    push(...profile.iconicQueries);
+  }
+
+  if (SPECIFIC) {
+    push(
+      `${name} landmark`,
+      `${name} famous view`,
+      `${name} iconic`,
+      `${name} skyline`,
+      `${name} harbor`,
+      `${name} coastline`,
+    );
+    return [...new Set(queries)];
   }
 
   push(
@@ -394,13 +320,48 @@ function hasTokenMatch(text, tokens) {
   return tokens.some((token) => text.includes(token.toLowerCase()));
 }
 
-function isPhotoAcceptable(photo, dest, usedPhotoIds) {
+function hasStrongMatch(text, profile, overrideRequired) {
+  const required = overrideRequired || profile?.requiredStrong;
+  if (!required?.length) return true;
+  return hasTokenMatch(text, required);
+}
+
+function hasPeopleSubject(text) {
+  return hasTokenMatch(text, PEOPLE_SUBJECT_KEYWORDS)
+    || /\b(people|person|persons|crowds?)\b/.test(text);
+}
+
+function hasWeakSubject(text, dest) {
+  if (hasTokenMatch(text, WEAK_SUBJECT_KEYWORDS)) return true;
+  if (dest.id === 'jackson-hole' && /wooden building|barn/.test(text) && !/teton/.test(text)) {
+    return true;
+  }
+  if (dest.id === 'puerto-vallarta' && /blue sea under/.test(text)) return true;
+  if (dest.id === 'mallorca' && /photo of the ocean/.test(text)) return true;
+  return false;
+}
+
+function isOnlyGenericMatch(text, profile) {
+  if (hasStrongMatch(text, profile)) return false;
+  return hasTokenMatch(text, GENERIC_WEAK_TOKENS);
+}
+
+function isPhotoAcceptable(photo, dest, usedPhotoIds, options = {}) {
   if (usedPhotoIds.has(photo.id)) {
     return { acceptable: false, reason: 'duplicate-photo-id' };
   }
 
   const text = photoText(photo);
-  const rules = DESTINATION_RULES[dest.id];
+  const profile = getProfile(dest);
+  const requiredStrong = options.requiredStrong || profile?.requiredStrong;
+
+  if (hasPeopleSubject(text)) {
+    return { acceptable: false, reason: 'people-subject' };
+  }
+
+  if (SPECIFIC && hasWeakSubject(text, dest)) {
+    return { acceptable: false, reason: 'weak-subject' };
+  }
 
   for (const kw of HOTEL_RESORT_KEYWORDS) {
     if (text.includes(kw)) {
@@ -408,11 +369,21 @@ function isPhotoAcceptable(photo, dest, usedPhotoIds) {
     }
   }
 
-  if (rules?.forbidden?.length && hasTokenMatch(text, rules.forbidden)) {
+  if (profile?.forbidden?.length && hasTokenMatch(text, profile.forbidden)) {
     return { acceptable: false, reason: 'forbidden-token' };
   }
 
-  const required = rules?.requiredAny || [];
+  if (SPECIFIC && profile) {
+    if (!hasStrongMatch(text, profile, requiredStrong)) {
+      return { acceptable: false, reason: 'no-strong-destination-match' };
+    }
+    if (!options.relaxed && isOnlyGenericMatch(text, profile)) {
+      return { acceptable: false, reason: 'generic-only-match' };
+    }
+    return { acceptable: true };
+  }
+
+  const required = requiredStrong || [];
   const relevanceTokens = getRelevanceTokens(dest).filter((t) => t.length >= 4);
   const matchPool = [...new Set([...required, ...relevanceTokens])];
 
@@ -428,6 +399,7 @@ function scorePhoto(photo, dest) {
   const text = photoText(photo);
   const w = photo.width || 0;
   const h = photo.height || 0;
+  const profile = getProfile(dest);
 
   if (w > 0 && h > 0) {
     if (w > h) score += 22;
@@ -444,31 +416,40 @@ function scorePhoto(photo, dest) {
     if (text.includes(kw)) score += 7;
   }
 
-  for (const token of getRelevanceTokens(dest)) {
-    if (text.includes(token.toLowerCase())) score += 20;
+  if (profile?.requiredStrong) {
+    for (const token of profile.requiredStrong) {
+      if (text.includes(token.toLowerCase())) score += SPECIFIC ? 50 : 30;
+    }
+  }
+  if (profile?.iconicBonus) {
+    for (const token of profile.iconicBonus) {
+      if (text.includes(token.toLowerCase())) score += SPECIFIC ? 45 : 20;
+    }
   }
 
-  const rules = DESTINATION_RULES[dest.id];
-  if (rules?.requiredAny) {
-    for (const token of rules.requiredAny) {
-      if (text.includes(token.toLowerCase())) score += 30;
-    }
+  for (const token of getRelevanceTokens(dest)) {
+    if (text.includes(token.toLowerCase())) score += 15;
+  }
+
+  if (SPECIFIC && isOnlyGenericMatch(text, profile)) {
+    score -= 100;
   }
 
   return score;
 }
 
-function pickBestPhoto(photos, dest, usedPhotoIds) {
+function pickBestPhoto(photos, dest, usedPhotoIds, options = {}) {
+  const minScore = options.minScore ?? MIN_ACCEPT_SCORE;
   const ranked = photos
     .map((photo) => {
-      const acceptance = isPhotoAcceptable(photo, dest, usedPhotoIds);
+      const acceptance = isPhotoAcceptable(photo, dest, usedPhotoIds, options);
       if (!acceptance.acceptable) return null;
       return { photo, score: scorePhoto(photo, dest), acceptance };
     })
     .filter(Boolean)
     .sort((a, b) => b.score - a.score);
 
-  if (!ranked.length || ranked[0].score < MIN_ACCEPT_SCORE) return null;
+  if (!ranked.length || ranked[0].score < minScore) return null;
   return ranked[0];
 }
 
@@ -542,11 +523,12 @@ async function downloadImage(url, destPath) {
 function buildAlt(dest, photo) {
   const pexelsAlt = (photo.alt || '').trim();
   const text = pexelsAlt.toLowerCase();
-  const rules = DESTINATION_RULES[dest.id];
-  const badAlt = /person|people|portrait|hotel|resort|beach ball|ripped|airport|airplane/i.test(text);
-  const relevant = !rules?.requiredAny?.length
-    || hasTokenMatch(text, rules.requiredAny)
-    || hasTokenMatch(text, getRelevanceTokens(dest).filter((t) => t.length >= 4));
+  const profile = getProfile(dest);
+  const badAlt = /person|people|portrait|hotel|resort|beach ball|ripped|airport|airplane|monument|plaque|engraving|kids|children|couple|crowd|jetski|jet ski|footprints on|cell tower|open field/i.test(text);
+  const strongTokens = profile?.requiredStrong || [];
+  const relevant = !strongTokens.length
+    || hasTokenMatch(text, strongTokens)
+    || hasTokenMatch(text, profile?.iconicBonus || []);
 
   if (pexelsAlt.length >= 12 && !badAlt && relevant) {
     return pexelsAlt;
@@ -677,20 +659,42 @@ async function findPhotoForDestination(dest, usedPhotoIds) {
     await sleep(SEARCH_DELAY_MS);
     const pick = pickBestPhoto(photos, dest, usedPhotoIds);
     if (pick) {
-      return { photo: pick.photo, score: pick.score, query };
+      return { photo: pick.photo, score: pick.score, query, pass: 'specific' };
     }
   }
+
+  const profile = getProfile(dest);
+  if (profile?.relaxedFallback) {
+    const { queries: relaxedQueries, requiredStrong, minScore } = profile.relaxedFallback;
+    for (const query of relaxedQueries) {
+      const photos = await searchPexels(query);
+      await sleep(SEARCH_DELAY_MS);
+      const pick = pickBestPhoto(photos, dest, usedPhotoIds, {
+        requiredStrong,
+        minScore,
+        relaxed: true,
+      });
+      if (pick) {
+        return { photo: pick.photo, score: pick.score, query, pass: 'relaxed-fallback' };
+      }
+    }
+  }
+
   return null;
 }
 
 function resolveTargetDestinations() {
-  if (!ONLY_IDS) return DESTINATIONS;
-
-  const unknown = [...ONLY_IDS].filter((id) => !DESTINATIONS.some((d) => d.id === id));
-  if (unknown.length) {
-    die(`Unknown destination id(s) in --only: ${unknown.join(', ')}`);
+  let list = DESTINATIONS;
+  if (ONLY_IDS) {
+    const unknown = [...ONLY_IDS].filter((id) => !DESTINATIONS.some((d) => d.id === id));
+    if (unknown.length) {
+      die(`Unknown destination id(s) in --only: ${unknown.join(', ')}`);
+    }
+    list = DESTINATIONS.filter((d) => ONLY_IDS.has(d.id));
+  } else if (SPECIFIC) {
+    list = DESTINATIONS.filter((d) => !WIKIMEDIA_DESTINATION_IDS.has(d.id));
   }
-  return DESTINATIONS.filter((d) => ONLY_IDS.has(d.id));
+  return list;
 }
 
 async function main() {
@@ -714,18 +718,13 @@ async function main() {
   const downloaded = [];
   const added = [];
 
-  const mode = ONLY_IDS
-    ? `only ${targets.length} destination(s)`
-    : (FORCE ? 'force all' : 'skip existing');
+  const mode = SPECIFIC
+    ? (ONLY_IDS ? `specific, only ${targets.length}` : 'specific, all Pexels destinations')
+    : (ONLY_IDS ? `only ${targets.length} destination(s)` : (FORCE ? 'force all' : 'skip existing'));
   console.log(`GoTango destination hero fetch (${mode})`);
   console.log(`Reserved photo IDs from kept entries: ${usedPhotoIds.size}`);
 
-  for (const dest of DESTINATIONS) {
-    const isTarget = refetchIds.has(dest.id);
-    if (!isTarget) {
-      continue;
-    }
-
+  for (const dest of targets) {
     const existing = manifest[dest.id];
     const shouldFetch = FORCE || ONLY_IDS || !existing || !hasValidLocalImage(existing);
     if (!shouldFetch) {
@@ -748,7 +747,7 @@ async function main() {
       continue;
     }
 
-    const { photo, score, query } = result;
+    const { photo, score, query, pass } = result;
     const downloadUrl = getDownloadUrl(photo);
     if (!downloadUrl) {
       missing.push(dest.id);
@@ -794,7 +793,7 @@ async function main() {
       pexelsUrl: sourceUrl,
       photographer,
       photographerUrl,
-      notes: `score=${score}; refetch pass`,
+      notes: `score=${score}; ${pass || (SPECIFIC ? 'specific pass' : 'refetch pass')}`,
       reviewed: 'false',
     });
 
