@@ -585,6 +585,9 @@
     position: relative;
     z-index: 0;
   }
+  #world-map .map-dot {
+    pointer-events: none;
+  }
   .world-overlay {
     position: absolute;
     bottom: 10px;
@@ -5010,7 +5013,7 @@
       <span class="section-meta"><span id="map-dest-count">—</span> destinations · <span id="map-meta-time">04:17z</span></span>
     </div>
     <div class="world-strip" role="button" tabindex="0" aria-label="Open expanded live map">
-      <svg id="world-map" viewBox="0 0 480 150" preserveAspectRatio="xMidYMid slice"></svg>
+      <svg id="world-map" viewBox="0 0 480 150" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="world-key">
         <span><span class="dot" style="background:#E07A6A"></span>Heating Up</span>
         <span><span class="dot" style="background:#6BCB8B"></span>Steady</span>
@@ -10129,6 +10132,28 @@
     { text: 'Mediterranean', lng: 20, lat: 36 }
   ];
 
+  const COMPACT_MAP_LEGEND_RESERVE = 30;
+
+  function _fitCompactMapProjection(width, height) {
+    return d3.geoEquirectangular().fitExtent(
+      [[6, 4], [width - 6, height - COMPACT_MAP_LEGEND_RESERVE]],
+      { type: 'Sphere' }
+    );
+  }
+
+  function _getCompactMarkerSizing(d) {
+    const coreR = d.type === 'surge' ? 4 : 3;
+    return {
+      coreR,
+      innerR: coreR + 1.5,
+      midR: coreR + 3,
+      outerR: Math.min(coreR + 7, 12),
+      outerFactor: 0.1,
+      midFactor: 0.18,
+      innerFactor: 0.32,
+    };
+  }
+
   function _appendExpandedMapWrappedGroups(mapRoot, wrapOffsets, className, fn) {
     wrapOffsets.forEach((offsetX) => {
       const g = mapRoot.append('g').attr('class', className);
@@ -10244,6 +10269,11 @@
           isMobileExpandedMap ? 'xMidYMid slice' : 'xMidYMid meet'
         );
       }
+    } else {
+      const compactSvgEl = document.querySelector(opts.svgSelector);
+      if (compactSvgEl) {
+        compactSvgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      }
     }
 
     if (opts.mode === 'compact' && arrivalsData != null) {
@@ -10254,12 +10284,14 @@
     if (svg.empty()) return;
 
     const width = 480, height = 150;
-    const projection = d3.geoEquirectangular()
-      .scale(76)
-      .translate([width / 2, height / 2 + 8]);
-    const pathGen = d3.geoPath().projection(projection);
 
     d3.json(WORLD_TOPO_URL).then(world => {
+      const projection = isExpanded
+        ? d3.geoEquirectangular()
+          .scale(76)
+          .translate([width / 2, height / 2 + 8])
+        : _fitCompactMapProjection(width, height);
+      const pathGen = d3.geoPath().projection(projection);
       if (opts.mode === 'compact') {
         const overlayTimeEl = document.getElementById('map-overlay-time');
         const metaTimeEl = document.getElementById('map-meta-time');
@@ -10373,29 +10405,35 @@
             }
           });
         } else {
+          const sizing = _getCompactMarkerSizing(d);
+
           dotGroup.append('circle')
-            .attr('cx', baseX).attr('cy', y).attr('r', d.size * 1.3)
+            .attr('cx', baseX).attr('cy', y).attr('r', sizing.outerR)
             .attr('class', 'map-dot map-dot-glow-outer')
             .attr('fill', color).attr('opacity', 0)
-            .transition().duration(600).attr('opacity', opac * 0.22);
+            .style('pointer-events', 'none')
+            .transition().duration(600).attr('opacity', opac * sizing.outerFactor);
 
           dotGroup.append('circle')
-            .attr('cx', baseX).attr('cy', y).attr('r', d.size)
+            .attr('cx', baseX).attr('cy', y).attr('r', sizing.midR)
             .attr('class', 'map-dot map-dot-glow-mid')
             .attr('fill', color).attr('opacity', 0)
-            .transition().duration(600).attr('opacity', opac * 0.42);
+            .style('pointer-events', 'none')
+            .transition().duration(600).attr('opacity', opac * sizing.midFactor);
 
           dotGroup.append('circle')
-            .attr('cx', baseX).attr('cy', y).attr('r', d.size * 0.55)
+            .attr('cx', baseX).attr('cy', y).attr('r', sizing.innerR)
             .attr('class', 'map-dot map-dot-glow-inner')
             .attr('fill', color).attr('opacity', 0)
-            .transition().duration(600).attr('opacity', opac * 0.78);
+            .style('pointer-events', 'none')
+            .transition().duration(600).attr('opacity', opac * sizing.innerFactor);
 
           dotGroup.append('circle')
             .attr('cx', baseX).attr('cy', y)
-            .attr('r', d.type === 'surge' ? 3 : 2)
+            .attr('r', sizing.coreR)
             .attr('class', 'map-dot map-dot-core')
             .attr('fill', color).attr('opacity', 0)
+            .style('pointer-events', 'none')
             .transition().duration(600).attr('opacity', 1);
         }
 
