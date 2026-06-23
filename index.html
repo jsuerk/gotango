@@ -579,11 +579,13 @@
     box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.45);
   }
   .world-strip svg {
+    position: relative;
+    z-index: 0;
+  }
+  #world-map {
     width: 100%;
     height: 100%;
     display: block;
-    position: relative;
-    z-index: 0;
   }
   #world-map .map-dot {
     pointer-events: none;
@@ -5013,7 +5015,7 @@
       <span class="section-meta"><span id="map-dest-count">—</span> destinations · <span id="map-meta-time">04:17z</span></span>
     </div>
     <div class="world-strip" role="button" tabindex="0" aria-label="Open expanded live map">
-      <svg id="world-map" viewBox="0 0 480 150" preserveAspectRatio="xMidYMid meet"></svg>
+      <svg id="world-map" viewBox="0 0 480 260" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="world-key">
         <span><span class="dot" style="background:#E07A6A"></span>Heating Up</span>
         <span><span class="dot" style="background:#6BCB8B"></span>Steady</span>
@@ -10132,11 +10134,13 @@
     { text: 'Mediterranean', lng: 20, lat: 36 }
   ];
 
-  const COMPACT_MAP_LEGEND_RESERVE = 30;
+  const COMPACT_MAP_WIDTH = 480;
+  const COMPACT_MAP_HEIGHT = 260;
+  const COMPACT_MAP_LEGEND_RESERVE = 28;
 
   function _fitCompactMapProjection(width, height) {
     return d3.geoEquirectangular().fitExtent(
-      [[6, 4], [width - 6, height - COMPACT_MAP_LEGEND_RESERVE]],
+      [[10, 14], [width - 10, height - COMPACT_MAP_LEGEND_RESERVE]],
       { type: 'Sphere' }
     );
   }
@@ -10273,6 +10277,7 @@
       const compactSvgEl = document.querySelector(opts.svgSelector);
       if (compactSvgEl) {
         compactSvgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        compactSvgEl.setAttribute('viewBox', `0 0 ${COMPACT_MAP_WIDTH} ${COMPACT_MAP_HEIGHT}`);
       }
     }
 
@@ -10283,7 +10288,8 @@
     const svg = d3.select(opts.svgSelector);
     if (svg.empty()) return;
 
-    const width = 480, height = 150;
+    const width = isExpanded ? 480 : COMPACT_MAP_WIDTH;
+    const height = isExpanded ? 150 : COMPACT_MAP_HEIGHT;
 
     d3.json(WORLD_TOPO_URL).then(world => {
       const projection = isExpanded
@@ -10341,6 +10347,8 @@
       } else {
         const land = topojson.feature(world, world.objects.land);
         mapRoot.append('g')
+          .attr('class', 'map-land')
+          .style('pointer-events', 'none')
           .selectAll('path')
           .data([land])
           .join('path')
@@ -10351,7 +10359,9 @@
           .attr('opacity', 0.9);
       }
 
-      const dotGroup = mapRoot.append('g').attr('class', 'map-dots');
+      const dotGroup = mapRoot.append('g')
+        .attr('class', 'map-dots')
+        .style('pointer-events', isExpanded ? null : 'none');
       const destinationLabelEntries = [];
       const expandedMarkerRecords = [];
       const expandedWrapOffsets = isExpanded ? _getExpandedMapWrapOffsets(_getExpandedMapWorldWrapWidth(width)) : null;
