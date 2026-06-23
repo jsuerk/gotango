@@ -2994,6 +2994,159 @@
 
   .d-hero > * { position: relative; z-index: 1; }
 
+  /* Photo hero (destination modal prototype) */
+  .d-hero--photo {
+    padding: 0;
+    min-height: 300px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+  }
+
+  .d-hero--photo::before {
+    display: none;
+  }
+
+  .d-hero__media {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .d-hero__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .d-hero__shade {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(8, 10, 14, 0.18) 0%, rgba(8, 10, 14, 0.42) 42%, rgba(8, 10, 14, 0.88) 78%, rgba(8, 10, 14, 0.96) 100%),
+      linear-gradient(90deg, rgba(8, 10, 14, 0.35) 0%, transparent 55%);
+    pointer-events: none;
+  }
+
+  .d-hero__content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 300px;
+    padding: 28px 24px 22px;
+  }
+
+  .d-hero--photo .d-vibe {
+    align-self: flex-start;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  }
+
+  .d-hero--photo .d-name {
+    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
+  }
+
+  .d-hero--photo .d-meta {
+    color: rgba(245, 241, 232, 0.78);
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+  }
+
+  .d-hero__score {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(244, 181, 42, 0.28);
+    background: rgba(8, 10, 14, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    width: fit-content;
+  }
+
+  .d-hero__score-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: var(--fs-micro);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(245, 241, 232, 0.72);
+  }
+
+  .d-hero__score-value {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--amber, #E8A317);
+  }
+
+  .d-hero__credit {
+    position: relative;
+    z-index: 2;
+    margin: 0;
+    padding: 8px 24px 14px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    color: rgba(245, 241, 232, 0.45);
+    background: linear-gradient(180deg, rgba(8, 10, 14, 0) 0%, rgba(8, 10, 14, 0.82) 100%);
+  }
+
+  .d-hero__credit-link {
+    color: rgba(244, 181, 42, 0.82);
+    text-decoration: none;
+  }
+
+  .d-hero__credit-link:hover {
+    color: var(--amber-bright, #F4B52A);
+    text-decoration: underline;
+  }
+
+  .d-hero--photo.d-hero--photo-fallback {
+    min-height: auto;
+    padding: 32px 24px 24px;
+    background: #0f0f14;
+    border-bottom: 1px solid var(--border, #252C37);
+  }
+
+  .d-hero--photo.d-hero--photo-fallback::before {
+    display: block;
+    background-image:
+      linear-gradient(rgba(245,241,232,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,241,232,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .d-hero--photo.d-hero--photo-fallback .d-hero__media,
+  .d-hero--photo.d-hero--photo-fallback .d-hero__credit {
+    display: none;
+  }
+
+  .d-hero--photo.d-hero--photo-fallback .d-hero__content {
+    min-height: auto;
+    padding: 0;
+  }
+
+  .d-hero--photo.d-hero--photo-fallback .d-vibe {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+  }
+
+  .d-hero--photo.d-hero--photo-fallback .d-name,
+  .d-hero--photo.d-hero--photo-fallback .d-meta {
+    text-shadow: none;
+  }
+
+  .d-hero--photo.d-hero--photo-fallback .d-meta {
+    color: var(--text-faint, #6B6557);
+  }
+
   .d-vibe {
     display: inline-block;
     font-family: 'Geist Mono', monospace;
@@ -3669,6 +3822,23 @@
     }
 
     .d-hero {
+      padding: 28px 20px 20px;
+    }
+
+    .d-hero--photo {
+      min-height: 280px;
+    }
+
+    .d-hero--photo .d-hero__content {
+      min-height: 280px;
+      padding: 24px 20px 18px;
+    }
+
+    .d-hero__credit {
+      padding: 6px 20px 12px;
+    }
+
+    .d-hero--photo.d-hero--photo-fallback {
       padding: 28px 20px 20px;
     }
 
@@ -4924,6 +5094,7 @@
 </style>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+<script src="destination-images.config.js"></script>
 </head>
 <body>
 <div class="app">
@@ -12153,19 +12324,18 @@
     return str;
   }
 
-  function renderModalHero(dest, badge) {
-    const coords = _formatCoords(dest.lat, dest.lng);
-    const icaoStr = Array.isArray(dest.icao) ? dest.icao.join(' · ') : (dest.icao || '');
-    const region = _escapeHtml(dest.region || '');
-    const metaParts = [];
-    if (icaoStr) metaParts.push(_escapeHtml(icaoStr));
-    if (coords) metaParts.push(_escapeHtml(coords));
-    if (region) metaParts.push(region);
+  function getDestinationImageEntry(destinationId) {
+    const manifest = typeof window !== 'undefined' ? window.DESTINATION_IMAGE_MANIFEST : null;
+    if (!manifest || !destinationId) return null;
+    const entry = manifest[destinationId];
+    if (!entry || typeof entry !== 'object') return null;
+    if (typeof entry.src !== 'string' || !entry.src.trim()) return null;
+    return entry;
+  }
 
+  function _renderModalHeroTitleRow(dest) {
     const destId = _escapeHtml(dest.id || '');
     return `
-      <div class="d-hero">
-        <span class="d-vibe ${badge.vibeClass}">${_escapeHtml(badge.label)}</span>
         <div class="dest-modal__title-row">
           <h2 id="dest-modal-title" class="d-name">${_escapeHtml(dest.name || '')}</h2>
           <button type="button" class="dest-modal__share" data-dest-share="${destId}" aria-label="Share destination brief">
@@ -12175,8 +12345,90 @@
             </svg>
           </button>
         </div>
-        <p class="dest-modal__share-status" aria-live="polite" hidden></p>
-        <div class="d-meta">${metaParts.join('<span class="d-meta-sep">·</span>')}</div>
+        <p class="dest-modal__share-status" aria-live="polite" hidden></p>`;
+  }
+
+  function _renderModalHeroMeta(dest) {
+    const coords = _formatCoords(dest.lat, dest.lng);
+    const icaoStr = Array.isArray(dest.icao) ? dest.icao.join(' · ') : (dest.icao || '');
+    const region = _escapeHtml(dest.region || '');
+    const metaParts = [];
+    if (icaoStr) metaParts.push(_escapeHtml(icaoStr));
+    if (coords) metaParts.push(_escapeHtml(coords));
+    if (region) metaParts.push(region);
+    if (!metaParts.length) return '';
+    return `<div class="d-meta">${metaParts.join('<span class="d-meta-sep">·</span>')}</div>`;
+  }
+
+  function _renderModalHeroScore(dest, useV2) {
+    const signalScore = useV2
+      ? Number(dest.go_tango_score)
+      : _safeNum(dest.signal_score);
+    if (!Number.isFinite(signalScore) || signalScore <= 0) return '';
+    const scoreLabel = useV2 ? 'GoTango Score' : 'GoTango Index';
+    const scoreVal = String(Math.round(signalScore));
+    return `
+        <div class="d-hero__score">
+          <span class="d-hero__score-label">${_escapeHtml(scoreLabel)}</span>
+          <span class="d-hero__score-value">${_escapeHtml(scoreVal)}</span>
+        </div>`;
+  }
+
+  function _renderModalHeroCredit(imageEntry) {
+    if (!imageEntry) return '';
+    const credit = imageEntry.credit ? _escapeHtml(imageEntry.credit) : '';
+    const license = imageEntry.license ? _escapeHtml(imageEntry.license) : '';
+    const sourceUrl = _isSafeHttpsUrl(imageEntry.sourceUrl) ? imageEntry.sourceUrl : '';
+    if (!credit && !license) return '';
+    const creditInner = sourceUrl && credit
+      ? `<a class="d-hero__credit-link" href="${_escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">${credit}</a>`
+      : (credit ? `<span>${credit}</span>` : '');
+    const licenseSuffix = license ? ` · ${license}` : '';
+    return `<p class="d-hero__credit">${creditInner}${licenseSuffix}</p>`;
+  }
+
+  function renderModalHero(dest, badge, options = {}) {
+    const useV2 = !!(options && options.useV2);
+    const titleRow = _renderModalHeroTitleRow(dest);
+    const metaHtml = _renderModalHeroMeta(dest);
+    const scoreHtml = _renderModalHeroScore(dest, useV2);
+    const imageEntry = getDestinationImageEntry(dest && dest.id);
+
+    if (!imageEntry) {
+      return `
+      <div class="d-hero">
+        <span class="d-vibe ${badge.vibeClass}">${_escapeHtml(badge.label)}</span>
+        ${titleRow}
+        ${metaHtml}
+      </div>
+    `;
+    }
+
+    const src = _escapeHtml(imageEntry.src.trim());
+    const alt = _escapeHtml(imageEntry.alt || dest.name || '');
+    const objectPosition = _escapeHtml(imageEntry.objectPosition || 'center center');
+    const creditHtml = _renderModalHeroCredit(imageEntry);
+
+    return `
+      <div class="d-hero d-hero--photo" data-dest-photo-hero>
+        <div class="d-hero__media">
+          <img
+            class="d-hero__img"
+            src="${src}"
+            alt="${alt}"
+            decoding="async"
+            style="object-position: ${objectPosition};"
+            onerror="this.closest('[data-dest-photo-hero]')?.classList.add('d-hero--photo-fallback')"
+          />
+          <div class="d-hero__shade" aria-hidden="true"></div>
+        </div>
+        <div class="d-hero__content">
+          <span class="d-vibe ${badge.vibeClass}">${_escapeHtml(badge.label)}</span>
+          ${titleRow}
+          ${metaHtml}
+          ${scoreHtml}
+        </div>
+        ${creditHtml}
       </div>
     `;
   }
@@ -12934,7 +13186,7 @@
       : getPublicSignalBadge(dest, { forceLegacy: true });
 
     return [
-      renderModalHero(dest, badge),
+      renderModalHero(dest, badge, { useV2 }),
       renderEditorial(dest),
       renderModalStats(dest, { useV2 }),
       renderModalWatchControl(dest),
