@@ -10137,12 +10137,15 @@
   const COMPACT_MAP_WIDTH = 480;
   const COMPACT_MAP_HEIGHT = 260;
   const COMPACT_MAP_LEGEND_RESERVE = 28;
+  const COMPACT_MAP_SCALE_MULTIPLIER = 1.10;
 
   function _fitCompactMapProjection(width, height) {
-    return d3.geoEquirectangular().fitExtent(
+    const projection = d3.geoEquirectangular().fitExtent(
       [[10, 14], [width - 10, height - COMPACT_MAP_LEGEND_RESERVE]],
       { type: 'Sphere' }
     );
+    projection.scale(projection.scale() * COMPACT_MAP_SCALE_MULTIPLIER);
+    return projection;
   }
 
   function _getCompactMarkerSizing(d) {
