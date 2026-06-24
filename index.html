@@ -89,8 +89,9 @@
   }
 
   .app {
-    max-width: 480px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
     min-height: 100vh;
     position: relative;
     padding-bottom: 88px;
@@ -1478,10 +1479,11 @@
   /* ===== BOTTOM NAV ===== */
   .bottom-nav {
     position: fixed;
-    bottom: 0; left: 50%;
-    transform: translateX(-50%);
+    bottom: 0;
+    left: 0;
+    right: 0;
     width: 100%;
-    max-width: 480px;
+    max-width: 100%;
     background: rgba(10, 13, 17, 0.92);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -2320,10 +2322,12 @@
   }
   .detail-sheet {
     position: fixed;
-    bottom: 0; left: 50%;
-    transform: translateX(-50%) translateY(100%);
+    bottom: 0;
+    left: 0;
+    right: 0;
     width: 100%;
-    max-width: 480px;
+    max-width: 100%;
+    transform: translateY(100%);
     height: 96vh;
     background: var(--bg);
     border-top: 1px solid var(--border-light);
@@ -2334,7 +2338,7 @@
     -webkit-overflow-scrolling: touch;
     background-image: radial-gradient(ellipse 500px 300px at 80% -5%, rgba(232, 163, 23, 0.06), transparent 60%);
   }
-  .detail-sheet.open { transform: translateX(-50%) translateY(0); }
+  .detail-sheet.open { transform: translateY(0); }
   .detail-handle {
     width: 42px; height: 4px;
     background: var(--border-light);
@@ -3834,18 +3838,27 @@
   }
 
   /* Mobile: full-screen takeover */
-  @media (max-width: 640px) {
+  @media (max-width: 768px) {
+    .dest-modal {
+      align-items: stretch;
+      justify-content: flex-start;
+    }
+
     .dest-modal__container {
-      width: 100vw;
-      max-height: 100vh;
-      height: 100vh;
+      position: fixed;
+      inset: 0;
+      width: auto;
+      max-width: none;
+      height: auto;
+      max-height: none;
       margin: 0;
       border-radius: 0;
       border: none;
+      box-shadow: none;
     }
 
     .dest-modal__body {
-      padding: 56px 20px calc(148px + env(safe-area-inset-bottom, 0px));
+      padding: 0 0 calc(148px + env(safe-area-inset-bottom, 0px));
     }
 
     .dest-modal__close {
