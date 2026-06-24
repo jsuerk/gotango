@@ -3197,6 +3197,14 @@
     min-width: 0;
   }
 
+  .d-hero--photo .d-hero__content .dest-modal__share--hero-photo {
+    position: absolute;
+    right: 24px;
+    bottom: 22px;
+    z-index: 4;
+    margin-top: 0;
+  }
+
   .dest-modal__share {
     flex-shrink: 0;
     width: 44px;
@@ -3852,6 +3860,11 @@
 
     .dest-modal__share {
       margin-top: 0;
+    }
+
+    .d-hero--photo .d-hero__content .dest-modal__share--hero-photo {
+      right: 20px;
+      bottom: 18px;
     }
 
     .d-section {
@@ -12333,17 +12346,27 @@
     return entry;
   }
 
-  function _renderModalHeroTitleRow(dest) {
+  function _renderModalShareButton(dest, extraClass = '') {
     const destId = _escapeHtml(dest.id || '');
+    const className = extraClass
+      ? `dest-modal__share ${extraClass}`
+      : 'dest-modal__share';
     return `
-        <div class="dest-modal__title-row">
-          <h2 id="dest-modal-title" class="d-name">${_escapeHtml(dest.name || '')}</h2>
-          <button type="button" class="dest-modal__share" data-dest-share="${destId}" aria-label="Share destination brief">
+          <button type="button" class="${className}" data-dest-share="${destId}" aria-label="Share destination brief">
             <svg class="dest-modal__share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M22 2L11 13"/>
               <path d="M22 2l-7 20-4-9-9-4 20-7z"/>
             </svg>
-          </button>
+          </button>`;
+  }
+
+  function _renderModalHeroTitleRow(dest, options = {}) {
+    const shareInTitle = options.shareInTitle !== false;
+    const shareButton = shareInTitle ? _renderModalShareButton(dest) : '';
+    return `
+        <div class="dest-modal__title-row">
+          <h2 id="dest-modal-title" class="d-name">${_escapeHtml(dest.name || '')}</h2>
+          ${shareButton}
         </div>
         <p class="dest-modal__share-status" aria-live="polite" hidden></p>`;
   }
@@ -12389,12 +12412,12 @@
 
   function renderModalHero(dest, badge, options = {}) {
     const useV2 = !!(options && options.useV2);
-    const titleRow = _renderModalHeroTitleRow(dest);
     const metaHtml = _renderModalHeroMeta(dest);
     const scoreHtml = _renderModalHeroScore(dest, useV2);
     const imageEntry = getDestinationImageEntry(dest && dest.id);
 
     if (!imageEntry) {
+      const titleRow = _renderModalHeroTitleRow(dest);
       return `
       <div class="d-hero">
         <span class="d-vibe ${badge.vibeClass}">${_escapeHtml(badge.label)}</span>
@@ -12408,6 +12431,8 @@
     const alt = _escapeHtml(imageEntry.alt || dest.name || '');
     const objectPosition = _escapeHtml(imageEntry.objectPosition || 'center center');
     const creditHtml = _renderModalHeroCredit(imageEntry);
+    const titleRow = _renderModalHeroTitleRow(dest, { shareInTitle: false });
+    const shareButton = _renderModalShareButton(dest, 'dest-modal__share--hero-photo');
 
     return `
       <div class="d-hero d-hero--photo" data-dest-photo-hero>
@@ -12427,6 +12452,7 @@
           ${titleRow}
           ${metaHtml}
           ${scoreHtml}
+          ${shareButton}
         </div>
         ${creditHtml}
       </div>
