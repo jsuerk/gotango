@@ -244,6 +244,35 @@
     font-size: 13px;
     line-height: 1.55;
   }
+
+  /* Now tab: hero globe (absolute overlay — no float / shape-outside) */
+  #tab-now .hero--now > .hero-now-globe {
+    position: absolute;
+    top: -6px;
+    right: -30px;
+    width: clamp(200px, 58vw, 278px);
+    z-index: 0;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    line-height: 0;
+  }
+  #tab-now .hero--now > .hero-now-globe img {
+    display: block;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 0 28px rgba(232, 163, 23, 0.14));
+  }
+  #tab-now .hero--now > .hero-now-copy {
+    position: relative;
+    z-index: 1;
+    max-width: calc(100% - clamp(108px, 34vw, 152px));
+  }
+  #tab-now .hero--now .hero-sub,
+  #tab-now .hero--now .hero-hook {
+    max-width: 300px;
+  }
+
   .hero-sub-link {
     color: var(--amber);
     text-decoration: none;
@@ -5040,6 +5069,18 @@
       font-size: calc(var(--fs-label) * 0.85);
     }
     /* Now: prevent horizontal overflow from long Heating Up / Cooling Watch subtitles */
+    #tab-now .hero--now > .hero-now-globe {
+      top: -4px;
+      right: -26px;
+      width: clamp(184px, 54vw, 248px);
+    }
+    #tab-now .hero--now > .hero-now-copy {
+      max-width: calc(100% - clamp(96px, 30vw, 132px));
+    }
+    #tab-now .hero--now .hero-sub,
+    #tab-now .hero--now .hero-hook {
+      max-width: 260px;
+    }
     #tab-now .section-head:has(#heating-up-meta),
     #tab-now .section-head:has(#cooling-down-meta) {
       padding-left: 16px;
@@ -5126,11 +5167,22 @@
   <!-- ============ NOW TAB ============ -->
   <div class="tab-content active" id="tab-now">
 
-    <section class="hero">
-      <div class="hero-kicker" id="hero-kicker">The Index · TUESDAY, 28 APRIL</div>
-      <h1 class="hero-headline">Where the world's <em>going.</em></h1>
-      <p class="hero-sub">Travel intelligence on destinations heating up, cooling down, or quietly coming into view - powered by <a class="hero-sub-link" href="#gotango-index-explainer">our GoTango Index</a>.</p>
-      <p class="hero-hook">Where will you GoTango?</p>
+    <section class="hero hero--now">
+      <div class="hero-now-globe" aria-hidden="true">
+        <img
+          src="/images/now-hero-globe.png"
+          alt=""
+          width="730"
+          height="934"
+          decoding="async"
+        >
+      </div>
+      <div class="hero-now-copy">
+        <div class="hero-kicker" id="hero-kicker">The Index · TUESDAY, 28 APRIL</div>
+        <h1 class="hero-headline">Where the world's <em>going.</em></h1>
+        <p class="hero-sub">Travel intelligence on destinations heating up, cooling down, or quietly coming into view - powered by <a class="hero-sub-link" href="#gotango-index-explainer">our GoTango Index</a>.</p>
+        <p class="hero-hook">Where will you GoTango?</p>
+      </div>
 
       <div class="hero-stats">
         <div class="stat-cell">
