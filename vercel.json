@@ -8,6 +8,10 @@
     {
       "path": "/api/fetch-all-arrivals",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/refresh-weekly-brief",
+      "schedule": "0 15 * * 2"
     }
   ]
 }

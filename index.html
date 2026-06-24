@@ -5149,6 +5149,7 @@
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 <script src="destination-images.config.js"></script>
+<script src="weekly-brief.config.js"></script>
 </head>
 <body>
 <div class="app">
@@ -5472,37 +5473,7 @@
 
   <!-- ============ BRIEF TAB ============ -->
   <div class="tab-content" id="tab-brief">
-    <section class="hero">
-      <div class="hero-kicker">THE BRIEF · TUESDAY, JUNE 9</div>
-      <h1 class="hero-headline">Ibiza takes the summer <em>lead.</em></h1>
-      <p class="hero-sub" style="font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: var(--text-faint); text-transform: uppercase;">3 min read · By GoTango Editorial</p>
-    </section>
-
-    <div class="brief-article">
-      <p class="brief-lede">The summer map is beginning to separate: Ibiza is taking control of the Mediterranean, Nantucket is switching on, and the Caribbean is becoming far more selective.</p>
-
-      <div class="brief-body">
-        <p><strong>Ibiza produced the clearest destination move of the week.</strong> Its GoTango Index reached 80, up 31 points across the current seven-day view. The latest 24-hour window included 45 general-aviation arrivals, with 20 classified as premium private aircraft and another five as turboprops. Nice and Cannes supplied 14 of those arrivals, giving the signal a recognizable western Mediterranean shape.</p>
-
-        <p>Mykonos is still firmly active at 77, but the direction is different. It began the current seven-day view at 94 and reached a high of 97 before easing. That does not make Mykonos quiet. It suggests that this week&#8217;s Mediterranean momentum is moving west, with Ibiza accelerating while Mykonos settles from an earlier peak.</p>
-
-        <p><strong>The United States is making its own seasonal handoff.</strong> Nantucket reached 76 on 54 GA arrivals, including a substantial mix of premium aircraft and turboprops. Hilton Head scored even higher at 81. The pattern is not confined to one coast or one kind of trip: established summer destinations are beginning to fill in as travelers move toward islands, beach houses, golf markets, and familiar regional circuits.</p>
-
-        <p>The Caribbean is less uniform. Anguilla climbed to 75, with movement from St. Barth&eacute;lemy, Antigua, the British Virgin Islands, St. Kitts, Florida, and New York. Barbados moved the other way, falling to 12 with only one GA arrival in the latest window. The read is not that Caribbean demand has disappeared. It is becoming more selective, favoring smaller and more private-feeling markets over the broad winter-sun circuit.</p>
-
-        <div class="brief-callout">
-          <div class="brief-callout-kicker">Sleeper of the week</div>
-          <div class="brief-callout-title">Santa Fe</div>
-          <div class="brief-callout-desc">Santa Fe has quietly reached 65, up 19 points across the current seven-day view. Its latest mix included 12 premium-private arrivals and two turboprops, with traffic extending beyond New Mexico to Dallas, Van Nuys, Chicago Executive, and other regional gateways. It is not yet leading the board, but the signal has enough depth to deserve attention.</div>
-        </div>
-
-        <p>One caution sits at the top of the rankings. The Maldives currently carries an 84 Index, but its aviation feed exceeded the collection range and contained substantial same-airport and unidentified-aircraft activity. The volume is real; the interpretation is less clean. For now, Ibiza is the more convincing travel signal.</p>
-
-        <p>The week&#8217;s message is a rotation toward summer rather than a single global surge. Watch whether Ibiza can hold its new level, whether Nantucket keeps broadening, and whether Anguilla&#8217;s strength proves durable. Those three markets will tell us whether this is an early-season move or the beginning of the full summer pattern.</p>
-
-        <p style="color: var(--text-faint); font-size: 12px; text-align: center; padding: 20px 0 0;">— End of brief —</p>
-      </div>
-    </div>
+    <div id="weekly-brief-root"></div>
   </div>
 
   <!-- ============ ABOUT GOTANGO INDEX ============ -->
@@ -9542,6 +9513,87 @@
     }
   }
 
+  function _escapeBriefText(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderWeeklyBrief(manifestOverride) {
+    const root = document.getElementById('weekly-brief-root');
+    if (!root) return;
+
+    const manifest = manifestOverride
+      || (typeof window !== 'undefined' ? window.WEEKLY_BRIEF_MANIFEST : null);
+    if (!manifest || typeof manifest !== 'object') {
+      root.innerHTML = '<div class="brief-article"><p class="brief-lede">Weekly brief unavailable.</p></div>';
+      return;
+    }
+
+    const headlineBefore = _escapeBriefText(manifest.headline_before || '');
+    const headlineEmphasis = _escapeBriefText(manifest.headline_emphasis || '');
+    const kicker = _escapeBriefText(manifest.kicker || 'THE BRIEF');
+    const readTime = _escapeBriefText(manifest.read_time || '3 min read');
+    const byline = _escapeBriefText(manifest.byline || 'By GoTango Editorial');
+    const lede = _escapeBriefText(manifest.lede || '');
+
+    const bodyParts = (Array.isArray(manifest.paragraphs) ? manifest.paragraphs : [])
+      .map((paragraph) => `<p>${_escapeBriefText(paragraph)}</p>`);
+
+    if (manifest.sleeper && manifest.sleeper.title) {
+      bodyParts.push(`
+        <div class="brief-callout">
+          <div class="brief-callout-kicker">Sleeper of the week</div>
+          <div class="brief-callout-title">${_escapeBriefText(manifest.sleeper.title)}</div>
+          <div class="brief-callout-desc">${_escapeBriefText(manifest.sleeper.description)}</div>
+        </div>
+      `);
+    }
+
+    if (manifest.caution && manifest.caution.text) {
+      bodyParts.push(`<p>${_escapeBriefText(manifest.caution.text)}</p>`);
+    }
+
+    if (manifest.closing) {
+      bodyParts.push(`<p>${_escapeBriefText(manifest.closing)}</p>`);
+    }
+
+    bodyParts.push('<p style="color: var(--text-faint); font-size: 12px; text-align: center; padding: 20px 0 0;">— End of brief —</p>');
+
+    root.innerHTML = `
+      <section class="hero">
+        <div class="hero-kicker">${kicker}</div>
+        <h1 class="hero-headline">${headlineBefore}<em>${headlineEmphasis}</em></h1>
+        <p class="hero-sub" style="font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: var(--text-faint); text-transform: uppercase;">${readTime} · ${byline}</p>
+      </section>
+      <div class="brief-article">
+        <p class="brief-lede">${lede}</p>
+        <div class="brief-body">
+          ${bodyParts.join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  async function loadWeeklyBriefManifest() {
+    const fallback = (typeof window !== 'undefined' && window.WEEKLY_BRIEF_MANIFEST)
+      ? window.WEEKLY_BRIEF_MANIFEST
+      : null;
+    try {
+      const response = await fetch('/api/get-weekly-brief', {
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) return fallback;
+      const data = await response.json();
+      if (data?.ok && data.manifest && typeof data.manifest === 'object') {
+        return data.manifest;
+      }
+    } catch (_) { /* fall back to bundled manifest */ }
+    return fallback;
+  }
+
   function setBriefStatus(message) {
     const statusEl = document.getElementById('brief-status');
     if (statusEl) statusEl.textContent = message || '';
@@ -13281,11 +13333,13 @@
     updateClock();
     setInterval(updateClock, 60000);
     updateDate();
-    const [arrivalsData, moversIndexData, goTangoScoreV2Data] = await Promise.all([
+    const [weeklyBriefManifest, arrivalsData, moversIndexData, goTangoScoreV2Data] = await Promise.all([
+      loadWeeklyBriefManifest(),
       loadArrivalsData(),
       loadMoversIndex(),
       loadGoTangoScoreV2(),
     ]);
+    renderWeeklyBrief(weeklyBriefManifest);
     _modalArrivalsData = arrivalsData;
     _modalMoversIndexData = moversIndexData;
     const arrivalsPayload = getArrivalsPayload(arrivalsData);
