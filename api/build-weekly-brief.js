@@ -1,18 +1,10 @@
 import crypto from 'node:crypto';
 import { kv } from '@vercel/kv';
-import { DESTINATIONS } from '../destinations.config.js';
 import {
-  computeGoTangoScoreResponse,
-} from '../gotango-score-v2.lib.js';
-import {
-  buildWeeklyBriefFactSheet,
-  generateWeeklyBriefManifest,
+  buildWeeklyBriefPackage,
+  resolveWeeklyBriefIssueDate,
   serializeWeeklyBriefConfig,
 } from '../weekly-brief.lib.js';
-
-const LATEST_KEY = 'gotango:arrivals:latest';
-const HISTORY_KEY = 'gotango:arrivals:history';
-const PUBLIC_DESTINATIONS = DESTINATIONS.map((d) => ({ id: d.id, name: d.name }));
 
 function timingSafeMatch(provided, expected) {
   const expectedBuf = Buffer.from(String(expected).trim());
@@ -62,38 +54,10 @@ function authorizeRequest(req) {
 }
 
 function parseIssueDate(raw) {
-  if (!raw || typeof raw !== 'string') return new Date();
+  if (!raw || typeof raw !== 'string') return resolveWeeklyBriefIssueDate();
   const trimmed = raw.trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return new Date();
-  return new Date(`${trimmed}T12:00:00Z`);
-}
-
-async function loadBriefSourceData() {
-  const [latest, rawHistory, meta] = await Promise.all([
-    kv.get(LATEST_KEY),
-    kv.lrange(HISTORY_KEY, 0, -1),
-    kv.get('gotango:arrivals:meta'),
-  ]);
-
-  if (latest == null) {
-    throw new Error('No cached arrivals data available yet.');
-  }
-
-  const historyList = Array.isArray(rawHistory) ? rawHistory : [];
-  const scoreResponse = computeGoTangoScoreResponse({
-    latestPayload: latest,
-    historyList,
-    publicDestinations: PUBLIC_DESTINATIONS,
-  });
-
-  return {
-    arrivalsPayload: {
-      ...latest,
-      saved_at: latest.saved_at || meta?.saved_at || null,
-    },
-    homepage: latest.homepage || null,
-    scoreResponse,
-  };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return resolveWeeklyBriefIssueDate();
+  return resolveWeeklyBriefIssueDate(new Date(`${trimmed}T12:00:00Z`));
 }
 
 export default async function handler(req, res) {
@@ -116,16 +80,8 @@ export default async function handler(req, res) {
   const format = String(req.query?.format || 'json').toLowerCase();
 
   try {
-    const { arrivalsPayload, homepage, scoreResponse } = await loadBriefSourceData();
-    const factSheet = buildWeeklyBriefFactSheet({
-      arrivalsPayload,
-      scoreResponse,
-      homepage,
+    const { manifest, generator, llmError } = await buildWeeklyBriefPackage(kv, {
       issueDate,
-    });
-
-    const { manifest, generator, llmError } = await generateWeeklyBriefManifest({
-      factSheet,
       templateOnly,
     });
 

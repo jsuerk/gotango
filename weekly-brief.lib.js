@@ -4,8 +4,20 @@
  */
 
 import { DESTINATIONS } from './destinations.config.js';
+import { computeGoTangoScoreResponse } from './gotango-score-v2.lib.js';
 
 const DESTINATION_META = new Map(DESTINATIONS.map((d) => [d.id, d]));
+const PUBLIC_DESTINATIONS = DESTINATIONS.map((d) => ({ id: d.id, name: d.name }));
+
+export const WEEKLY_BRIEF_KV_KEYS = {
+  latest: 'gotango:weekly-brief:latest',
+};
+
+export const ARRIVALS_KV_KEYS = {
+  latest: 'gotango:arrivals:latest',
+  history: 'gotango:arrivals:history',
+  meta: 'gotango:arrivals:meta',
+};
 
 const MONTH_NAMES = [
   'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
@@ -719,6 +731,95 @@ export async function generateWeeklyBriefManifest({
   }
 
   return { manifest, generator, llmError };
+}
+
+export function resolveWeeklyBriefIssueDate(date = new Date()) {
+  return new Date(Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate(),
+    12,
+    0,
+    0,
+  ));
+}
+
+export async function loadBriefSourceDataFromKv(kv) {
+  const [latest, rawHistory, meta] = await Promise.all([
+    kv.get(ARRIVALS_KV_KEYS.latest),
+    kv.lrange(ARRIVALS_KV_KEYS.history, 0, -1),
+    kv.get(ARRIVALS_KV_KEYS.meta),
+  ]);
+
+  if (latest == null) {
+    throw new Error('No cached arrivals data available yet.');
+  }
+
+  const historyList = Array.isArray(rawHistory) ? rawHistory : [];
+  const scoreResponse = computeGoTangoScoreResponse({
+    latestPayload: latest,
+    historyList,
+    publicDestinations: PUBLIC_DESTINATIONS,
+  });
+
+  return {
+    arrivalsPayload: {
+      ...latest,
+      saved_at: latest.saved_at || meta?.saved_at || null,
+    },
+    homepage: latest.homepage || null,
+    scoreResponse,
+  };
+}
+
+export async function buildWeeklyBriefPackage(kv, {
+  issueDate = resolveWeeklyBriefIssueDate(),
+  templateOnly = false,
+} = {}) {
+  const { arrivalsPayload, homepage, scoreResponse } = await loadBriefSourceDataFromKv(kv);
+  const factSheet = buildWeeklyBriefFactSheet({
+    arrivalsPayload,
+    scoreResponse,
+    homepage,
+    issueDate,
+  });
+  const { manifest, generator, llmError } = await generateWeeklyBriefManifest({
+    factSheet,
+    templateOnly,
+  });
+  return { factSheet, manifest, generator, llmError };
+}
+
+export async function persistWeeklyBriefToKv(kv, { manifest, generator, llmError = null }) {
+  const savedAt = new Date().toISOString();
+  const record = {
+    saved_at: savedAt,
+    issue_date: manifest.issue_date,
+    generator,
+    llm_error: llmError,
+    manifest,
+  };
+  await kv.set(WEEKLY_BRIEF_KV_KEYS.latest, record);
+  return record;
+}
+
+export function readWeeklyBriefFromKvRecord(record) {
+  if (!record || typeof record !== 'object' || !record.manifest) {
+    return { ok: false, error: 'empty' };
+  }
+  return {
+    ok: true,
+    saved_at: record.saved_at || null,
+    issue_date: record.issue_date || record.manifest.issue_date || null,
+    generator: record.generator || record.manifest.generator || null,
+    llm_error: record.llm_error || null,
+    manifest: record.manifest,
+  };
+}
+
+export async function getWeeklyBriefFromKv(kv) {
+  const record = await kv.get(WEEKLY_BRIEF_KV_KEYS.latest);
+  return readWeeklyBriefFromKvRecord(record);
 }
 
 export function serializeWeeklyBriefConfig(manifest) {

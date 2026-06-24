@@ -9521,11 +9521,12 @@
       .replace(/"/g, '&quot;');
   }
 
-  function renderWeeklyBrief() {
+  function renderWeeklyBrief(manifestOverride) {
     const root = document.getElementById('weekly-brief-root');
     if (!root) return;
 
-    const manifest = typeof window !== 'undefined' ? window.WEEKLY_BRIEF_MANIFEST : null;
+    const manifest = manifestOverride
+      || (typeof window !== 'undefined' ? window.WEEKLY_BRIEF_MANIFEST : null);
     if (!manifest || typeof manifest !== 'object') {
       root.innerHTML = '<div class="brief-article"><p class="brief-lede">Weekly brief unavailable.</p></div>';
       return;
@@ -9574,6 +9575,23 @@
         </div>
       </div>
     `;
+  }
+
+  async function loadWeeklyBriefManifest() {
+    const fallback = (typeof window !== 'undefined' && window.WEEKLY_BRIEF_MANIFEST)
+      ? window.WEEKLY_BRIEF_MANIFEST
+      : null;
+    try {
+      const response = await fetch('/api/get-weekly-brief', {
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) return fallback;
+      const data = await response.json();
+      if (data?.ok && data.manifest && typeof data.manifest === 'object') {
+        return data.manifest;
+      }
+    } catch (_) { /* fall back to bundled manifest */ }
+    return fallback;
   }
 
   function setBriefStatus(message) {
@@ -13315,12 +13333,13 @@
     updateClock();
     setInterval(updateClock, 60000);
     updateDate();
-    renderWeeklyBrief();
-    const [arrivalsData, moversIndexData, goTangoScoreV2Data] = await Promise.all([
+    const [weeklyBriefManifest, arrivalsData, moversIndexData, goTangoScoreV2Data] = await Promise.all([
+      loadWeeklyBriefManifest(),
       loadArrivalsData(),
       loadMoversIndex(),
       loadGoTangoScoreV2(),
     ]);
+    renderWeeklyBrief(weeklyBriefManifest);
     _modalArrivalsData = arrivalsData;
     _modalMoversIndexData = moversIndexData;
     const arrivalsPayload = getArrivalsPayload(arrivalsData);

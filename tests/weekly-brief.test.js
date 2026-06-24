@@ -199,9 +199,53 @@ test('buildTemplateWeeklyBrief uses lay travel copy without aviation jargon', ()
   assert.ok(manifest.paragraphs.length >= 2);
 });
 
-test('index.html loads weekly brief manifest and renderer', () => {
+test('readWeeklyBriefFromKvRecord returns manifest when present', async () => {
+  const {
+    readWeeklyBriefFromKvRecord,
+    persistWeeklyBriefToKv,
+    getWeeklyBriefFromKv,
+    resolveWeeklyBriefIssueDate,
+  } = await import('../weekly-brief.lib.js');
+
+  const issueDate = resolveWeeklyBriefIssueDate(new Date('2026-06-23T12:00:00Z'));
+  assert.equal(issueDate.toISOString().slice(0, 10), '2026-06-23');
+
+  const empty = readWeeklyBriefFromKvRecord(null);
+  assert.equal(empty.ok, false);
+
+  const store = new Map();
+  const kv = {
+    async set(key, value) { store.set(key, value); },
+    async get(key) { return store.get(key) ?? null; },
+  };
+
+  const manifest = {
+    issue_date: '2026-06-23',
+    kicker: 'THE BRIEF · TUESDAY, 23 JUNE',
+    headline_before: 'Ibiza takes the summer ',
+    headline_emphasis: 'lead.',
+    lede: 'Summer is turning.',
+    paragraphs: ['One', 'Two', 'Three'],
+    sleeper: { title: 'Santa Fe', description: 'Worth watching.' },
+    closing: 'Watch Ibiza.',
+  };
+
+  await persistWeeklyBriefToKv(kv, {
+    manifest,
+    generator: 'weekly-brief-template',
+    llmError: null,
+  });
+
+  const loaded = await getWeeklyBriefFromKv(kv);
+  assert.equal(loaded.ok, true);
+  assert.equal(loaded.manifest.headline_emphasis, 'lead.');
+});
+
+test('index.html loads weekly brief manifest and live refresh wiring', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   assert.match(html, /weekly-brief\.config\.js/);
   assert.match(html, /function renderWeeklyBrief\(/);
+  assert.match(html, /function loadWeeklyBriefManifest\(/);
+  assert.match(html, /\/api\/get-weekly-brief/);
   assert.match(html, /id="weekly-brief-root"/);
 });
