@@ -253,36 +253,42 @@ export function buildWeeklyBriefFactSheet({
 
 export function buildWeeklyBriefPrompt(factSheet) {
   const factsJson = JSON.stringify(factSheet, null, 2);
-  return `You are GoTango Editorial writing The Tuesday Brief — a weekly, data-led travel intelligence article.
+  return `You are GoTango Editorial writing The Tuesday Brief — a weekly travel letter for curious travelers, not data analysts.
 
-Write in the tone of a concise financial travel letter: confident, specific, no hype, no press-release language. Use only facts from the JSON below. Do not invent destinations, scores, arrival counts, origins, or trends not supported by the data.
+VOICE:
+- Write like a sharp travel editor at a premium magazine: warm, confident, specific, easy to read.
+- Explain what is happening in destinations and why it matters to someone planning or dreaming about travel.
+- Use plain English. Prefer "private flights", "travel momentum", "heating up", "cooling off", "summer season", "beach season".
+- Mention the GoTango Index at most once in the full article, and only if it helps readers understand scale (e.g. "reached 80 on our Index").
+- Never use jargon such as: general-aviation, GA, turboprop, aviation feed, collection limits, seven-day view, data confidence, truncated feed, unidentified-aircraft, premium private aircraft classifications.
 
 STRUCTURE (return JSON only):
 {
   "headline_before": "Short clause ending with a space before the emphasized word(s), e.g. Ibiza takes the summer ",
   "headline_emphasis": "last word(s) with period, e.g. lead.",
   "read_minutes": 3,
-  "lede": "One sentence summarizing the week's map (no markdown).",
+  "lede": "One vivid sentence summarizing the week's travel map (no markdown).",
   "paragraphs": [
-    "4-6 paragraphs. First sentence of key paragraphs may be strong thesis clauses. Use GoTango Index for scores. Reference 7-day point moves when score_delta_7d is present. Mention GA arrivals, premium private and light GA/turboprop counts when available. Name origin cities from top_origins when relevant."
+    "4-6 paragraphs. Open key paragraphs with a strong, readable thesis. Translate the data into travel stories: who is going where, which regions are heating up or handing off, what feels early vs established. Name origin cities when they paint a picture (e.g. Nice and Cannes). Use arrival counts sparingly and only as human context."
   ],
   "sleeper": {
     "title": "Destination name from sleeper",
-    "description": "2-3 sentences on the sleeper pick"
+    "description": "2-3 sentences on the sleeper pick in plain travel language"
   },
   "caution": {
     "title": "Destination name or null",
-    "text": "One paragraph on data-quality caveats, or null if caution is null in facts"
+    "text": "One short paragraph in plain language if caution is set in facts — explain the destination may look hotter than the underlying read supports, without technical data caveats. Null if caution is null in facts."
   },
-  "closing": "Final paragraph: what to watch next week (2-3 destinations)."
+  "closing": "Final paragraph: what to watch next week (2-3 destinations), written for travelers."
 }
 
 RULES:
+- Use only facts from the JSON below. Do not invent destinations, scores, arrival counts, origins, or trends.
 - If caution in facts is null, set caution.title and caution.text to null.
-- Use straight apostrophes; avoid markdown except plain text.
+- If score_delta_7d is null or zero, do not claim a weekly point change.
+- Use straight apostrophes; no markdown.
 - Do not mention GoTango as a product more than once.
 - Prefer lead_story, med_contrast, us_summer_standouts, caribbean_risers/fallers for narrative threads.
-- If a score_delta_7d is null, describe level without inventing a weekly change.
 
 FACT SHEET JSON:
 ${factsJson}`;
@@ -433,17 +439,119 @@ function fmtScore(n) {
 
 function fmtDelta(n) {
   if (n == null || !Number.isFinite(n)) return null;
-  const sign = n > 0 ? '+' : '';
-  return `${sign}${Math.round(n)}`;
+  const rounded = Math.round(n);
+  if (rounded === 0) return null;
+  const sign = rounded > 0 ? '+' : '';
+  return `${sign}${rounded}`;
 }
 
-function originPhrase(origins) {
+function briefDisplayName(name) {
+  if (!name) return '';
+  const base = String(name).replace(/\s*\([^)]*\)\s*$/, '').trim();
+  if (/^hamptons$/i.test(base)) return 'The Hamptons';
+  return base;
+}
+
+function isLikelyCityOrigin(name) {
+  if (!name) return false;
+  const n = String(name).trim();
+  if (!n) return false;
+  if (/int'?l|airport|airfield|municipal|afb|heliport|tower|county|gabreski/i.test(n)) return false;
+  if (/\b(town|village|parish|regional|republic|muni|municipal)\b/i.test(n)) return false;
+  if (/\bstate$/i.test(n)) return false;
+  if (n.split(/\s+/).length > 3) return false;
+  if (/^[A-Z][a-z]+ [A-Z]\./.test(n)) return false;
+  return n.length <= 24;
+}
+
+function briefSubjectVerb(name, singular, plural) {
+  return /^the hamptons$/i.test(briefDisplayName(name)) ? plural : singular;
+}
+
+function weeklyChangePhrase(delta) {
+  const formatted = fmtDelta(delta);
+  if (!formatted) return '';
+  const points = Math.abs(Math.round(delta));
+  if (delta > 0) return `, up ${points} points this week`;
+  return `, down ${points} points this week`;
+}
+
+function originTravelPhrase(origins) {
   if (!origins?.length) return '';
-  const names = origins.slice(0, 4).map((o) => o.name).filter(Boolean);
+  const names = origins
+    .map((o) => o.name)
+    .filter((name) => isLikelyCityOrigin(name))
+    .slice(0, 3);
   if (!names.length) return '';
-  if (names.length === 1) return names[0];
-  if (names.length === 2) return `${names[0]} and ${names[1]}`;
-  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
+  if (names.length === 1) {
+    return ` Traffic from ${names[0]} stood out.`;
+  }
+  if (names.length === 2) {
+    return ` Traffic from ${names[0]} and ${names[1]} helped shape the week.`;
+  }
+  return ` Traffic from ${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]} helped shape the week.`;
+}
+
+function privateTravelPhrase(dest) {
+  const total = safeNum(dest.raw_ga_arrivals_24h);
+  const premium = safeNum(dest.premium_private_arrivals_24h);
+  if (!total) {
+    return 'Private travel picked up in a way that is hard to ignore.';
+  }
+  if (premium >= Math.max(8, total * 0.35)) {
+    return `The latest day of data showed ${total} private flights, with a heavy share of premium aircraft.`;
+  }
+  return `The latest day of data showed ${total} private flights — a solid volume for this point in the season.`;
+}
+
+function briefHeadline(lead) {
+  if (!lead) return { before: 'The travel map ', emphasis: 'turns.' };
+  const name = briefDisplayName(lead.name);
+  const summerLead = lead.region_theme === 'us_summer'
+    || lead.region_theme === 'mediterranean'
+    || lead.region_theme === 'caribbean';
+  if (summerLead || (lead.score_delta_7d ?? 0) > 8) {
+    const verb = /^the hamptons$/i.test(name) ? 'take' : 'takes';
+    return { before: `${name} ${verb} the summer `, emphasis: 'lead.' };
+  }
+  return { before: `${name} leads the weekly `, emphasis: 'map.' };
+}
+
+function buildBriefLede(factSheet) {
+  const lead = factSheet.lead_story;
+  const us = factSheet.us_summer_standouts?.[0];
+  const caribUp = factSheet.caribbean_risers?.[0];
+  const caribDown = factSheet.caribbean_fallers?.[0];
+  const threads = [];
+
+  if (lead) {
+    const name = briefDisplayName(lead.name);
+    if (lead.region_theme === 'mediterranean') {
+      threads.push(`${name} is taking control of the Mediterranean`);
+    } else if (lead.region_theme === 'us_summer') {
+      threads.push(`${name} ${briefSubjectVerb(lead.name, 'is switching on for summer', 'are switching on for summer')}`);
+    } else if (lead.region_theme === 'caribbean') {
+      threads.push(`the Caribbean is finding fresh momentum through ${name}`);
+    } else {
+      threads.push(`${name} is leading the week`);
+    }
+  }
+  if (us && us.id !== lead?.id) {
+    threads.push(`${briefDisplayName(us.name)} is building alongside the broader U.S. summer circuit`);
+  }
+  if (caribUp && caribDown) {
+    threads.push('the Caribbean is becoming more selective');
+  } else if (caribUp) {
+    threads.push(`${briefDisplayName(caribUp.name)} is standing out in the Caribbean`);
+  }
+
+  if (!threads.length) {
+    return 'This week brought selective strength across the map rather than one global surge.';
+  }
+  if (threads.length === 1) {
+    return `The travel map is sharpening: ${threads[0]}.`;
+  }
+  return `The travel map is beginning to separate: ${threads.slice(0, -1).join(', ')}, and ${threads[threads.length - 1]}.`;
 }
 
 export function buildTemplateWeeklyBrief(factSheet) {
@@ -451,29 +559,39 @@ export function buildTemplateWeeklyBrief(factSheet) {
   const paragraphs = [];
 
   if (lead) {
-    const delta = fmtDelta(lead.score_delta_7d);
-    const deltaPhrase = delta ? `, ${delta} points across the current seven-day view` : '';
-    const origins = originPhrase(lead.top_origins);
-    const originSuffix = origins ? ` ${origins} supplied a recognizable share of those arrivals.` : '';
+    const name = briefDisplayName(lead.name);
+    const indexPhrase = lead.go_tango_score != null
+      ? ` Its GoTango Index reached ${fmtScore(lead.go_tango_score)}${weeklyChangePhrase(lead.score_delta_7d)}.`
+      : '';
     paragraphs.push(
-      `${lead.name} produced one of the clearest destination moves of the week. Its GoTango Index reached ${fmtScore(lead.go_tango_score)}${deltaPhrase}. The latest 24-hour window included ${lead.raw_ga_arrivals_24h} general-aviation arrivals, with ${lead.premium_private_arrivals_24h} classified as premium private aircraft and ${lead.light_ga_arrivals_24h} as turboprops.${originSuffix}`,
+      `${name} produced the clearest destination move of the week.${indexPhrase} ${privateTravelPhrase(lead)}${originTravelPhrase(lead.top_origins)}`.trim(),
     );
   }
 
   const contrast = factSheet.med_contrast;
   if (contrast && contrast.id !== lead?.id) {
-    const delta = fmtDelta(contrast.score_delta_7d);
+    const name = briefDisplayName(contrast.name);
+    const easing = (contrast.score_delta_7d ?? 0) < 0;
+    const rising = (contrast.score_delta_7d ?? 0) > 0;
+    let movement = 'is still firmly in the conversation';
+    if (easing) movement = 'is still active, but the direction has softened';
+    if (rising) movement = 'is still building';
     paragraphs.push(
-      `${contrast.name} remains active at ${fmtScore(contrast.go_tango_score)}${delta ? ` (${delta} points over the seven-day view)` : ''}. The Mediterranean read this week is less about one island dominating and more about which markets are still accelerating versus settling from an earlier peak.`,
+      `${name} ${movement}. The Mediterranean story this week is less about one island dominating and more about which markets are still accelerating versus settling from an earlier peak.`,
     );
   }
 
   const us = factSheet.us_summer_standouts || [];
   if (us.length) {
-    const names = us.map((d) => d.name).join(' and ');
-    const top = us[0];
+    const names = us.map((d) => briefDisplayName(d.name));
+    const label = names.length === 1
+      ? names[0]
+      : `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
+    const verb = names.length === 1
+      ? briefSubjectVerb(names[0], 'is', 'are')
+      : 'are';
     paragraphs.push(
-      `The United States summer circuit is filling in. ${names} are among the standouts, with ${top.name} at ${fmtScore(top.go_tango_score)} on ${top.raw_ga_arrivals_24h} GA arrivals in the latest window. The pattern points to familiar seasonal handoffs toward islands, beach houses, and regional leisure gateways.`,
+      `The United States is making its own seasonal handoff. ${label} ${verb} among the standouts, with private traffic building toward islands, beach houses, golf markets, and familiar summer circuits.`,
     );
   }
 
@@ -481,14 +599,14 @@ export function buildTemplateWeeklyBrief(factSheet) {
   const caribDown = factSheet.caribbean_fallers?.[0];
   if (caribUp || caribDown) {
     const upPart = caribUp
-      ? `${caribUp.name} climbed to ${fmtScore(caribUp.go_tango_score)}`
+      ? `${briefDisplayName(caribUp.name)} is climbing`
       : null;
     const downPart = caribDown
-      ? `${caribDown.name} eased to ${fmtScore(caribDown.go_tango_score)}`
+      ? `${briefDisplayName(caribDown.name)} has cooled`
       : null;
     const body = [upPart, downPart].filter(Boolean).join(', while ');
     paragraphs.push(
-      `The Caribbean is less uniform this week. ${body}. The read is selective strength rather than a single basin-wide surge.`,
+      `The Caribbean is less uniform. ${body}. The read is selective strength rather than one basin-wide surge.`,
     );
   }
 
@@ -497,36 +615,32 @@ export function buildTemplateWeeklyBrief(factSheet) {
 
   let cautionBlock = null;
   if (caution) {
+    const name = briefDisplayName(caution.name);
     cautionBlock = {
       title: caution.name,
-      text: `${caution.name} currently carries a ${fmtScore(caution.go_tango_score)} Index, but its aviation feed had collection limits or elevated unidentified-aircraft activity. The volume may be real; the interpretation is less clean this week.`,
+      text: `One caution sits near the top of the board. ${name} looks busy this week, but the underlying flight picture is harder to read than usual. The travel may be real; we would treat the ranking with a little more skepticism until the picture clears.`,
     };
   }
 
   const watchNames = [lead, us[0], factSheet.caribbean_risers?.[0]]
     .filter(Boolean)
-    .map((d) => d.name)
+    .map((d) => briefDisplayName(d.name))
     .filter((n, i, arr) => arr.indexOf(n) === i)
     .slice(0, 3);
 
-  const ledeParts = [];
-  if (lead) ledeParts.push(`${lead.name} leads the week's move`);
-  if (us[0]) ledeParts.push(`${us[0].name} is switching on for summer`);
-  if (caribUp && caribDown) ledeParts.push('the Caribbean is splitting');
+  const headline = briefHeadline(lead);
 
   return normalizeWeeklyBriefManifest({
-    headline_before: lead ? `${lead.name} leads the weekly ` : 'The weekly map ',
-    headline_emphasis: lead ? 'shift.' : 'turns.',
+    headline_before: headline.before,
+    headline_emphasis: headline.emphasis,
     read_minutes: 3,
-    lede: ledeParts.length
-      ? `This week${ledeParts.length > 1 ? ',' : ''} ${ledeParts.join(', ')}.`
-      : 'A mixed week across GoTango destinations with selective strength rather than a single global surge.',
+    lede: buildBriefLede(factSheet),
     paragraphs,
     sleeper: {
       title: sleeper?.name || 'Watchlist',
       description: sleeper
-        ? `${sleeper.name} has reached ${fmtScore(sleeper.go_tango_score)}${fmtDelta(sleeper.score_delta_7d) ? `, ${fmtDelta(sleeper.score_delta_7d)} points across the seven-day view` : ''}. It is not yet leading the board, but the signal has enough depth to deserve attention.`
-        : 'No clear sleeper emerged in this week\'s data.',
+        ? `${briefDisplayName(sleeper.name)} has quietly strengthened${weeklyChangePhrase(sleeper.score_delta_7d) || ''}. It is not yet leading the board, but the mix of private traffic has enough depth to deserve attention.${originTravelPhrase(sleeper.top_origins)}`.trim()
+        : 'No clear sleeper emerged in this week\'s travel picture.',
     },
     caution: cautionBlock,
     closing: watchNames.length

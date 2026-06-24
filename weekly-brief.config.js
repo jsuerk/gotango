@@ -5,25 +5,27 @@
 window.WEEKLY_BRIEF_MANIFEST = {
   "issue_date": "2026-06-23",
   "kicker": "THE BRIEF · TUESDAY, 23 JUNE",
-  "headline_before": "Dubai (Al Maktoum) leads the weekly",
-  "headline_emphasis": "shift.",
+  "headline_before": "The Hamptons take the summer",
+  "headline_emphasis": "lead.",
   "read_time": "3 min read",
   "byline": "By GoTango Editorial",
-  "lede": "This week Dubai (Al Maktoum) leads the week's move.",
+  "lede": "The travel map is beginning to separate: The Hamptons are switching on for summer, and the Caribbean is becoming more selective.",
   "paragraphs": [
-    "Dubai (Al Maktoum) produced one of the clearest destination moves of the week. Its GoTango Index reached 99, 0 points across the current seven-day view. The latest 24-hour window included 69 general-aviation arrivals, with 4 classified as premium private aircraft and 0 as turboprops. Al Maktoum Int'l, Zvartnots Int'l, Bateen, and Kabul supplied a recognizable share of those arrivals.",
-    "Mykonos remains active at 78 (0 points over the seven-day view). The Mediterranean read this week is less about one island dominating and more about which markets are still accelerating versus settling from an earlier peak."
+    "The Hamptons produced the clearest destination move of the week. Its GoTango Index reached 99. The latest day of data showed 65 private flights, with a heavy share of premium aircraft.",
+    "Mykonos is still building. The Mediterranean story this week is less about one island dominating and more about which markets are still accelerating versus settling from an earlier peak.",
+    "The United States is making its own seasonal handoff. The Hamptons, Nantucket, and Palm Beach are among the standouts, with private traffic building toward islands, beach houses, golf markets, and familiar summer circuits.",
+    "The Caribbean is less uniform. Exuma is climbing, while Barbados has cooled. The read is selective strength rather than one basin-wide surge."
   ],
   "sleeper": {
     "title": "Antigua",
-    "description": "Antigua has reached 65, 0 points across the seven-day view. It is not yet leading the board, but the signal has enough depth to deserve attention."
+    "description": "Antigua has quietly strengthened, up 2 points this week. It is not yet leading the board, but the mix of private traffic has enough depth to deserve attention. Traffic from Coco Point and The Valley helped shape the week."
   },
   "caution": {
-    "title": "Dubai (Al Maktoum)",
-    "text": "Dubai (Al Maktoum) currently carries a 99 Index, but its aviation feed had collection limits or elevated unidentified-aircraft activity. The volume may be real; the interpretation is less clean this week."
+    "title": "Hamptons",
+    "text": "One caution sits near the top of the board. The Hamptons looks busy this week, but the underlying flight picture is harder to read than usual. The travel may be real; we would treat the ranking with a little more skepticism until the picture clears."
   },
-  "closing": "Watch whether Dubai (Al Maktoum) can hold their current levels. Those markets will tell us whether this is an early-season move or the beginning of a fuller summer pattern.",
-  "generated_at": "2026-06-24T04:46:25.083Z",
+  "closing": "Watch whether The Hamptons, Exuma can hold their current levels. Those markets will tell us whether this is an early-season move or the beginning of a fuller summer pattern.",
+  "generated_at": "2026-06-24T05:23:40.750Z",
   "generator": "weekly-brief-template",
   "arrivals_saved_at": "2026-06-23T14:00:47.339Z",
   "score_version": "gotango_score_v2_1_activity_led"

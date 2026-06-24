@@ -166,28 +166,37 @@ test('validateWeeklyBriefDraft requires core fields', () => {
   assert.equal(good.ok, true);
 });
 
-test('buildTemplateWeeklyBrief produces renderable manifest', () => {
+test('buildTemplateWeeklyBrief uses lay travel copy without aviation jargon', () => {
   const sheet = buildWeeklyBriefFactSheet({
     arrivalsPayload: {
-      destinations: [{
-        id: 'ibiza', ok: true, name: 'Ibiza', raw_ga_arrivals_24h: 45,
-        premium_private_arrivals_24h: 20, light_ga_arrivals_24h: 5,
-      }],
+      destinations: [
+        {
+          id: 'ibiza', ok: true, name: 'Ibiza', region: 'Balearic Islands',
+          raw_ga_arrivals_24h: 45, premium_private_arrivals_24h: 20, light_ga_arrivals_24h: 5,
+          top_origins: [{ name: 'Nice', count: 8 }, { name: 'Cannes', count: 6 }],
+        },
+        {
+          id: 'mykonos', ok: true, name: 'Mykonos', region: 'Greek Islands',
+          raw_ga_arrivals_24h: 30, premium_private_arrivals_24h: 12, light_ga_arrivals_24h: 2,
+        },
+      ],
     },
     scoreResponse: {
       ok: true,
-      destinations: [{
-        id: 'ibiza', go_tango_score: 80, go_tango_score_points_7d: [49, 80],
-        confirmed_category: 'heating_up', data_confidence: 'high',
-      }],
+      destinations: [
+        { id: 'ibiza', go_tango_score: 80, go_tango_score_points_7d: [49, 55, 60, 70, 75, 78, 80], confirmed_category: 'heating_up', data_confidence: 'high' },
+        { id: 'mykonos', go_tango_score: 77, go_tango_score_points_7d: [94, 95, 97, 90, 85, 80, 77], confirmed_category: 'in_season', data_confidence: 'high' },
+      ],
     },
-    homepage: {},
+    homepage: { sleeper_pick: { id: 'santa-fe', ok: true, name: 'Santa Fe', raw_ga_arrivals_24h: 12 } },
     issueDate: new Date('2026-06-23T12:00:00Z'),
   });
   const manifest = buildTemplateWeeklyBrief(sheet);
-  assert.match(manifest.kicker, /JUNE/);
-  assert.ok(manifest.paragraphs.length >= 1);
-  assert.ok(manifest.sleeper.title);
+  const blob = JSON.stringify(manifest).toLowerCase();
+  assert.match(manifest.headline_before, /takes the summer/i);
+  assert.match(manifest.lede, /travel map/i);
+  assert.doesNotMatch(blob, /general-aviation|turboprop|aviation feed|seven-day view|ga arrivals/);
+  assert.ok(manifest.paragraphs.length >= 2);
 });
 
 test('index.html loads weekly brief manifest and renderer', () => {
