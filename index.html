@@ -1415,6 +1415,22 @@
   .cooling-card.has-photo:hover {
     background: var(--surface);
   }
+  /* Movers cards reuse the same cinematic photo treatment for consistency */
+  .mover-row.has-photo {
+    position: relative;
+    overflow: hidden;
+  }
+  .mover-row.has-photo > *:not(.now-card-photo) {
+    position: relative;
+    z-index: 1;
+  }
+  .mover-row.has-photo .mover-body,
+  .mover-row.has-photo .mover-rank {
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+  }
+  .mover-row.has-photo .mover-name {
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+  }
 
   /* ===== TODAY'S MOVEMENT (visual grouping) ===== */
   .todays-movement {
@@ -7002,7 +7018,7 @@
     img.decoding = 'async';
     if (entry.objectPosition) img.style.objectPosition = String(entry.objectPosition);
     img.addEventListener('error', () => {
-      const card = layer.closest('.dest-card, .cooling-card');
+      const card = layer.closest('.dest-card, .cooling-card, .mover-row');
       if (card) card.classList.remove('has-photo');
       layer.remove();
     });
@@ -8132,6 +8148,8 @@
     row.appendChild(rankEl);
     row.appendChild(body);
 
+    if (options.withPhoto) _applyNowCardPhoto(row, dest);
+
     return row;
   }
 
@@ -8232,7 +8250,7 @@
 
       visibleList.forEach((dest, i) => {
         renderedDestinations += 1;
-        group.appendChild(renderMoverRow(dest, i + 1, sectionKey, { showActions: true }));
+        group.appendChild(renderMoverRow(dest, i + 1, sectionKey, { showActions: true, withPhoto: true }));
       });
 
       indexEl.appendChild(group);
@@ -8323,7 +8341,7 @@
       group.className = 'movers-group';
 
       list.forEach((dest, i) => {
-        group.appendChild(renderMoverRow(dest, i + 1, sectionKey, { showActions: true }));
+        group.appendChild(renderMoverRow(dest, i + 1, sectionKey, { showActions: true, withPhoto: true }));
       });
 
       indexEl.appendChild(group);
