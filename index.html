@@ -1340,19 +1340,10 @@
   }
 
   /* ===== NOW CARD PHOTOS (UI refresh, optional) ===== */
-  /* Photo sits as a left-hand band and softly fades into the card. All
-     destination text is shifted to the right of the band so it never sits
-     on top of the image. */
   .dest-card.has-photo,
   .cooling-card.has-photo {
     position: relative;
     overflow: hidden;
-    --now-photo-w: clamp(104px, 31%, 136px);
-  }
-  /* Shift all card content to the right of the photo band */
-  #tab-now .dest-card.has-photo,
-  #tab-now .cooling-card.has-photo.cooling-card--ranked {
-    padding-left: calc(var(--now-photo-w) + 6px);
   }
   /* Keep all card content above the photo layer */
   .dest-card.has-photo > *:not(.now-card-photo),
@@ -1362,32 +1353,40 @@
   }
   .now-card-photo {
     position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: var(--now-photo-w);
+    inset: 0;
     z-index: 0;
     overflow: hidden;
     pointer-events: none;
   }
   .now-card-photo__img {
     position: absolute;
-    inset: 0;
-    width: 100%;
+    top: 0;
+    left: 0;
     height: 100%;
+    width: 72%;
     object-fit: cover;
     object-position: center;
     display: block;
   }
-  /* Safari-safe fade: photo dissolves at the right edge of the band into the
-     card background (#161B23 = --surface) and softly downward. */
+  /* Safari-safe fade: image dissolves to the right and softly downward into
+     the card background (#161B23 = --surface). */
   .now-card-photo__scrim {
     position: absolute;
     inset: 0;
     pointer-events: none;
     background:
-      linear-gradient(90deg, rgba(22, 27, 35, 0) 0%, rgba(22, 27, 35, 0) 56%, rgba(22, 27, 35, 0.55) 80%, #161B23 100%),
-      linear-gradient(180deg, rgba(22, 27, 35, 0) 58%, rgba(22, 27, 35, 0.45) 100%);
+      linear-gradient(90deg, rgba(22, 27, 35, 0.35) 0%, rgba(22, 27, 35, 0.55) 32%, rgba(22, 27, 35, 0.88) 60%, #161B23 78%),
+      linear-gradient(180deg, rgba(22, 27, 35, 0.25) 0%, rgba(22, 27, 35, 0.15) 40%, rgba(22, 27, 35, 0.45) 100%);
+  }
+  .dest-card.has-photo .dest-main,
+  .cooling-card.has-photo .dest-main,
+  .dest-card.has-photo .mover-rank,
+  .cooling-card.has-photo .mover-rank {
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+  }
+  .dest-card.has-photo .dest-name,
+  .cooling-card.has-photo .dest-name {
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
   }
   .dest-card.has-photo:hover,
   .cooling-card.has-photo:hover {
@@ -1428,30 +1427,30 @@
   }
 
   /* ===== SLEEPER PICK PHOTO (UI refresh, optional) ===== */
-  /* Full-height photo band on the left; editorial text shifts right so it
-     never sits on top of the image. */
   .sleeper.has-photo {
+    padding-top: 132px;
     overflow: hidden;
-    --sleeper-photo-w: clamp(116px, 32%, 156px);
-    padding-left: calc(var(--sleeper-photo-w) + 18px);
   }
   .sleeper.has-photo > *:not(.sleeper-photo) {
     position: relative;
     z-index: 1;
   }
+  .sleeper.has-photo .sleeper-label,
+  .sleeper.has-photo .sleeper-name,
+  .sleeper.has-photo .sleeper-code {
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
+  }
   .sleeper-photo {
     position: absolute;
     top: 0;
     left: 0;
-    bottom: 0;
-    width: var(--sleeper-photo-w);
+    right: 0;
+    height: 200px;
     z-index: 0;
     overflow: hidden;
     pointer-events: none;
   }
   .sleeper-photo__img {
-    position: absolute;
-    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -1462,9 +1461,7 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background:
-      linear-gradient(90deg, rgba(22, 27, 35, 0) 0%, rgba(22, 27, 35, 0) 54%, rgba(22, 27, 35, 0.5) 80%, #161B23 100%),
-      linear-gradient(180deg, rgba(22, 27, 35, 0) 62%, rgba(22, 27, 35, 0.4) 100%);
+    background: linear-gradient(180deg, rgba(22, 27, 35, 0) 0%, rgba(22, 27, 35, 0.15) 45%, rgba(22, 27, 35, 0.72) 80%, #161B23 100%);
   }
 
   /* ===== BRIEF SIGNUP ===== */
@@ -5259,13 +5256,19 @@
       margin-left: 0;
     }
     /* Now: photo cards on narrow phones (390 / 414 / 430px) */
-    .dest-card.has-photo,
-    .cooling-card.has-photo {
-      --now-photo-w: clamp(88px, 28%, 116px);
+    .now-card-photo__img {
+      width: 80%;
+    }
+    .now-card-photo__scrim {
+      background:
+        linear-gradient(90deg, rgba(22, 27, 35, 0.40) 0%, rgba(22, 27, 35, 0.60) 30%, rgba(22, 27, 35, 0.90) 58%, #161B23 76%),
+        linear-gradient(180deg, rgba(22, 27, 35, 0.28) 0%, rgba(22, 27, 35, 0.18) 40%, rgba(22, 27, 35, 0.48) 100%);
     }
     .sleeper.has-photo {
-      --sleeper-photo-w: clamp(100px, 30%, 132px);
-      padding-left: calc(var(--sleeper-photo-w) + 14px);
+      padding-top: 116px;
+    }
+    .sleeper-photo {
+      height: 176px;
     }
     .todays-movement__intro {
       margin: 22px 16px 6px;
