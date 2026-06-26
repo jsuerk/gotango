@@ -1083,6 +1083,17 @@
     letter-spacing: 0.03em;
     margin-top: 3px;
   }
+  .dest-score-main__cta {
+    display: flex;
+    justify-content: flex-end;
+    color: var(--amber);
+    margin-top: 6px;
+  }
+  .dest-score-main__cta svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
   .dest-private-support {
     margin-top: 2px;
   }
@@ -6891,6 +6902,12 @@
       _applyDestTrendClasses(trend, movementText, signedVal);
       col.appendChild(trend);
     }
+
+    const cta = document.createElement('div');
+    cta.className = 'dest-score-main__cta';
+    cta.setAttribute('aria-hidden', 'true');
+    cta.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
+    col.appendChild(cta);
 
     return col;
   }
