@@ -1083,6 +1083,17 @@
     letter-spacing: 0.03em;
     margin-top: 3px;
   }
+  .dest-score-main__cta {
+    display: flex;
+    justify-content: flex-end;
+    color: var(--amber);
+    margin-top: 6px;
+  }
+  .dest-score-main__cta svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
   .dest-private-support {
     margin-top: 2px;
   }
@@ -1339,9 +1350,134 @@
     font-weight: 500;
   }
 
+  /* ===== NOW CARD PHOTOS (UI refresh, optional) ===== */
+  .dest-card.has-photo,
+  .cooling-card.has-photo {
+    position: relative;
+    overflow: hidden;
+  }
+  /* Keep all card content above the photo layer */
+  .dest-card.has-photo > *:not(.now-card-photo),
+  .cooling-card.has-photo > *:not(.now-card-photo) {
+    position: relative;
+    z-index: 1;
+  }
+  .now-card-photo {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .now-card-photo__img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 72%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+  /* Safari-safe fade: image dissolves to the right and softly downward into
+     the card background (#161B23 = --surface). */
+  .now-card-photo__scrim {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, rgba(22, 27, 35, 0.35) 0%, rgba(22, 27, 35, 0.55) 32%, rgba(22, 27, 35, 0.88) 60%, #161B23 78%),
+      linear-gradient(180deg, rgba(22, 27, 35, 0.25) 0%, rgba(22, 27, 35, 0.15) 40%, rgba(22, 27, 35, 0.45) 100%);
+  }
+  .dest-card.has-photo .dest-main,
+  .cooling-card.has-photo .dest-main,
+  .dest-card.has-photo .mover-rank,
+  .cooling-card.has-photo .mover-rank {
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+  }
+  .dest-card.has-photo .dest-name,
+  .cooling-card.has-photo .dest-name {
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+  }
+  .dest-card.has-photo:hover,
+  .cooling-card.has-photo:hover {
+    background: var(--surface);
+  }
+
+  /* ===== TODAY'S MOVEMENT (visual grouping) ===== */
+  .todays-movement {
+    margin-top: 6px;
+  }
+  .todays-movement__intro {
+    margin: 28px 20px 6px;
+  }
+  .todays-movement__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin: 0 0 5px;
+  }
+  .todays-movement__eyebrow::before {
+    content: "";
+    width: 18px;
+    height: 1px;
+    background: var(--amber);
+  }
+  .todays-movement__sub {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 15px;
+    line-height: 1.4;
+    color: var(--text-dim);
+    margin: 0;
+  }
+
+  /* ===== SLEEPER PICK PHOTO (UI refresh, optional) ===== */
+  .sleeper.has-photo {
+    padding-top: 132px;
+    overflow: hidden;
+  }
+  .sleeper.has-photo > *:not(.sleeper-photo) {
+    position: relative;
+    z-index: 1;
+  }
+  .sleeper.has-photo .sleeper-label,
+  .sleeper.has-photo .sleeper-name,
+  .sleeper.has-photo .sleeper-code {
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
+  }
+  .sleeper-photo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 200px;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .sleeper-photo__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+    display: block;
+  }
+  .sleeper-photo__scrim {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(22, 27, 35, 0) 0%, rgba(22, 27, 35, 0.15) 45%, rgba(22, 27, 35, 0.72) 80%, #161B23 100%);
+  }
+
   /* ===== BRIEF SIGNUP ===== */
   .brief-card {
-    margin: 32px 20px;
+    margin: 28px 20px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 14px;
@@ -5130,6 +5266,27 @@
     #tab-now .cooling-list .mover-badge {
       margin-left: 0;
     }
+    /* Now: photo cards on narrow phones (390 / 414 / 430px) */
+    .now-card-photo__img {
+      width: 80%;
+    }
+    .now-card-photo__scrim {
+      background:
+        linear-gradient(90deg, rgba(22, 27, 35, 0.40) 0%, rgba(22, 27, 35, 0.60) 30%, rgba(22, 27, 35, 0.90) 58%, #161B23 76%),
+        linear-gradient(180deg, rgba(22, 27, 35, 0.28) 0%, rgba(22, 27, 35, 0.18) 40%, rgba(22, 27, 35, 0.48) 100%);
+    }
+    .sleeper.has-photo {
+      padding-top: 116px;
+    }
+    .sleeper-photo {
+      height: 176px;
+    }
+    .todays-movement__intro {
+      margin: 22px 16px 6px;
+    }
+    .todays-movement__sub {
+      font-size: 14px;
+    }
     #tab-watch .watch-list-body {
       padding-left: 16px;
       padding-right: 16px;
@@ -5233,6 +5390,13 @@
       <div class="world-overlay"><span id="map-overlay-dest-count">—</span> destinations · <span id="map-overlay-time">Hourly refresh</span></div>
     </div>
 
+    <!-- TODAY'S MOVEMENT -->
+    <div class="todays-movement">
+      <div class="todays-movement__intro">
+        <p class="todays-movement__eyebrow">Today's Movement</p>
+        <p class="todays-movement__sub">Where private travel is heating up, cooling off, and quietly breaking out.</p>
+      </div>
+
     <!-- HOT LIST -->
     <div class="section-head">
       <h2 class="section-title">Heating <em>Up</em></h2>
@@ -5265,6 +5429,8 @@
         <span>Tier-1 destination</span>
       </div>
     </div>
+    </div>
+    <!-- /TODAY'S MOVEMENT -->
 
     <!-- BRIEF SIGNUP -->
     <div class="brief-card">
@@ -6737,6 +6903,12 @@
       col.appendChild(trend);
     }
 
+    const cta = document.createElement('div');
+    cta.className = 'dest-score-main__cta';
+    cta.setAttribute('aria-hidden', 'true');
+    cta.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
+    col.appendChild(cta);
+
     return col;
   }
 
@@ -6793,6 +6965,45 @@
     return main;
   }
 
+  // UI-only: optional cinematic photo layer for Now cards. Reuses the same
+  // destination image manifest as the destination modal. Returns null when the
+  // destination has no image so the card keeps its current dark fallback.
+  function _buildNowCardPhotoLayer(dest) {
+    const entry = getDestinationImageEntry(dest && dest.id);
+    if (!entry) return null;
+
+    const layer = document.createElement('div');
+    layer.className = 'now-card-photo';
+    layer.setAttribute('aria-hidden', 'true');
+
+    const img = document.createElement('img');
+    img.className = 'now-card-photo__img';
+    img.src = String(entry.src).trim();
+    img.alt = '';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    if (entry.objectPosition) img.style.objectPosition = String(entry.objectPosition);
+    img.addEventListener('error', () => {
+      const card = layer.closest('.dest-card, .cooling-card');
+      if (card) card.classList.remove('has-photo');
+      layer.remove();
+    });
+
+    const scrim = document.createElement('div');
+    scrim.className = 'now-card-photo__scrim';
+
+    layer.appendChild(img);
+    layer.appendChild(scrim);
+    return layer;
+  }
+
+  function _applyNowCardPhoto(card, dest) {
+    const photo = _buildNowCardPhotoLayer(dest);
+    if (!photo) return;
+    card.classList.add('has-photo');
+    card.insertBefore(photo, card.firstChild);
+  }
+
   function renderCoolingDestinationCard(dest, container, whyLine, rankIndex) {
     const card = document.createElement('div');
     card.className = 'cooling-card cooling-card--ranked';
@@ -6808,6 +7019,7 @@
     card.appendChild(rank);
     card.appendChild(main);
     card.appendChild(_buildDestScoreColumn(dest, 'negative'));
+    _applyNowCardPhoto(card, dest);
     container.appendChild(card);
   }
 
@@ -7041,6 +7253,55 @@
     if (privateEl) {
       privateEl.innerHTML = `<b>${Number.isFinite(signalScore) ? signalScore : '—'}</b> signal`;
     }
+
+    _applySleeperPhoto(card, pick);
+  }
+
+  // UI-only: optional cinematic photo banner for the Sleeper Pick card. Uses the
+  // same destination image manifest; gracefully removes itself if no image
+  // exists or the image fails to load, restoring the original editorial card.
+  function _applySleeperPhoto(card, pick) {
+    if (!card) return;
+
+    const entry = getDestinationImageEntry(pick && pick.id);
+    let photo = card.querySelector('.sleeper-photo');
+
+    if (!entry) {
+      card.classList.remove('has-photo');
+      if (photo) photo.remove();
+      return;
+    }
+
+    if (!photo) {
+      photo = document.createElement('div');
+      photo.className = 'sleeper-photo';
+      photo.setAttribute('aria-hidden', 'true');
+
+      const img = document.createElement('img');
+      img.className = 'sleeper-photo__img';
+      img.alt = '';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.addEventListener('error', () => {
+        card.classList.remove('has-photo');
+        const stale = card.querySelector('.sleeper-photo');
+        if (stale) stale.remove();
+      });
+
+      const scrim = document.createElement('div');
+      scrim.className = 'sleeper-photo__scrim';
+
+      photo.appendChild(img);
+      photo.appendChild(scrim);
+      card.insertBefore(photo, card.firstChild);
+    }
+
+    const imgEl = photo.querySelector('.sleeper-photo__img');
+    if (imgEl) {
+      imgEl.src = String(entry.src).trim();
+      imgEl.style.objectPosition = entry.objectPosition ? String(entry.objectPosition) : 'center center';
+    }
+    card.classList.add('has-photo');
   }
 
   function renderHeatingUp(data) {
@@ -7109,6 +7370,7 @@
         card.appendChild(rank);
         card.appendChild(main);
         card.appendChild(_buildDestScoreColumn(dest, 'positive'));
+        _applyNowCardPhoto(card, dest);
         container.appendChild(card);
       });
     } catch (error) {
