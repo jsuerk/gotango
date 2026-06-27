@@ -4526,6 +4526,277 @@
   color: var(--text-dim, #A8A293);
 }
 
+/* ============================================================= */
+/* === Destination modal · premium UI refresh (v2, UI-only) ==== */
+/* ============================================================= */
+
+/* Container: richer editorial-dark surface with a faint gold edge */
+.dest-modal__container {
+  background: linear-gradient(180deg, #12151c 0%, #0c0e13 100%);
+  border-color: rgba(244, 181, 42, 0.14);
+  box-shadow:
+    0 26px 72px rgba(0, 0, 0, 0.66),
+    0 0 0 1px rgba(244, 181, 42, 0.05);
+}
+
+/* Cinematic hero: deeper, more filmic gradient that still keeps text legible */
+.d-hero__shade {
+  background:
+    linear-gradient(180deg, rgba(6, 7, 10, 0.04) 0%, rgba(6, 7, 10, 0.34) 38%, rgba(6, 7, 10, 0.82) 72%, rgba(8, 10, 14, 0.97) 100%),
+    radial-gradient(135% 90% at 50% -10%, rgba(0, 0, 0, 0) 42%, rgba(0, 0, 0, 0.4) 100%),
+    linear-gradient(90deg, rgba(6, 7, 10, 0.5) 0%, transparent 62%);
+}
+
+.d-hero--photo .d-name {
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7);
+}
+
+/* Prominent, premium GoTango Score block */
+.d-hero__score {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  margin-top: 16px;
+  padding: 10px 16px 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(244, 181, 42, 0.42);
+  background: linear-gradient(135deg, rgba(232, 163, 23, 0.2) 0%, rgba(232, 163, 23, 0.05) 100%);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 24px rgba(232, 163, 23, 0.13);
+}
+
+.d-hero__score-value {
+  font-size: 34px;
+  line-height: 0.92;
+}
+
+/* Hero foot row (fallback / no-photo hero): score left, share right */
+.d-hero__foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.dest-modal__share--hero-text {
+  margin-top: 0;
+  align-self: flex-end;
+}
+
+/* Premium metric strip */
+.d-section--metrics {
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.d-metric-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.d-metric-strip[data-metric-count="1"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.d-metric-strip[data-metric-count="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.d-metric {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 13px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-light, #313945);
+  background: linear-gradient(160deg, rgba(244, 181, 42, 0.05), rgba(255, 255, 255, 0.01));
+  min-width: 0;
+  overflow: hidden;
+}
+
+.d-metric--arrivals {
+  border-color: rgba(244, 181, 42, 0.3);
+  background: linear-gradient(160deg, rgba(244, 181, 42, 0.1), rgba(255, 255, 255, 0.01));
+}
+
+.d-metric__icon {
+  position: absolute;
+  top: 11px;
+  right: 11px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Geist Mono', monospace;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--amber, #E8A317);
+  opacity: 0.75;
+}
+
+.d-metric__icon-svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.d-metric--up .d-metric__icon { color: var(--status-steady, #6BCB8B); }
+.d-metric--down .d-metric__icon { color: var(--status-heating, #E07A6A); }
+
+.d-metric__label {
+  font-family: 'Geist Mono', monospace;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint, #6B6557);
+  margin-bottom: 9px;
+  padding-right: 26px;
+}
+
+.d-metric__value {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(1.5rem, 1.2rem + 1vw, 1.9rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--text, #F5F1E8);
+  word-break: break-word;
+}
+
+.d-metric--arrivals .d-metric__value { color: var(--amber, #E8A317); }
+.d-metric__value--up { color: var(--status-steady, #6BCB8B); }
+.d-metric__value--down { color: var(--status-heating, #E07A6A); }
+
+.d-metric__sub {
+  font-family: 'Geist Mono', monospace;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.04em;
+  color: var(--text-dim, #A8A293);
+  margin-top: 7px;
+}
+
+/* "What's Happening" — premium editorial card */
+.d-section--news .d-destination-news__blurb {
+  position: relative;
+  padding-left: 16px;
+}
+
+.d-section--news .d-destination-news__blurb::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--amber, #E8A317), rgba(232, 163, 23, 0));
+}
+
+/* "What's Happening" blurb clamps to 5 lines until READ MORE is pressed. */
+.editor-note--news .editor-note__content {
+  font-size: var(--fs-editorial);
+  line-height: 1.6;
+}
+
+.editor-note--news .editor-note__content.is-collapsed {
+  max-height: calc(1.6em * 5);
+}
+
+.editor-note--news .editor-note__content.is-collapsed::after {
+  background: linear-gradient(to bottom, rgba(15, 17, 23, 0), #0f1117);
+}
+
+/* Sources — teal/blue accent treatment */
+.d-destination-news__sources-label {
+  color: var(--teal, #5EAAA8);
+}
+
+.d-destination-news__source {
+  border-color: rgba(94, 170, 168, 0.2);
+  background: rgba(94, 170, 168, 0.045);
+}
+
+.d-destination-news__source:hover {
+  background: rgba(94, 170, 168, 0.1);
+  border-color: rgba(94, 170, 168, 0.42);
+}
+
+.d-destination-news__source:focus-visible {
+  outline-color: var(--teal, #5EAAA8);
+}
+
+.d-destination-news__source-domain,
+.d-destination-news__source-external {
+  color: var(--teal, #5EAAA8);
+}
+
+/* 30-Day Trajectory — richer dark card with subtle gold glow + callout pill */
+.d-history-chart-wrap--traj {
+  margin-top: 6px;
+  padding: 12px 12px 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(244, 181, 42, 0.18);
+  background:
+    radial-gradient(130% 100% at 82% 0%, rgba(232, 163, 23, 0.08), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+  box-shadow: 0 0 26px rgba(232, 163, 23, 0.05);
+}
+
+.d-traj-callout-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 2px 0 6px;
+}
+
+.d-traj-callout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Geist Mono', monospace;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.08em;
+  color: var(--amber-bright, #F4B52A);
+  background: rgba(8, 10, 14, 0.55);
+  border: 1px solid rgba(244, 181, 42, 0.35);
+  border-radius: 999px;
+  padding: 4px 11px;
+}
+
+.d-traj-callout__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber-bright, #F4B52A);
+  box-shadow: 0 0 8px rgba(244, 181, 42, 0.7);
+}
+
+/* Mobile tuning for narrow phones (390 / 414 / 430) */
+@media (max-width: 460px) {
+  .d-metric-strip,
+  .d-metric-strip[data-metric-count="3"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .d-metric-strip[data-metric-count="3"] .d-metric--arrivals {
+    grid-column: 1 / -1;
+  }
+
+  .d-metric-strip[data-metric-count="1"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .d-metric__value {
+    font-size: clamp(1.4rem, 1.1rem + 2vw, 1.7rem);
+  }
+
+  .d-hero__score-value {
+    font-size: 30px;
+  }
+}
+
 /* === Recent flights feed === */
 .d-feed {
   display: flex;
@@ -11193,6 +11464,9 @@
   function _clearDestinationNewsSection() {
     const existing = document.querySelector('[data-modal-section="destination-news"]');
     if (existing) existing.remove();
+    // Restore the editorial fallback when no live "What's Happening" is mounted.
+    const editorial = document.querySelector('[data-modal-section="editorial"]');
+    if (editorial) editorial.hidden = false;
   }
 
   function _formatNewsUpdatedLabel(generatedAt) {
@@ -11242,7 +11516,7 @@
 
   function _buildDestinationNewsSection(news) {
     const section = document.createElement('div');
-    section.className = 'd-section';
+    section.className = 'd-section d-section--news';
     section.setAttribute('data-modal-section', 'destination-news');
 
     const head = document.createElement('div');
@@ -11251,6 +11525,7 @@
     const label = document.createElement('span');
     label.className = 'd-section-label';
     label.textContent = "WHAT'S HAPPENING";
+
     head.appendChild(label);
 
     const updatedLabel = _formatNewsUpdatedLabel(news.generated_at);
@@ -11263,10 +11538,38 @@
 
     section.appendChild(head);
 
+    // Collapsible blurb: clamp to 5 lines with a "READ MORE" toggle that reuses
+    // the same editor-note expand/collapse mechanism (and button styling) used
+    // elsewhere in the app.
+    const noteRoot = document.createElement('div');
+    noteRoot.className = 'editor-note editor-note--news';
+    noteRoot.setAttribute('data-editor-note', '');
+
+    const noteContent = document.createElement('div');
+    noteContent.className = 'editor-note__content is-collapsed';
+    noteContent.setAttribute('data-editor-note-content', '');
+
     const blurb = document.createElement('p');
     blurb.className = 'd-destination-news__blurb';
     blurb.textContent = news.blurb;
-    section.appendChild(blurb);
+    noteContent.appendChild(blurb);
+    noteRoot.appendChild(noteContent);
+
+    const toggleWrap = document.createElement('div');
+    toggleWrap.className = 'd-section-expand-wrap editor-note__toggle-wrap';
+    toggleWrap.setAttribute('data-editor-note-toggle-wrap', '');
+    toggleWrap.hidden = true;
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.type = 'button';
+    toggleBtn.className = 'd-section-expand-btn editor-note__toggle';
+    toggleBtn.setAttribute('data-editor-note-toggle', '');
+    toggleBtn.setAttribute('aria-expanded', 'false');
+    toggleBtn.textContent = 'READ MORE';
+    toggleWrap.appendChild(toggleBtn);
+    noteRoot.appendChild(toggleWrap);
+
+    section.appendChild(noteRoot);
 
     const sourcesWrap = document.createElement('div');
     sourcesWrap.className = 'd-destination-news__sources-wrap';
@@ -11335,6 +11638,15 @@
     const trajectoryEl = document.querySelector('[data-modal-section="trajectory"]');
     if (!trajectoryEl || !trajectoryEl.parentNode) return;
     trajectoryEl.parentNode.insertBefore(section, trajectoryEl);
+
+    // "What's Happening" supersedes the static Editor's note when live news is
+    // available, keeping the modal from stacking two long editorial blocks.
+    const editorial = document.querySelector('[data-modal-section="editorial"]');
+    if (editorial) editorial.hidden = true;
+
+    // Initialize the collapsible blurb (clamp + READ MORE) now that it's mounted.
+    const modalEl = document.getElementById('destination-modal');
+    if (modalEl) initModalEditorNoteState(modalEl);
   }
 
   async function loadDestinationNews(destinationId) {
@@ -12354,12 +12666,17 @@
       : '';
 
     if (count >= 7) {
+      const latestVal = series.length ? Math.round(series[series.length - 1]) : null;
+      const calloutHtml = latestVal != null
+        ? `<div class="d-traj-callout-row"><span class="d-traj-callout"><span class="d-traj-callout__dot" aria-hidden="true"></span>Latest · ${latestVal} ${latestVal === 1 ? 'arrival' : 'arrivals'}</span></div>`
+        : '';
       return `
         <div class="d-section-head">
-          <span class="d-section-label">30-day trajectory</span>
-          <span class="d-section-meta">Daily private arrivals · Last ${chartablePoints.length} days</span>
+          <span class="d-section-label">Daily private arrivals</span>
+          <span class="d-section-meta">Last ${chartablePoints.length} days</span>
         </div>
-        <div class="d-history-chart-wrap">
+        ${calloutHtml}
+        <div class="d-history-chart-wrap d-history-chart-wrap--traj">
           ${buildHistorySparkline(series, dates, { preview: false, gradId })}
         </div>
         ${truncationNote}
@@ -12804,7 +13121,7 @@
   }
 
   function _renderModalHeroTitleRow(dest, options = {}) {
-    const shareInTitle = options.shareInTitle !== false;
+    const shareInTitle = options.shareInTitle === true;
     const shareButton = shareInTitle ? _renderModalShareButton(dest) : '';
     return `
         <div class="dest-modal__title-row">
@@ -12860,12 +13177,17 @@
     const imageEntry = getDestinationImageEntry(dest && dest.id);
 
     if (!imageEntry) {
-      const titleRow = _renderModalHeroTitleRow(dest);
+      const titleRow = _renderModalHeroTitleRow(dest, { shareInTitle: false });
+      const shareButton = _renderModalShareButton(dest, 'dest-modal__share--hero-text');
       return `
       <div class="d-hero">
         <span class="d-vibe ${badge.vibeClass}">${_escapeHtml(badge.label)}</span>
         ${titleRow}
         ${metaHtml}
+        <div class="d-hero__foot">
+          ${scoreHtml || '<span></span>'}
+          ${shareButton}
+        </div>
       </div>
     `;
     }
@@ -12992,6 +13314,82 @@
     `;
   }
 
+  // Premium metric strip below the hero. Uses only synchronously-available
+  // existing destination values and hides any card whose value is missing.
+  // Intentionally excludes a "signal status" card (the hero badge already
+  // conveys heating / steady / cooling).
+  function renderModalMetricStrip(dest, options = {}) {
+    if (!dest) return '';
+    const cards = [];
+
+    // 1) Private arrivals (last 24h) — always available as an integer.
+    const arrivals = _integerArrivals24h(dest);
+    if (Number.isFinite(arrivals)) {
+      const planeIcon = `<svg class="d-metric__icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>`;
+      cards.push(`
+        <div class="d-metric d-metric--arrivals">
+          <span class="d-metric__icon" aria-hidden="true">${planeIcon}</span>
+          <span class="d-metric__label">Private arrivals</span>
+          <span class="d-metric__value">${arrivals}</span>
+          <span class="d-metric__sub">${arrivals === 1 ? 'private arrival · last 24h' : 'private arrivals · last 24h'}</span>
+        </div>`);
+    }
+
+    // 2) Weekly movement (week-over-week), falling back to day-over-day.
+    const wowVal = _parsePercentChange(dest.display_wow_change);
+    const dodVal = _parsePercentChange(dest.display_dod_change);
+    let moveVal = null;
+    let moveRaw = null;
+    let moveSub = '';
+    if (wowVal != null) {
+      moveVal = wowVal;
+      moveRaw = dest.display_wow_change;
+      moveSub = 'vs 7-day average';
+    } else if (dodVal != null) {
+      moveVal = dodVal;
+      moveRaw = dest.display_dod_change;
+      moveSub = 'vs prior 24h';
+    }
+    if (moveVal != null) {
+      const tone = moveVal > 0 ? 'up' : (moveVal < 0 ? 'down' : 'flat');
+      const sign = moveVal > 0 ? '+' : '';
+      const display = `${sign}${Math.round(moveVal)}%`;
+      const arrow = moveVal > 0 ? '↑' : (moveVal < 0 ? '↓' : '→');
+      cards.push(`
+        <div class="d-metric d-metric--move d-metric--${tone}">
+          <span class="d-metric__icon" aria-hidden="true">${arrow}</span>
+          <span class="d-metric__label">Weekly movement</span>
+          <span class="d-metric__value d-metric__value--${tone}">${_escapeHtml(display)}</span>
+          <span class="d-metric__sub">${_escapeHtml(moveSub)}</span>
+        </div>`);
+    }
+
+    // 3) Peak day — only when a synchronous peak descriptor already exists on
+    // the destination payload. Hidden gracefully otherwise (The Pulse section
+    // still surfaces history-derived peak data once it loads).
+    const peakLabelRaw = dest.peak_day_label || dest.peak_day || '';
+    const peakLabel = peakLabelRaw ? String(peakLabelRaw).trim() : '';
+    if (peakLabel) {
+      cards.push(`
+        <div class="d-metric d-metric--peak">
+          <span class="d-metric__icon" aria-hidden="true">★</span>
+          <span class="d-metric__label">Peak day</span>
+          <span class="d-metric__value">${_escapeHtml(peakLabel)}</span>
+          <span class="d-metric__sub">Busiest recent day</span>
+        </div>`);
+    }
+
+    if (!cards.length) return '';
+
+    return `
+      <div class="d-section d-section--metrics">
+        <div class="d-metric-strip" data-metric-count="${cards.length}">
+          ${cards.join('')}
+        </div>
+      </div>
+    `;
+  }
+
   function renderIndexPlaceholder(options = {}) {
     const useV2 = !!(options && options.useV2);
     const sectionLabel = useV2 ? 'GoTango Score · 7d' : 'GoTango Index · 7d';
@@ -13011,8 +13409,7 @@
     return `
       <div class="d-section" data-modal-section="trajectory">
         <div class="d-section-head">
-          <span class="d-section-label">30-day trajectory</span>
-          <span class="d-section-meta">Daily arrivals</span>
+          <span class="d-section-label">Daily private arrivals</span>
         </div>
         <div class="d-trajectory-placeholder">
           <div class="d-placeholder-msg">
@@ -13160,7 +13557,7 @@
         console.warn('Missing approved/editorial note for destination', dest.id);
       }
       return `
-        <div class="d-section">
+        <div class="d-section d-section--editorial" data-modal-section="editorial">
           <div class="d-section-head">
             <span class="d-section-label">Editor's note</span>
           </div>
@@ -13175,7 +13572,7 @@
       .map((p) => `<p class="d-note">${_escapeHtml(p)}</p>`)
       .join('');
     return `
-      <div class="d-section">
+      <div class="d-section d-section--editorial" data-modal-section="editorial">
         <div class="d-section-head">
           <span class="d-section-label">Editor's note</span>
         </div>
@@ -13656,15 +14053,16 @@
 
     return [
       renderModalHero(dest, badge, { useV2 }),
+      renderModalMetricStrip(dest, { useV2 }),
       renderEditorial(dest),
       renderTrajectoryPlaceholder(),
-      renderPulsePlaceholder(),
       renderModalPeers(dest, allDestinations, { useV2 }),
-      renderModalWatchControl(dest),
       renderIndexPlaceholder({ useV2 }),
       renderModalAircraft(dest),
       renderModalOrigins(dest),
       renderModalRecentFlights(dest),
+      renderPulsePlaceholder(),
+      renderModalWatchControl(dest),
     ].join('');
   }
 
