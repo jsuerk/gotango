@@ -18,6 +18,16 @@ function authorizeCronRequest(req) {
     return { ok: true, source: 'vercel-cron' };
   }
 
+  if (process.env.VERCEL_ENV === 'preview') {
+    return { ok: true, source: 'preview' };
+  }
+
+  const bypass = req.headers?.['x-vercel-protection-bypass'];
+  const expectedBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  if (bypass && expectedBypass && timingSafeMatch(bypass, expectedBypass)) {
+    return { ok: true, source: 'protection-bypass' };
+  }
+
   const secrets = [
     process.env.CRON_SECRET,
     process.env.DAILY_TAPE_BUILD_SECRET,

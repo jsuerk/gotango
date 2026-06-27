@@ -249,3 +249,11 @@ test('readDailyTapeFromKvRecord rejects empty records', () => {
   assert.equal(readDailyTapeFromKvRecord({}).ok, false);
   assert.equal(readDailyTapeFromKvRecord({ brief: { headline: 'x' } }).ok, true);
 });
+
+test('publish:daily-tape script targets refresh endpoint', () => {
+  const script = readFileSync(new URL('../scripts/publish-daily-tape.mjs', import.meta.url), 'utf8');
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.match(script, /\/api\/refresh-daily-tape/);
+  assert.match(script, /DAILY_TAPE_BUILD_SECRET/);
+  assert.equal(pkg.scripts['publish:daily-tape'], 'node scripts/publish-daily-tape.mjs');
+});
