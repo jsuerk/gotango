@@ -573,6 +573,10 @@
     color: var(--text-faint);
     text-transform: uppercase;
     white-space: nowrap;
+    /* Pin iOS text inflation so short single-line subtitles (e.g. Quiet) don't
+       get auto-enlarged relative to the longer wrapping ones. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   /* ===== WORLD STRIP ===== */
@@ -1664,7 +1668,7 @@
     background: none;
     border: none;
     padding: 14px 0 18px;
-    color: var(--text-faint);
+    color: var(--amber);
     font-family: 'Geist', sans-serif;
     font-size: var(--fs-label);
     letter-spacing: 0.12em;
@@ -1675,8 +1679,8 @@
     transition: color 0.15s;
     position: relative;
   }
-  .nav-btn svg { width: 18px; height: 18px; opacity: 0.7; }
-  .nav-btn.active { color: var(--amber); }
+  .nav-btn svg { width: 18px; height: 18px; opacity: 0.85; }
+  .nav-btn.active { color: var(--text); }
   .nav-btn.active svg { opacity: 1; }
   .nav-btn.active::before {
     content: "";
