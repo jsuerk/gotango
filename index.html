@@ -1514,92 +1514,31 @@
     margin: 0;
     white-space: nowrap;
   }
-  .daily-tape__headline-row {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 14px;
-  }
   .daily-tape__headline {
     font-family: 'Fraunces', serif;
     font-weight: 500;
-    font-size: clamp(1.6rem, 1.3rem + 1.6vw, 2.1rem);
-    line-height: 1.05;
+    font-size: clamp(1.5rem, 1.25rem + 1.4vw, 2rem);
+    line-height: 1.08;
     color: var(--text);
-    margin: 0;
+    margin: 0 0 12px;
     letter-spacing: -0.01em;
-  }
-  /* Verdict pill — premium, not loud */
-  .daily-tape__verdict {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    font-family: 'Geist Mono', monospace;
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    padding: 5px 11px;
-    border-radius: 999px;
-    border: 1px solid var(--border-light);
-    color: var(--text-dim);
-    background: rgba(255, 255, 255, 0.015);
-    white-space: nowrap;
-  }
-  .daily-tape__verdict::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-    box-shadow: 0 0 6px currentColor;
-  }
-  .daily-tape__verdict--heating {
-    color: var(--amber-bright);
-    border-color: rgba(232, 163, 23, 0.42);
-    background: rgba(232, 163, 23, 0.07);
-    box-shadow: 0 0 20px -8px rgba(232, 163, 23, 0.55);
-  }
-  .daily-tape__verdict--watching {
-    color: var(--teal);
-    border-color: rgba(94, 170, 168, 0.38);
-    background: rgba(94, 170, 168, 0.06);
-  }
-  .daily-tape__verdict--cooling {
-    color: var(--status-cooling);
-    border-color: rgba(91, 158, 168, 0.4);
-    background: rgba(91, 158, 168, 0.07);
-  }
-  .daily-tape__verdict--mixed {
-    color: var(--coral);
-    border-color: rgba(229, 140, 94, 0.4);
-    background: rgba(229, 140, 94, 0.06);
-  }
-  .daily-tape__verdict--quiet {
-    color: var(--text-faint);
-    border-color: var(--border);
-    background: transparent;
-  }
-  .daily-tape__verdict--quiet::before {
-    box-shadow: none;
   }
   /* Signal chips */
   .daily-tape__chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 7px;
-    margin-bottom: 16px;
+    gap: 6px;
+    margin-bottom: 14px;
   }
   .daily-tape__chip {
     display: inline-flex;
     align-items: baseline;
-    gap: 6px;
+    gap: 5px;
     font-family: 'Geist Mono', monospace;
-    font-size: 10.5px;
+    font-size: 9.5px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    padding: 4px 9px;
+    padding: 4px 8px;
     border-radius: 6px;
     border: 1px solid var(--border);
     background: rgba(255, 255, 255, 0.014);
@@ -1607,7 +1546,7 @@
   }
   .daily-tape__chip-value {
     font-weight: 600;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text);
   }
   .daily-tape__chip--heating .daily-tape__chip-value { color: var(--amber-bright); }
@@ -1615,58 +1554,50 @@
   .daily-tape__chip--cooling .daily-tape__chip-value { color: var(--status-cooling); }
   .daily-tape__chip--cooling { border-color: rgba(91, 158, 168, 0.28); }
   .daily-tape__chip--steady .daily-tape__chip-value { color: var(--status-steady); }
-  /* Body text */
-  .daily-tape__body { position: relative; }
-  .daily-tape__preview {
+  /* Body — single block, clamps to ~5 lines until expanded (mirrors
+     the "What's Happening" READ MORE pattern used in destination modals). */
+  .daily-tape__content {
     font-family: 'Fraunces', serif;
     font-size: var(--fs-editorial);
-    line-height: 1.5;
+    line-height: 1.6;
     color: var(--text-dim);
-    margin: 0;
-    position: relative;
-    display: -webkit-box;
-    -webkit-line-clamp: 5;
-    line-clamp: 5;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
-  .daily-tape__preview::after {
+  .daily-tape__content.is-collapsed {
+    max-height: calc(1.6em * 5);
+    overflow: hidden;
+    position: relative;
+  }
+  .daily-tape__content.is-collapsed::after {
     content: "";
     position: absolute;
     left: 0;
     right: 0;
     bottom: 0;
-    height: 2.1em;
-    background: linear-gradient(to bottom, rgba(10, 13, 17, 0) 0%, var(--bg) 92%);
+    height: 2.4em;
     pointer-events: none;
-  }
-  .daily-tape__full {
-    display: flex;
-    flex-direction: column;
-    gap: 13px;
+    background: linear-gradient(to bottom, rgba(10, 13, 17, 0) 0%, var(--bg) 94%);
   }
   .daily-tape__para {
-    font-family: 'Fraunces', serif;
-    font-size: var(--fs-editorial);
-    line-height: 1.55;
-    color: var(--text-dim);
     margin: 0;
   }
   .daily-tape__para:first-child { color: var(--text); }
-  /* Driver cards */
+  /* Driver cards — compact intelligence cards */
   .daily-tape__drivers {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 10px;
-    margin-top: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 8px;
+    margin-top: 16px;
   }
+  .daily-tape__drivers[hidden] { display: none; }
   .daily-tape__driver {
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 13px 14px;
+    border-left: 2px solid var(--border-light);
+    border-radius: 8px;
+    padding: 10px 12px;
     background: rgba(255, 255, 255, 0.012);
-    border-left-width: 2px;
-    border-left-color: var(--border-light);
   }
   .daily-tape__driver--heating { border-left-color: var(--amber); }
   .daily-tape__driver--cooling { border-left-color: var(--status-cooling); }
@@ -1677,20 +1608,20 @@
     align-items: baseline;
     justify-content: space-between;
     gap: 8px;
-    margin-bottom: 7px;
+    margin-bottom: 5px;
   }
   .daily-tape__driver-label {
     font-family: 'Geist Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.16em;
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--text-faint);
   }
   .daily-tape__driver-value {
     font-family: 'Geist Mono', monospace;
-    font-size: 10.5px;
+    font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--text);
   }
@@ -1699,50 +1630,56 @@
   .daily-tape__driver--steady .daily-tape__driver-value { color: var(--teal); }
   .daily-tape__driver--neutral .daily-tape__driver-value { color: var(--coral); }
   .daily-tape__driver-detail {
-    font-size: 13px;
-    line-height: 1.45;
+    font-size: 12px;
+    line-height: 1.4;
     color: var(--text-dim);
     margin: 0;
   }
-  /* CTA */
-  .daily-tape__cta {
+  /* Toggle — rounded pill matching the app's expand buttons */
+  .daily-tape__toggle-wrap {
+    margin-top: 14px;
+  }
+  .daily-tape__toggle {
+    appearance: none;
+    -webkit-appearance: none;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 16px;
+    gap: 7px;
+    margin: 0;
+    padding: 8px 16px;
     font-family: 'Geist Mono', monospace;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
+    font-size: var(--fs-micro);
+    font-weight: 500;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
+    line-height: 1.4;
     color: var(--amber);
-    background: transparent;
+    background: rgba(232, 163, 23, 0.04);
     border: 1px solid rgba(232, 163, 23, 0.32);
-    border-radius: 8px;
-    padding: 9px 16px;
+    border-radius: 999px;
     cursor: pointer;
-    transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
   }
-  .daily-tape__cta:hover {
+  .daily-tape__toggle:hover {
+    background: rgba(232, 163, 23, 0.1);
+    border-color: rgba(232, 163, 23, 0.5);
     color: var(--amber-bright);
-    border-color: var(--amber-bright);
-    background: rgba(232, 163, 23, 0.06);
   }
-  .daily-tape__cta:focus-visible {
-    outline: 2px solid var(--amber-bright);
+  .daily-tape__toggle:focus-visible {
+    outline: 2px solid var(--amber);
     outline-offset: 2px;
   }
-  .daily-tape__cta-icon {
+  .daily-tape__toggle-icon {
     display: inline-block;
+    font-size: 8px;
     transition: transform 0.2s ease;
-    font-size: 9px;
   }
-  .daily-tape[data-expanded="true"] .daily-tape__cta-icon {
+  .daily-tape[data-expanded="true"] .daily-tape__toggle-icon {
     transform: rotate(180deg);
   }
   @media (prefers-reduced-motion: reduce) {
-    .daily-tape__cta,
-    .daily-tape__cta-icon { transition: none; }
+    .daily-tape__toggle,
+    .daily-tape__toggle-icon { transition: none; }
   }
 
   /* ===== SLEEPER PICK PHOTO (UI refresh, optional) ===== */
@@ -5883,6 +5820,12 @@
     }
     .daily-tape__eyebrow-row {
       gap: 8px;
+    }
+    .daily-tape__headline {
+      font-size: clamp(1.4rem, 1.2rem + 2vw, 1.7rem);
+    }
+    .daily-tape__toggle {
+      min-height: 44px;
     }
     #tab-watch .watch-list-body {
       padding-left: 16px;
@@ -14900,14 +14843,6 @@ Return strict JSON:
     ],
   };
 
-  const TAPE_VERDICT_CLASS = {
-    HEATING: 'daily-tape__verdict--heating',
-    WATCHING: 'daily-tape__verdict--watching',
-    COOLING: 'daily-tape__verdict--cooling',
-    'MIXED SIGNAL': 'daily-tape__verdict--mixed',
-    QUIET: 'daily-tape__verdict--quiet',
-  };
-
   function _tapeToneClass(prefix, tone) {
     const t = tone === 'heating' || tone === 'cooling' || tone === 'steady' ? tone : 'neutral';
     return `${prefix}--${t}`;
@@ -14927,9 +14862,6 @@ Return strict JSON:
     const paragraphs = Array.isArray(brief.paragraphs) && brief.paragraphs.length
       ? brief.paragraphs
       : [String(brief.collapsedText || '')];
-    const collapsedText = brief.collapsedText || paragraphs.join(' ');
-    const verdict = brief.verdict || 'HEATING';
-    const verdictClass = TAPE_VERDICT_CLASS[verdict] || TAPE_VERDICT_CLASS.HEATING;
 
     const chipsHtml = (brief.signalChips || [])
       .filter((c) => c && c.label != null && c.value != null && c.value !== '')
@@ -14955,46 +14887,57 @@ Return strict JSON:
         </div>`)
       .join('');
 
+    // Single content block that clamps to ~5 lines while collapsed and expands
+    // to the full brief + driver cards on toggle (mirrors the destination-modal
+    // "What's Happening" READ MORE behavior).
     root.innerHTML = `
       <section class="daily-tape" data-expanded="${startExpanded ? 'true' : 'false'}">
         <div class="daily-tape__eyebrow-row">
           <p class="daily-tape__eyebrow">Today's Movement</p>
           ${brief.updatedLabel ? `<p class="daily-tape__updated">${_escapeHtml(String(brief.updatedLabel))}</p>` : ''}
         </div>
-        <div class="daily-tape__headline-row">
-          <h2 class="daily-tape__headline">${_escapeHtml(String(brief.headline || 'The Daily Tape'))}</h2>
-          <span class="daily-tape__verdict ${verdictClass}">${_escapeHtml(String(verdict))}</span>
-        </div>
+        <h2 class="daily-tape__headline">${_escapeHtml(String(brief.headline || 'The Daily Tape'))}</h2>
         ${chipsHtml ? `<div class="daily-tape__chips">${chipsHtml}</div>` : ''}
-        <div class="daily-tape__body">
-          <p class="daily-tape__preview" data-tape-preview ${startExpanded ? 'hidden' : ''}>${_escapeHtml(collapsedText)}</p>
-          <div class="daily-tape__full" id="daily-tape-full" data-tape-full ${startExpanded ? '' : 'hidden'}>
-            ${paragraphsHtml}
-            ${driversHtml ? `<div class="daily-tape__drivers">${driversHtml}</div>` : ''}
-          </div>
+        <div class="daily-tape__content ${startExpanded ? '' : 'is-collapsed'}" id="daily-tape-content" data-tape-content>
+          ${paragraphsHtml}
         </div>
-        <button type="button" class="daily-tape__cta" data-tape-cta aria-expanded="${startExpanded ? 'true' : 'false'}" aria-controls="daily-tape-full">
-          <span data-tape-cta-label>${startExpanded ? 'Collapse' : 'Read the Tape'}</span>
-          <span class="daily-tape__cta-icon" aria-hidden="true">&#9662;</span>
-        </button>
+        ${driversHtml ? `<div class="daily-tape__drivers" data-tape-drivers ${startExpanded ? '' : 'hidden'}>${driversHtml}</div>` : ''}
+        <div class="daily-tape__toggle-wrap" data-tape-toggle-wrap>
+          <button type="button" class="daily-tape__toggle" data-tape-cta aria-expanded="${startExpanded ? 'true' : 'false'}" aria-controls="daily-tape-content">
+            <span data-tape-cta-label>${startExpanded ? 'Read Less' : 'Read More'}</span>
+            <span class="daily-tape__toggle-icon" aria-hidden="true">&#9662;</span>
+          </button>
+        </div>
       </section>`;
 
     const section = root.querySelector('.daily-tape');
     const btn = root.querySelector('[data-tape-cta]');
     const ctaLabel = root.querySelector('[data-tape-cta-label]');
-    const preview = root.querySelector('[data-tape-preview]');
-    const full = root.querySelector('[data-tape-full]');
-    if (!btn || !section) return;
+    const content = root.querySelector('[data-tape-content]');
+    const drivers = root.querySelector('[data-tape-drivers]');
+    const toggleWrap = root.querySelector('[data-tape-toggle-wrap]');
+    if (!btn || !section || !content) return;
 
     btn.addEventListener('click', () => {
-      const expanded = section.getAttribute('data-expanded') === 'true';
-      const next = !expanded;
+      const next = section.getAttribute('data-expanded') !== 'true';
       section.setAttribute('data-expanded', next ? 'true' : 'false');
       btn.setAttribute('aria-expanded', next ? 'true' : 'false');
-      if (ctaLabel) ctaLabel.textContent = next ? 'Collapse' : 'Read the Tape';
-      if (preview) preview.hidden = next;
-      if (full) full.hidden = !next;
+      if (ctaLabel) ctaLabel.textContent = next ? 'Read Less' : 'Read More';
+      content.classList.toggle('is-collapsed', !next);
+      if (drivers) drivers.hidden = !next;
     });
+
+    // Hide the toggle entirely when the copy already fits in the clamp and
+    // there are no driver cards to reveal.
+    if (!startExpanded && toggleWrap) {
+      requestAnimationFrame(() => {
+        const overflowing = content.scrollHeight > content.clientHeight + 1;
+        if (!overflowing && !drivers) {
+          toggleWrap.hidden = true;
+          content.classList.remove('is-collapsed');
+        }
+      });
+    }
   }
 
   async function refreshTodayMovementDailyTape(arrivalsData, goTangoScoreV2Data) {
