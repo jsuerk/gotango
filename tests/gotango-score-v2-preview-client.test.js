@@ -223,7 +223,84 @@ function buildNowCoolingShortlist(destinations) {
   return assignMoverSectionsV2(destinations).cooling;
 }
 
-const MOVERS_V2_SECTION_COLLAPSE_LIMIT = 3;
+const MOMENTUM_CATEGORY_ORDER = ['in-season', 'steady', 'quiet'];
+
+function getGoTangoMomentumCategory(score) {
+  const parsed = score == null || score === '' ? NaN : Number(score);
+  if (!Number.isFinite(parsed)) {
+    return {
+      id: 'quiet',
+      label: 'Quiet',
+      description: 'Lower current travel momentum by GoTango Score.',
+      className: 'momentum-category--quiet',
+      accentClass: 'momentum-accent--quiet',
+    };
+  }
+  if (parsed >= 70) {
+    return {
+      id: 'in-season',
+      label: 'In Season',
+      description: 'Strongest current travel momentum by GoTango Score.',
+      className: 'momentum-category--in-season',
+      accentClass: 'momentum-accent--in-season',
+    };
+  }
+  if (parsed >= 40) {
+    return {
+      id: 'steady',
+      label: 'Steady',
+      description: 'Consistent current travel momentum by GoTango Score.',
+      className: 'momentum-category--steady',
+      accentClass: 'momentum-accent--steady',
+    };
+  }
+  return {
+    id: 'quiet',
+    label: 'Quiet',
+    description: 'Lower current travel momentum by GoTango Score.',
+    className: 'momentum-category--quiet',
+    accentClass: 'momentum-accent--quiet',
+  };
+}
+
+function destinationGoTangoScoreForGrouping(dest) {
+  if (!dest) return null;
+  const raw = dest.go_tango_score
+    ?? dest.latest_signal_score
+    ?? dest.signal_score
+    ?? (dest._gotango_v2 && dest._gotango_v2.go_tango_score);
+  if (raw == null || raw === '') return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function groupDestinationsByMomentumCategory(destinations) {
+  const grouped = {
+    'in-season': [],
+    steady: [],
+    quiet: [],
+  };
+  const list = Array.isArray(destinations) ? destinations : [];
+  for (const dest of list) {
+    if (!dest) continue;
+    const category = getGoTangoMomentumCategory(destinationGoTangoScoreForGrouping(dest));
+    if (grouped[category.id]) grouped[category.id].push(dest);
+    else grouped.quiet.push(dest);
+  }
+  MOMENTUM_CATEGORY_ORDER.forEach((key) => {
+    grouped[key].sort((a, b) => {
+      const scoreA = destinationGoTangoScoreForGrouping(a);
+      const scoreB = destinationGoTangoScoreForGrouping(b);
+      const safeA = scoreA == null ? -Infinity : scoreA;
+      const safeB = scoreB == null ? -Infinity : scoreB;
+      if (safeB !== safeA) return safeB - safeA;
+      return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+    });
+  });
+  return grouped;
+}
+
+const MOVERS_V2_SECTION_COLLAPSE_LIMIT = 5;
 
 function getMoversVisibleDestinations(sectionKey, destinations, expandedState, limit = MOVERS_V2_SECTION_COLLAPSE_LIMIT) {
   const fullList = Array.isArray(destinations) ? destinations : [];
@@ -776,6 +853,8 @@ test('index.html contains v2.1 preview client wiring', () => {
   assert.match(html, /B_ORIGINAL_cap_15/);
   assert.match(html, /NOW_MIN_PUBLIC_SCORE = 60/);
   assert.match(html, /function goTangoScoreBand\(/);
+  assert.match(html, /function getGoTangoMomentumCategory\(/);
+  assert.match(html, /function groupDestinationsByMomentumCategory\(/);
   assert.match(html, /function buildGoTangoSignalRead\(/);
   assert.match(html, /function _modalUsesGoTangoV2Score\(/);
   assert.match(html, /function _buildNowCoolingShortlist\(/);
@@ -879,7 +958,7 @@ test('low-activity heating copy uses natural phrasing without analytical terms',
   );
 });
 
-test('Now Cooling includes all Movers cooling destinations regardless of public score', () => {
+test('Now Cooling shortlist still mirrors trend-based Movers cooling for hero counts', () => {
   const destinations = [
     {
       id: 'tulum',
@@ -980,7 +1059,7 @@ function makeHeatingDest({
   };
 }
 
-test('Now Heating Up uses Movers heating_up order (public score descending)', () => {
+test('Now hero heating shortlist uses trend-based Movers heating_up order (public score descending)', () => {
   const destinations = [
     makeHeatingDest({
       id: 'santa-fe',
@@ -1043,7 +1122,7 @@ test('Now Heating Up uses Movers heating_up order (public score descending)', ()
   );
 });
 
-test('Now Heating Up includes pending-exit destinations in Movers category', () => {
+test('Now hero heating shortlist includes pending-exit destinations in Movers category', () => {
   const active = makeHeatingDest({
     id: 'active-low',
     name: 'Active Low',
@@ -1091,7 +1170,7 @@ test('Now Heating Up includes pending-exit destinations in Movers category', () 
   assert.deepEqual(tiedOrder.map((d) => d.id), assignMoverSectionsV2([tiedPending, tiedActive]).heating_up.map((d) => d.id));
 });
 
-test('Now Heating Up tie-breaks equal public scores by Movers name order', () => {
+test('Now hero heating shortlist tie-breaks equal public scores by Movers name order', () => {
   const higherInternal = makeHeatingDest({
     id: 'decimal-winner',
     name: 'Decimal Winner',
@@ -1119,7 +1198,7 @@ test('Now Heating Up tie-breaks equal public scores by Movers name order', () =>
   );
 });
 
-test('Now Cooling Watch uses Movers cooling order (public score descending)', () => {
+test('Now hero cooling shortlist uses trend-based Movers cooling order (public score descending)', () => {
   const destinations = [
     {
       id: 'cool-high',
@@ -1169,7 +1248,43 @@ test('Now Cooling Watch uses Movers cooling order (public score descending)', ()
   assert.deepEqual(ordered.map((d) => d.id), ['cool-high', 'cool-low']);
 });
 
-test('Now category lists mirror Movers without caps and match hero counts', () => {
+test('GoTango momentum category helpers group and sort by score thresholds', () => {
+  const destinations = [
+    { id: 'high', name: 'High', go_tango_score: 85, confirmed_category: 'heating_up' },
+    { id: 'mid', name: 'Mid', go_tango_score: 55, confirmed_category: 'steady' },
+    { id: 'low', name: 'Low', go_tango_score: 25, confirmed_category: 'cooling' },
+    { id: 'missing', name: 'Missing', confirmed_category: 'steady' },
+    { id: 'string', name: 'String', go_tango_score: '72', confirmed_category: 'in_season' },
+  ];
+
+  assert.equal(getGoTangoMomentumCategory(85).id, 'in-season');
+  assert.equal(getGoTangoMomentumCategory(70).id, 'in-season');
+  assert.equal(getGoTangoMomentumCategory(69).id, 'steady');
+  assert.equal(getGoTangoMomentumCategory(40).id, 'steady');
+  assert.equal(getGoTangoMomentumCategory(39).id, 'quiet');
+  assert.equal(getGoTangoMomentumCategory(null).id, 'quiet');
+  assert.equal(getGoTangoMomentumCategory('not-a-number').id, 'quiet');
+
+  const grouped = groupDestinationsByMomentumCategory(destinations);
+  assert.deepEqual(grouped['in-season'].map((d) => d.id), ['high', 'string']);
+  assert.deepEqual(grouped.steady.map((d) => d.id), ['mid']);
+  assert.deepEqual(grouped.quiet.map((d) => d.id), ['low', 'missing']);
+});
+
+test('Now momentum categories cap display at three while hero trend counts stay uncapped', () => {
+  const manyInSeason = Array.from({ length: 8 }, (_, i) => ({
+    id: `season-${i}`,
+    name: `Season ${i}`,
+    go_tango_score: 90 - i,
+    confirmed_category: 'in_season',
+  }));
+  const grouped = groupDestinationsByMomentumCategory(manyInSeason);
+  assert.equal(grouped['in-season'].length, 8);
+  assert.deepEqual(
+    grouped['in-season'].slice(0, 3).map((d) => d.id),
+    ['season-0', 'season-1', 'season-2'],
+  );
+
   const manyHeating = Array.from({ length: 8 }, (_, i) =>
     makeHeatingDest({
       id: `heat-${i}`,
@@ -1183,60 +1298,7 @@ test('Now category lists mirror Movers without caps and match hero counts', () =
     }),
   );
   const heating = buildNowHeatingShortlist(manyHeating);
-  const moversHeating = assignMoverSectionsV2(manyHeating).heating_up;
   assert.equal(heating.length, 8);
-  assert.equal(heating.length, moversHeating.length);
-  assert.deepEqual(heating.map((d) => d.id), moversHeating.map((d) => d.id));
-
-  const belowMin = makeHeatingDest({
-    id: 'below-min',
-    name: 'Below Min',
-    internal: 55,
-    publicScore: 55,
-    nowHeatingEligible: true,
-    direction: 'strengthening',
-  });
-  const aboveMin = makeHeatingDest({
-    id: 'above-min',
-    name: 'Above Min',
-    internal: 65,
-    publicScore: 65,
-    nowHeatingEligible: true,
-    direction: 'strengthening',
-  });
-  const mixedHeating = buildNowHeatingShortlist([belowMin, aboveMin]);
-  assert.equal(mixedHeating.length, 2);
-  assert.deepEqual(
-    mixedHeating.map((d) => d.id),
-    assignMoverSectionsV2([belowMin, aboveMin]).heating_up.map((d) => d.id),
-  );
-
-  const coolingMany = Array.from({ length: 5 }, (_, i) => ({
-    id: `cool-${i}`,
-    name: `Cool ${i}`,
-    weighted_private_signal_24h: 10,
-    confirmed_category: 'cooling',
-    go_tango_score: 80 - i,
-    _gotango_v2: {
-      name: `Cool ${i}`,
-      confirmed_category: 'cooling',
-      data_confidence: 'high',
-      truncation_status: 'complete',
-      activity_baseline_7d: 12,
-      activity_3d: 8,
-      go_tango_score_internal: 80 - i,
-      go_tango_score: 80 - i,
-      now_cooling_eligible: true,
-      pending_exit: false,
-      contrary_days: 0,
-      candidate_direction: 'easing',
-    },
-  }));
-  const cooling = buildNowCoolingShortlist(coolingMany);
-  const moversCooling = assignMoverSectionsV2(coolingMany).cooling;
-  assert.equal(cooling.length, 5);
-  assert.equal(cooling.length, moversCooling.length);
-  assert.deepEqual(cooling.map((d) => d.id), moversCooling.map((d) => d.id));
 
   const steadyOnly = [{
     id: 'steady-one',
@@ -1587,7 +1649,7 @@ test('expanded Live Map Y clamp keeps transform within scale-aware vertical boun
   assert.ok(zoomed.y <= margin, 'zoomed-in pan should still respect top margin');
 });
 
-test('Movers section collapse helpers cap visible destinations at three by default', () => {
+test('Movers section collapse helpers cap visible destinations at five by default', () => {
   const html = readFileSync(INDEX_HTML, 'utf8');
   assert.match(html, /function getMoversVisibleDestinations\(/);
   assert.match(html, /function shouldShowMoversSectionToggle\(/);
@@ -1596,84 +1658,78 @@ test('Movers section collapse helpers cap visible destinations at three by defau
   assert.match(html, /data-movers-section-toggle/);
   assert.match(html, /See More Destinations/);
   assert.match(html, /Show Less/);
+  assert.match(html, /MOVERS_V2_SECTION_COLLAPSE_LIMIT = 5/);
 
-  const heatingFive = Array.from({ length: 5 }, (_, i) =>
-    makeMoversSectionDest(`heat-${i}`, 'heating_up', 90 - i),
+  const inSeasonSix = Array.from({ length: 6 }, (_, i) =>
+    makeMoversSectionDest(`season-${i}`, 'in_season', 90 - i),
   );
   const expandedState = {
-    heating_up: false,
-    in_season: false,
+    'in-season': false,
     steady: false,
-    cooling: false,
+    quiet: false,
   };
 
-  const collapsed = getMoversVisibleDestinations('heating_up', heatingFive, expandedState);
-  assert.equal(collapsed.length, 3);
-  assert.deepEqual(collapsed.map((d) => d.id), ['heat-0', 'heat-1', 'heat-2']);
-  assert.equal(shouldShowMoversSectionToggle(heatingFive), true);
+  const collapsed = getMoversVisibleDestinations('in-season', inSeasonSix, expandedState);
+  assert.equal(collapsed.length, 5);
+  assert.deepEqual(collapsed.map((d) => d.id), ['season-0', 'season-1', 'season-2', 'season-3', 'season-4']);
+  assert.equal(shouldShowMoversSectionToggle(inSeasonSix), true);
   assert.equal(getMoversSectionToggleLabel(false), 'See More Destinations');
 
-  expandedState.heating_up = true;
-  const expanded = getMoversVisibleDestinations('heating_up', heatingFive, expandedState);
-  assert.equal(expanded.length, 5);
-  assert.deepEqual(expanded.map((d) => d.id), heatingFive.map((d) => d.id));
+  expandedState['in-season'] = true;
+  const expanded = getMoversVisibleDestinations('in-season', inSeasonSix, expandedState);
+  assert.equal(expanded.length, 6);
+  assert.deepEqual(expanded.map((d) => d.id), inSeasonSix.map((d) => d.id));
   assert.equal(getMoversSectionToggleLabel(true), 'Show Less');
 
-  expandedState.heating_up = false;
-  const collapsedAgain = getMoversVisibleDestinations('heating_up', heatingFive, expandedState);
-  assert.equal(collapsedAgain.length, 3);
+  expandedState['in-season'] = false;
+  const collapsedAgain = getMoversVisibleDestinations('in-season', inSeasonSix, expandedState);
+  assert.equal(collapsedAgain.length, 5);
 });
 
-test('Movers section collapse helpers hide toggle for three or fewer destinations', () => {
-  const threeOrFewer = [
-    makeMoversSectionDest('heat-0', 'heating_up', 90),
-    makeMoversSectionDest('heat-1', 'heating_up', 89),
-    makeMoversSectionDest('heat-2', 'heating_up', 88),
+test('Movers section collapse helpers hide toggle for five or fewer destinations', () => {
+  const fiveOrFewer = [
+    makeMoversSectionDest('season-0', 'in_season', 90),
+    makeMoversSectionDest('season-1', 'in_season', 89),
+    makeMoversSectionDest('season-2', 'in_season', 88),
+    makeMoversSectionDest('season-3', 'in_season', 87),
+    makeMoversSectionDest('season-4', 'in_season', 86),
   ];
   const expandedState = {
-    heating_up: false,
-    in_season: false,
+    'in-season': false,
     steady: false,
-    cooling: false,
+    quiet: false,
   };
 
-  assert.equal(getMoversVisibleDestinations('heating_up', threeOrFewer, expandedState).length, 3);
-  assert.equal(shouldShowMoversSectionToggle(threeOrFewer), false);
+  assert.equal(getMoversVisibleDestinations('in-season', fiveOrFewer, expandedState).length, 5);
+  assert.equal(shouldShowMoversSectionToggle(fiveOrFewer), false);
   assert.equal(shouldShowMoversSectionToggle([]), false);
 });
 
-test('Movers section collapse state is independent per section and Now lists stay uncapped', () => {
+test('Movers section collapse state is independent per score-based category', () => {
   const destinations = [
-    ...Array.from({ length: 5 }, (_, i) => makeMoversSectionDest(`heat-${i}`, 'heating_up', 90 - i)),
-    ...Array.from({ length: 4 }, (_, i) => makeMoversSectionDest(`season-${i}`, 'in_season', 80 - i)),
+    ...Array.from({ length: 6 }, (_, i) => ({ id: `season-${i}`, name: `Season ${i}`, go_tango_score: 90 - i })),
+    ...Array.from({ length: 4 }, (_, i) => ({ id: `steady-${i}`, name: `Steady ${i}`, go_tango_score: 60 - i })),
   ];
-  const grouped = assignMoverSectionsV2(destinations);
+  const grouped = groupDestinationsByMomentumCategory(destinations);
   const expandedState = {
-    heating_up: true,
-    in_season: false,
+    'in-season': true,
     steady: false,
-    cooling: false,
+    quiet: false,
   };
 
-  assert.equal(getMoversVisibleDestinations('heating_up', grouped.heating_up, expandedState).length, 5);
-  assert.equal(getMoversVisibleDestinations('in_season', grouped.in_season, expandedState).length, 3);
-
-  const nowHeating = buildNowHeatingShortlist(destinations);
-  const moversHeating = assignMoverSectionsV2(destinations).heating_up;
-  assert.equal(nowHeating.length, 5);
-  assert.equal(nowHeating.length, moversHeating.length);
-  assert.deepEqual(nowHeating.map((d) => d.id), moversHeating.map((d) => d.id));
+  assert.equal(getMoversVisibleDestinations('in-season', grouped['in-season'], expandedState).length, 6);
+  assert.equal(getMoversVisibleDestinations('steady', grouped.steady, expandedState).length, 4);
 });
 
 test('Now page destination cards use two-digit rank formatting like Movers', () => {
   const html = readFileSync(INDEX_HTML, 'utf8');
 
   assert.match(html, /function formatTwoDigitRank\(index\) \{[\s\S]*?padStart\(2, '0'\)/);
-  assert.match(html, /function renderHeatingUp\([\s\S]*?formatTwoDigitRank\(i\)/);
+  assert.match(html, /function _renderNowMomentumCard\([\s\S]*?formatTwoDigitRank\(rankIndex\)/);
   assert.match(html, /function renderCoolingDestinationCard\([\s\S]*?formatTwoDigitRank\(rankIndex\)/);
-  assert.match(html, /function renderHeatingUp\([\s\S]*?rank\.className = 'mover-rank'/);
+  assert.match(html, /function _renderNowMomentumCard\([\s\S]*?rank\.className = 'mover-rank'/);
   assert.match(html, /function renderCoolingDestinationCard\([\s\S]*?rank\.className = 'mover-rank'/);
-  assert.doesNotMatch(html, /function renderHeatingUp\([\s\S]*?const romans =/);
+  assert.doesNotMatch(html, /function _renderNowMomentumCard\([\s\S]*?const romans =/);
   assert.doesNotMatch(html, /function renderCoolingDestinationCard\([\s\S]*?const romans =/);
   assert.match(html, /function renderMoverRow\([\s\S]*?rankEl\.className = 'mover-rank'[\s\S]*?padStart\(2, '0'\)/);
 });
