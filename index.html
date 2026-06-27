@@ -573,6 +573,10 @@
     color: var(--text-faint);
     text-transform: uppercase;
     white-space: nowrap;
+    /* Pin iOS text inflation so short single-line subtitles (e.g. Quiet) don't
+       get auto-enlarged relative to the longer wrapping ones. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   /* ===== WORLD STRIP ===== */
