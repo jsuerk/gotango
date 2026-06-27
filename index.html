@@ -1248,8 +1248,9 @@
     max-width: calc(100% - 40px);
     box-sizing: border-box;
   }
-  #tab-now .section-head:has(#heating-up-meta),
-  #tab-now .section-head:has(#cooling-down-meta) {
+  #tab-now .section-head:has(#in-season-meta),
+  #tab-now .section-head:has(#steady-meta),
+  #tab-now .section-head:has(#quiet-meta) {
     width: 100%;
     min-width: 0;
     max-width: 100%;
@@ -1260,16 +1261,18 @@
     gap: 6px;
     overflow-wrap: break-word;
   }
-  #tab-now .section-head:has(#heating-up-meta) .section-title,
-  #tab-now .section-head:has(#cooling-down-meta) .section-title {
+  #tab-now .section-head:has(#in-season-meta) .section-title,
+  #tab-now .section-head:has(#steady-meta) .section-title,
+  #tab-now .section-head:has(#quiet-meta) .section-title {
     min-width: 0;
     flex-shrink: 0;
     text-align: left;
     line-height: 1.1;
     max-width: 100%;
   }
-  #tab-now #heating-up-meta,
-  #tab-now #cooling-down-meta {
+  #tab-now #in-season-meta,
+  #tab-now #steady-meta,
+  #tab-now #quiet-meta {
     white-space: normal;
     text-align: left;
     flex-shrink: 1;
@@ -5258,8 +5261,9 @@
     #tab-now .hero--now .hero-hook {
       max-width: 260px;
     }
-    #tab-now .section-head:has(#heating-up-meta),
-    #tab-now .section-head:has(#cooling-down-meta) {
+    #tab-now .section-head:has(#in-season-meta),
+    #tab-now .section-head:has(#steady-meta),
+    #tab-now .section-head:has(#quiet-meta) {
       padding-left: 16px;
       padding-right: 16px;
       gap: 4px;
@@ -5270,16 +5274,18 @@
       max-width: 100%;
       overflow-wrap: break-word;
     }
-    #tab-now .section-head:has(#heating-up-meta) .section-title,
-    #tab-now .section-head:has(#cooling-down-meta) .section-title {
+    #tab-now .section-head:has(#in-season-meta) .section-title,
+    #tab-now .section-head:has(#steady-meta) .section-title,
+    #tab-now .section-head:has(#quiet-meta) .section-title {
       min-width: 0;
       flex-shrink: 0;
       text-align: left;
       line-height: 1.1;
       max-width: 100%;
     }
-    #tab-now #heating-up-meta,
-    #tab-now #cooling-down-meta {
+    #tab-now #in-season-meta,
+    #tab-now #steady-meta,
+    #tab-now #quiet-meta {
       white-space: normal;
       text-align: left;
       flex-shrink: 1;
@@ -5431,21 +5437,29 @@
         <p class="todays-movement__sub">Where private travel is heating up, cooling off, and quietly breaking out.</p>
       </div>
 
-    <!-- HOT LIST -->
-    <div class="section-head">
-      <h2 class="section-title">Heating <em>Up</em></h2>
-      <span class="section-meta" id="heating-up-meta">Confirmed 2+ days · strongest private-travel momentum</span>
+    <!-- IN SEASON -->
+    <div class="section-head" id="in-season-section-head">
+      <h2 class="section-title">In <em>Season</em></h2>
+      <span class="section-meta" id="in-season-meta">PRIVATE-TRAVEL MOMENTUM IS STRONGEST BY GOTANGO SCORE.</span>
     </div>
 
-    <div class="dest-list" id="heating-up-list"></div>
+    <div class="dest-list" id="in-season-list"></div>
 
-    <!-- COOLING -->
-    <div class="section-head">
-      <h2 class="section-title">Cooling <em>Watch</em></h2>
-      <span class="section-meta" id="cooling-down-meta">Confirmed 2+ days · meaningful easing in new arrivals</span>
+    <!-- STEADY -->
+    <div class="section-head" id="steady-section-head">
+      <h2 class="section-title"><em>Steady</em></h2>
+      <span class="section-meta" id="steady-meta">ACTIVITY IS CONSISTENT, WITH MODERATE GOTANGO MOMENTUM.</span>
     </div>
 
-    <div class="cooling-list" id="cooling-down-list"></div>
+    <div class="dest-list" id="steady-list"></div>
+
+    <!-- QUIET -->
+    <div class="section-head" id="quiet-section-head">
+      <h2 class="section-title"><em>Quiet</em></h2>
+      <span class="section-meta" id="quiet-meta">LOWER CURRENT GOTANGO MOMENTUM.</span>
+    </div>
+
+    <div class="dest-list" id="quiet-list"></div>
 
     <!-- SLEEPER -->
     <div class="section-head">
@@ -6161,29 +6175,46 @@
     cool: '#5B9EA8',
   };
   const MOVERS_V2_SECTION_ORDER = ['heating_up', 'in_season', 'steady', 'cooling'];
-  const MOVERS_V2_SECTION_COLLAPSE_LIMIT = 3;
+  const MOMENTUM_CATEGORY_ORDER = ['in-season', 'steady', 'quiet'];
+  const MOVERS_V2_SECTION_COLLAPSE_LIMIT = 5;
+  const NOW_MOMENTUM_CATEGORY_LIMIT = 3;
   const moversExpandedSections = {
-    heating_up: false,
-    in_season: false,
+    'in-season': false,
     steady: false,
-    cooling: false,
+    quiet: false,
   };
-  const MOVERS_V2_SECTION_META = {
-    heating_up: {
-      label: 'Heating Up',
-      description: 'Confirmed for at least two days. Private-travel activity is meaningfully strengthening.',
-    },
-    in_season: {
+  const MOMENTUM_CATEGORY_SECTION_META = {
+    'in-season': {
       label: 'In Season',
-      description: 'Private-travel activity is established and holding near the upper part of its recent range.',
+      description: 'PRIVATE-TRAVEL MOMENTUM IS STRONGEST BY GOTANGO SCORE.',
     },
     steady: {
       label: 'Steady',
-      description: 'Activity is stable or mixed, with no confirmed multi-day rise or decline.',
+      description: 'ACTIVITY IS CONSISTENT, WITH MODERATE GOTANGO MOMENTUM.',
     },
-    cooling: {
-      label: 'Cooling',
-      description: 'New private arrivals have meaningfully eased for at least two days. Cooling does not mean the destination is inactive.',
+    quiet: {
+      label: 'Quiet',
+      description: 'LOWER CURRENT GOTANGO MOMENTUM.',
+    },
+  };
+  const NOW_MOMENTUM_CATEGORY_UI = {
+    'in-season': {
+      listId: 'in-season-list',
+      metaId: 'in-season-meta',
+      headId: 'in-season-section-head',
+      titleHtml: 'In <em>Season</em>',
+    },
+    steady: {
+      listId: 'steady-list',
+      metaId: 'steady-meta',
+      headId: 'steady-section-head',
+      titleHtml: '<em>Steady</em>',
+    },
+    quiet: {
+      listId: 'quiet-list',
+      metaId: 'quiet-meta',
+      headId: 'quiet-section-head',
+      titleHtml: '<em>Quiet</em>',
     },
   };
   const MOVERS_V2_BADGE_META = {
@@ -6249,6 +6280,81 @@
     if (score >= 20) return 'quiet';
     if (score >= 0) return 'very_limited';
     return 'unknown';
+  }
+
+  function getGoTangoMomentumCategory(score) {
+    const parsed = score == null || score === '' ? NaN : Number(score);
+    if (!Number.isFinite(parsed)) {
+      return {
+        id: 'quiet',
+        label: 'Quiet',
+        description: 'Lower current travel momentum by GoTango Score.',
+        className: 'momentum-category--quiet',
+        accentClass: 'momentum-accent--quiet',
+      };
+    }
+    if (parsed >= 70) {
+      return {
+        id: 'in-season',
+        label: 'In Season',
+        description: 'Strongest current travel momentum by GoTango Score.',
+        className: 'momentum-category--in-season',
+        accentClass: 'momentum-accent--in-season',
+      };
+    }
+    if (parsed >= 40) {
+      return {
+        id: 'steady',
+        label: 'Steady',
+        description: 'Consistent current travel momentum by GoTango Score.',
+        className: 'momentum-category--steady',
+        accentClass: 'momentum-accent--steady',
+      };
+    }
+    return {
+      id: 'quiet',
+      label: 'Quiet',
+      description: 'Lower current travel momentum by GoTango Score.',
+      className: 'momentum-category--quiet',
+      accentClass: 'momentum-accent--quiet',
+    };
+  }
+
+  function _destinationGoTangoScoreForGrouping(dest) {
+    if (!dest) return null;
+    const raw = dest.go_tango_score
+      ?? dest.latest_signal_score
+      ?? dest.signal_score
+      ?? (dest._gotango_v2 && dest._gotango_v2.go_tango_score);
+    if (raw == null || raw === '') return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function groupDestinationsByMomentumCategory(destinations) {
+    const grouped = {
+      'in-season': [],
+      steady: [],
+      quiet: [],
+    };
+    const list = Array.isArray(destinations) ? destinations : [];
+    for (const dest of list) {
+      if (!dest) continue;
+      const category = getGoTangoMomentumCategory(_destinationGoTangoScoreForGrouping(dest));
+      if (grouped[category.id]) grouped[category.id].push(dest);
+      else grouped.quiet.push(dest);
+    }
+    MOMENTUM_CATEGORY_ORDER.forEach((key) => {
+      grouped[key].sort((a, b) => {
+        const scoreA = _destinationGoTangoScoreForGrouping(a);
+        const scoreB = _destinationGoTangoScoreForGrouping(b);
+        const safeA = scoreA == null ? -Infinity : scoreA;
+        const safeB = scoreB == null ? -Infinity : scoreB;
+        if (safeB !== safeA) return safeB - safeA;
+        return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+      });
+    });
+    return grouped;
   }
 
   function validateGoTangoScoreV2Client(data, arrivalsPayload) {
@@ -6615,9 +6721,11 @@
     return Number.isFinite(n) ? Math.round(n) : 0;
   }
 
-  function setCoolingDownSectionMeta(text) {
-    const meta = document.getElementById('cooling-down-meta');
-    if (meta) meta.textContent = text;
+  function setNowMomentumSectionMeta(metaId, sectionDescription, totalCount) {
+    const meta = document.getElementById(metaId);
+    if (!meta) return;
+    const countLabel = totalCount === 1 ? '1 DESTINATION' : `${totalCount} DESTINATIONS`;
+    meta.textContent = `${sectionDescription} · ${countLabel}`;
   }
 
   function pickQuietMarkets(destinations, heatingUp) {
@@ -6970,7 +7078,7 @@
     code.textContent = Array.isArray(dest.icao) ? String(dest.icao[0] || '') : '';
     metaRow.appendChild(code);
 
-    if (sectionHint != null) {
+    if (sectionHint != null || (_goTangoScoreV2Active && _destinationHasValidGoTangoV2(dest))) {
       metaRow.appendChild(_buildDestStatusBadge(dest, sectionHint));
     }
 
@@ -7338,163 +7446,71 @@
     card.classList.add('has-photo');
   }
 
-  function renderHeatingUp(data) {
-    if (!data || !data.data || !Array.isArray(data.data.destinations)) return;
+  function _renderNowMomentumCard(dest, container, rankIndex) {
+    const card = document.createElement('div');
+    card.className = 'dest-card';
+    card.dataset.dest = String(dest.id || '');
+    card.setAttribute('data-destination-id', String(dest.id || ''));
 
-    const container = document.getElementById('heating-up-list');
-    if (!container) return;
+    const rank = document.createElement('div');
+    rank.className = 'mover-rank';
+    rank.textContent = formatTwoDigitRank(rankIndex);
 
-    try {
-      const payload = data.data;
-      let destinations = payload.destinations.filter((d) => d && d.ok === true);
-      destinations = enrichDestinationsWithGoTangoScoreV2(destinations);
+    const main = document.createElement('div');
+    main.className = 'dest-main destination-info';
 
-      container.innerHTML = '';
+    main.appendChild(_buildNowCardTitleBlock(dest, null, null));
+    const signalLine = _buildNowCardCompactSignal(dest);
+    if (signalLine) main.appendChild(signalLine);
+    main.appendChild(_buildDestPrivateSupport(dest));
 
-      let top6;
-      if (_goTangoScoreV2Active && _goTangoScoreV2Data) {
-        top6 = _buildNowHeatingShortlist(destinations);
-      } else {
-        const homepageHeating = payload.homepage && Array.isArray(payload.homepage.heating_up)
-          ? payload.homepage.heating_up
-          : undefined;
-
-        if (homepageHeating !== undefined && homepageHeating.length === 0) {
-          const empty = document.createElement('div');
-          empty.className = 'dest-card';
-          empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No clear heating signal today.<br>Private baseline building.</div>';
-          container.appendChild(empty);
-          return;
-        }
-
-        top6 = homepageHeating !== undefined
-          ? homepageHeating
-          : destinations
-            .filter(dest => _integerArrivals24h(dest) > 0)
-            .sort((a, b) => Number(b.signal_score || 0) - Number(a.signal_score || 0))
-            .slice(0, 6);
-      }
-
-      if (!top6.length) {
-        const empty = document.createElement('div');
-        empty.className = 'dest-card';
-        empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No confirmed heating signal today.<br>Private baseline building.</div>';
-        container.appendChild(empty);
-        return;
-      }
-
-      top6.forEach((dest, i) => {
-        const card = document.createElement('div');
-        card.className = 'dest-card';
-        card.dataset.dest = String(dest.id || '');
-        card.setAttribute('data-destination-id', String(dest.id || ''));
-
-        const rank = document.createElement('div');
-        rank.className = 'mover-rank';
-        rank.textContent = formatTwoDigitRank(i);
-
-        const main = document.createElement('div');
-        main.className = 'dest-main destination-info';
-
-        main.appendChild(_buildNowCardTitleBlock(dest, null, 'heating'));
-        const signalLine = _buildNowCardCompactSignal(dest);
-        if (signalLine) main.appendChild(signalLine);
-        main.appendChild(_buildDestPrivateSupport(dest));
-
-        card.appendChild(rank);
-        card.appendChild(main);
-        card.appendChild(_buildDestScoreColumn(dest, 'positive'));
-        _applyNowCardPhoto(card, dest);
-        container.appendChild(card);
-      });
-    } catch (error) {
-      container.innerHTML = '';
-      console.warn('Error rendering heating up list:', error);
-    }
+    card.appendChild(rank);
+    card.appendChild(main);
+    card.appendChild(_buildDestScoreColumn(dest, null));
+    _applyNowCardPhoto(card, dest);
+    container.appendChild(card);
   }
 
-  function renderCoolingDown(data) {
-    const container = document.getElementById('cooling-down-list');
-    if (!container) return;
+  function renderNowMomentumCategories(data) {
+    if (!data || !data.data || !Array.isArray(data.data.destinations)) return;
 
     try {
-      container.innerHTML = '';
-      if (!data || !data.data || !Array.isArray(data.data.destinations)) return;
-
       const payload = data.data;
       let destinations = payload.destinations.filter((d) => d && d.ok === true);
       destinations = enrichDestinationsWithGoTangoScoreV2(destinations);
+      const grouped = groupDestinationsByMomentumCategory(destinations);
 
-      if (_goTangoScoreV2Active && _goTangoScoreV2Data) {
-        setCoolingDownSectionMeta('Confirmed 2+ days · meaningful easing in new arrivals');
-        const coolingPicks = _buildNowCoolingShortlist(destinations);
+      MOMENTUM_CATEGORY_ORDER.forEach((sectionKey) => {
+        const fullList = grouped[sectionKey] || [];
+        const ui = NOW_MOMENTUM_CATEGORY_UI[sectionKey];
+        const sectionMeta = MOMENTUM_CATEGORY_SECTION_META[sectionKey];
+        const head = document.getElementById(ui.headId);
+        const container = document.getElementById(ui.listId);
+        if (!container) return;
 
-        if (coolingPicks.length === 0) {
-          const empty = document.createElement('div');
-          empty.className = 'cooling-card';
-          empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No confirmed cooling signal today.<br>Private baseline building.</div>';
-          container.appendChild(empty);
+        container.innerHTML = '';
+
+        if (!fullList.length) {
+          if (head) head.hidden = true;
+          container.hidden = true;
           return;
         }
 
-        coolingPicks.forEach((dest, i) => {
-          const whyLine = _v2DirectionCopy(dest) || 'Private signal easing';
-          renderCoolingDestinationCard(dest, container, whyLine, i);
+        if (head) head.hidden = false;
+        container.hidden = false;
+        setNowMomentumSectionMeta(ui.metaId, sectionMeta.description, fullList.length);
+
+        fullList.slice(0, NOW_MOMENTUM_CATEGORY_LIMIT).forEach((dest, i) => {
+          _renderNowMomentumCard(dest, container, i);
         });
-        return;
-      }
-
-      const homepageCooling = payload.homepage && payload.homepage.cooling_down;
-
-      if (homepageCooling !== undefined) {
-        if (homepageCooling.length === 0) {
-          setCoolingDownSectionMeta('QUIET MARKETS');
-
-          const empty = document.createElement('div');
-          empty.className = 'cooling-card';
-          empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No clear cooling signal today.<br>Showing quiet private markets instead.</div>';
-          container.appendChild(empty);
-
-          const quietPicks = pickQuietMarkets(
-            payload.destinations,
-            payload.homepage && payload.homepage.heating_up
-          );
-          quietPicks.forEach(dest => renderQuietMarketCard(dest, container));
-          return;
-        }
-
-        setCoolingDownSectionMeta('Last 7 days');
-
-        homepageCooling.forEach((dest, i) => {
-          const whyLine = formatDisplayCopy(dest.status_label || '') || 'Private signal softening';
-          renderCoolingDestinationCard(dest, container, whyLine, i);
-        });
-        return;
-      }
-
-      setCoolingDownSectionMeta('Last 7 days');
-
-      destinations = payload.destinations;
-      const coolingPicks = destinations
-        .filter(dest => dest.status === 'cooling' || dest.status === 'softening')
-        .sort((a, b) => Number(a.signal_score || 0) - Number(b.signal_score || 0))
-        .slice(0, 3);
-
-      if (coolingPicks.length === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'cooling-card';
-        empty.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:13px;line-height:1.5;">No clear cooling signal today.<br>Private baseline building.</div>';
-        container.appendChild(empty);
-        return;
-      }
-
-      coolingPicks.forEach((dest, i) => {
-        const whyLine = dest.status_label || 'Private signal softening';
-        renderCoolingDestinationCard(dest, container, whyLine, i);
       });
     } catch (error) {
-      container.innerHTML = '';
-      console.warn('Error rendering cooling down list:', error);
+      MOMENTUM_CATEGORY_ORDER.forEach((sectionKey) => {
+        const ui = NOW_MOMENTUM_CATEGORY_UI[sectionKey];
+        const container = document.getElementById(ui.listId);
+        if (container) container.innerHTML = '';
+      });
+      console.warn('Error rendering Now momentum categories:', error);
     }
   }
 
@@ -8216,14 +8232,16 @@
 
     let destinations = payload.destinations.filter((d) => d && d.ok === true);
     destinations = enrichDestinationsWithGoTangoScoreV2(destinations);
-    const grouped = assignMoverSectionsV2(destinations);
+    const grouped = groupDestinationsByMomentumCategory(destinations);
 
     indexEl.innerHTML = '';
     let renderedDestinations = 0;
 
-    MOVERS_V2_SECTION_ORDER.forEach((sectionKey) => {
+    MOMENTUM_CATEGORY_ORDER.forEach((sectionKey) => {
       const fullList = grouped[sectionKey];
-      const meta = MOVERS_V2_SECTION_META[sectionKey];
+      if (!fullList.length) return;
+
+      const meta = MOMENTUM_CATEGORY_SECTION_META[sectionKey];
       const countLabel = fullList.length === 1 ? '1 destination' : `${fullList.length} destinations`;
       const isExpanded = moversExpandedSections[sectionKey] === true;
       const visibleList = getMoversVisibleDestinations(sectionKey, fullList, moversExpandedSections);
@@ -12563,7 +12581,7 @@
     // Cooling Down cards — each .cooling-card needs to know its destination id
     // Map dots — each map dot circle needs to know its destination id
     //
-    // The card-rendering functions (renderHeatingUp, renderCoolingDown) need to be modified
+    // Now momentum category cards are rendered by renderNowMomentumCategories.
     // to set a data-destination-id attribute on each card.
     // The map rendering function (renderWorldMap) needs to set a data-destination-id on each dot.
 
@@ -13659,8 +13677,7 @@
     }
     updateStats(arrivalsData);
     updateTodaysPick(arrivalsData);
-    renderHeatingUp(arrivalsData);
-    renderCoolingDown(arrivalsData);
+    renderNowMomentumCategories(arrivalsData);
     renderMoversIndex(arrivalsData, moversIndexData);
     renderWorldMap(arrivalsData);
     attachLiveMapModalHandlers();
