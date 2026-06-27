@@ -7054,8 +7054,15 @@
     return col;
   }
 
+  const HIDDEN_CATEGORY_BADGE_LABELS = new Set(['IN SEASON', 'STEADY', 'QUIET']);
+
+  function _isHiddenCategoryBadge(meta) {
+    return !!meta && HIDDEN_CATEGORY_BADGE_LABELS.has(String(meta.label || '').toUpperCase());
+  }
+
   function _buildDestStatusBadge(dest, sectionHint) {
     const meta = getPublicSignalBadge(dest, { sectionHint });
+    if (_isHiddenCategoryBadge(meta)) return null;
     const badge = document.createElement('span');
     badge.className = `mover-badge ${meta.className}`;
     badge.textContent = meta.label;
@@ -7079,7 +7086,8 @@
     metaRow.appendChild(code);
 
     if (sectionHint != null || (_goTangoScoreV2Active && _destinationHasValidGoTangoV2(dest))) {
-      metaRow.appendChild(_buildDestStatusBadge(dest, sectionHint));
+      const badge = _buildDestStatusBadge(dest, sectionHint);
+      if (badge) metaRow.appendChild(badge);
     }
 
     titleBlock.appendChild(name);
@@ -8030,10 +8038,12 @@
       metaRow.appendChild(codeEl);
     }
 
-    const badgeEl = document.createElement('span');
-    badgeEl.className = `mover-badge ${badgeMeta.className}`;
-    badgeEl.textContent = badgeMeta.label;
-    metaRow.appendChild(badgeEl);
+    if (!_isHiddenCategoryBadge(badgeMeta)) {
+      const badgeEl = document.createElement('span');
+      badgeEl.className = `mover-badge ${badgeMeta.className}`;
+      badgeEl.textContent = badgeMeta.label;
+      metaRow.appendChild(badgeEl);
+    }
 
     titleBlock.appendChild(metaRow);
 
