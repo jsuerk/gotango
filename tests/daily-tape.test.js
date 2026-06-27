@@ -169,10 +169,11 @@ test('enrichTodayMovementInputWithNewsFromKv attaches blurb and headlines', asyn
   ]);
 });
 
-test('index.html wires Daily Tape AI fetch and news enrichment', () => {
+test('index.html renders Daily Tape immediately and upgrades in background', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   assert.match(html, /\/api\/get-daily-tape/);
-  assert.match(html, /enrichTodayMovementInputWithNews/);
+  assert.match(html, /upgradeTodayMovementDailyTapeBrief/);
   assert.match(html, /fetchDailyTapeBriefFromApi/);
-  assert.match(html, /await refreshTodayMovementDailyTape/);
+  assert.match(html, /refreshTodayMovementDailyTape\(arrivalsData, goTangoScoreV2Data\)/);
+  assert.doesNotMatch(html, /await refreshTodayMovementDailyTape/);
 });

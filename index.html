@@ -14402,6 +14402,8 @@ Return strict JSON:
 }`;
 
   const DAILY_TAPE_NEWS_ENRICH_LIMIT = 5;
+  const DAILY_TAPE_AI_TIMEOUT_MS = 12000;
+  let _dailyTapeUpgradeToken = 0;
 
   /**
    * Fan out to /api/get-destination-news for top heating leaders so the
@@ -14452,9 +14454,13 @@ Return strict JSON:
 
   /**
    * @param {TodayMovementInput} input
+   * @param {{ timeoutMs?: number }} [options]
    * @returns {Promise<{ ok: boolean, brief?: TodayMovementBrief, error?: string }>}
    */
-  async function fetchDailyTapeBriefFromApi(input) {
+  async function fetchDailyTapeBriefFromApi(input, options) {
+    const timeoutMs = (options && options.timeoutMs) || DAILY_TAPE_AI_TIMEOUT_MS;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch('/api/get-daily-tape', {
         method: 'POST',
@@ -14463,6 +14469,7 @@ Return strict JSON:
           systemPrompt: TODAY_MOVEMENT_LLM_SYSTEM_PROMPT,
           input,
         }),
+        signal: controller.signal,
       });
       if (!response.ok) {
         return { ok: false, error: `HTTP ${response.status}` };
@@ -14473,7 +14480,12 @@ Return strict JSON:
       }
       return { ok: true, brief: normalizeBriefFromAi(data.brief, input) };
     } catch (error) {
+      if (error && error.name === 'AbortError') {
+        return { ok: false, error: 'timeout' };
+      }
       return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    } finally {
+      clearTimeout(timer);
     }
   }
 
@@ -14940,7 +14952,33 @@ Return strict JSON:
     }
   }
 
-  async function refreshTodayMovementDailyTape(arrivalsData, goTangoScoreV2Data) {
+  /**
+   * Attempts AI synthesis in the background and upgrades the section if successful.
+   * Server-side news enrichment runs inside /api/get-daily-tape, so this does not
+   * block page init on client news fetches.
+   * @param {TodayMovementInput} baseInput
+   * @param {number} token
+   */
+  async function upgradeTodayMovementDailyTapeBrief(baseInput, token) {
+    try {
+      const aiResult = await fetchDailyTapeBriefFromApi(baseInput, {
+        timeoutMs: DAILY_TAPE_AI_TIMEOUT_MS,
+      });
+      if (token !== _dailyTapeUpgradeToken) return;
+      if (aiResult.ok && aiResult.brief) {
+        renderTodayMovementDailyTape(aiResult.brief);
+        return;
+      }
+      if (aiResult.error) {
+        console.info('[Daily Tape] AI synthesis skipped or unavailable.', aiResult.error);
+      }
+    } catch (error) {
+      if (token !== _dailyTapeUpgradeToken) return;
+      console.warn('[Daily Tape] Background upgrade failed:', error);
+    }
+  }
+
+  function refreshTodayMovementDailyTape(arrivalsData, goTangoScoreV2Data) {
     try {
       const baseInput = buildTodayMovementInputFromPage(arrivalsData, goTangoScoreV2Data);
       if (!baseInput) {
@@ -14948,19 +14986,12 @@ Return strict JSON:
         return;
       }
 
-      const enrichedInput = await enrichTodayMovementInputWithNews(baseInput);
+      // Fast path: render immediately from live page data (no network).
+      renderTodayMovementDailyTape(buildTodayMovementBrief(baseInput));
 
-      const aiResult = await fetchDailyTapeBriefFromApi(enrichedInput);
-      if (aiResult.ok && aiResult.brief) {
-        renderTodayMovementDailyTape(aiResult.brief);
-        return;
-      }
-
-      if (aiResult.error) {
-        console.info('[Daily Tape] AI synthesis unavailable; using deterministic fallback.', aiResult.error);
-      }
-
-      renderTodayMovementDailyTape(buildTodayMovementBrief(enrichedInput));
+      // Slow path: AI synthesis upgrades in the background without blocking init.
+      const token = ++_dailyTapeUpgradeToken;
+      void upgradeTodayMovementDailyTapeBrief(baseInput, token);
     } catch (error) {
       console.warn('Error rendering Daily Tape; using fallback:', error);
       try {
@@ -14990,7 +15021,7 @@ Return strict JSON:
     }
     updateStats(arrivalsData);
     updateTodaysPick(arrivalsData);
-    await refreshTodayMovementDailyTape(arrivalsData, goTangoScoreV2Data);
+    refreshTodayMovementDailyTape(arrivalsData, goTangoScoreV2Data);
     renderNowMomentumCategories(arrivalsData);
     renderMoversIndex(arrivalsData, moversIndexData);
     renderWorldMap(arrivalsData);
