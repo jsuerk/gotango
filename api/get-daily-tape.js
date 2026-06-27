@@ -2,8 +2,9 @@ import { kv } from '@vercel/kv';
 import { getDailyTapeFromKv } from '../daily-tape.lib.js';
 
 export default async function handler(req, res) {
-  // Cache at the edge briefly; the brief only changes once a day.
-  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
+  // Do not cache misses: preview publishes often happen manually after the first
+  // page load, and a cached empty response would keep users on the fallback.
+  res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'GET') {
@@ -20,6 +21,8 @@ export default async function handler(req, res) {
       });
     }
 
+    // Cache only real hits; the brief changes once a day.
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
     return res.status(200).json({
       ok: true,
       cache_status: 'hit',
