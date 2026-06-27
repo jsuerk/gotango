@@ -1,18 +1,35 @@
 /**
- * Daily Tape — LLM prompt, validation, normalization, and OpenAI synthesis.
- * Used by /api/get-daily-tape. Deterministic fallback lives in index.html.
+ * Daily Tape — LLM prompt, validation, normalization, OpenAI synthesis,
+ * server-side input building, and KV cache.
+ *
+ * Architecture: the Daily Tape is generated once per day by the
+ * /api/refresh-daily-tape cron and saved to KV. /api/get-daily-tape serves the
+ * cached brief to every user instantly (a single KV read, no per-user AI call).
+ * The client keeps a deterministic builder for the brief that renders before the
+ * cached brief arrives.
  */
 
 import { kv } from '@vercel/kv';
 import {
   extractResponsesOutputText,
   parseBriefJsonFromModelText,
+  loadBriefSourceDataFromKv,
 } from './weekly-brief.lib.js';
 import { NEWS_KV_KEYS } from './news-context.lib.js';
+import { DESTINATIONS } from './destinations.config.js';
+import { NOW_MIN_PUBLIC_SCORE } from './gotango-score-v2.lib.js';
 import {
   buildBrowserSafeNewsPayload,
   findLatestEntryForId,
 } from './api/get-destination-news.js';
+
+export const DAILY_TAPE_KV_KEYS = {
+  latest: 'gotango:daily-tape:latest',
+};
+
+const DAILY_TAPE_DESTINATION_REGION = new Map(
+  DESTINATIONS.map((d) => [d.id, d.region]),
+);
 
 export const TODAY_MOVEMENT_LLM_SYSTEM_PROMPT = `You are the Daily Tape writer for GoTango, a private-travel intelligence product with a luxury editorial voice. You write the “Today’s Movement” section on the Now page. Your job is to synthesize destination movement, private-arrival data, GoTango scores, heating/cooling status, recent trend changes, and AI-generated destination news blurbs into a sharp daily read on what is happening in private travel today.
 
@@ -383,4 +400,125 @@ export async function generateDailyTapeBrief({
     llm_error: null,
     input: workingInput,
   };
+}
+
+function dailyTapeUpdatedLabel(savedAt) {
+  try {
+    const d = savedAt ? new Date(savedAt) : new Date();
+    if (Number.isNaN(d.getTime())) return '';
+    const hh = String(d.getUTCHours()).padStart(2, '0');
+    return `UPDATED ${hh}:00Z`;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Builds the TodayMovementInput from cached arrivals + computed GoTango score,
+ * mirroring the heating/cooling shortlists the Now page shows. Runs server-side
+ * so the brief is generated once for everyone, not per user.
+ */
+export function buildTodayMovementInputFromSourceData({ arrivalsPayload, scoreResponse, homepage }) {
+  const destinations = Array.isArray(scoreResponse?.destinations)
+    ? scoreResponse.destinations
+    : [];
+  const minScore = Number.isFinite(Number(scoreResponse?.now_minimum_public_score))
+    ? Number(scoreResponse.now_minimum_public_score)
+    : NOW_MIN_PUBLIC_SCORE;
+
+  const heating = destinations
+    .filter((d) => d && d.now_heating_display_eligible && Number(d.go_tango_score) >= minScore)
+    .sort((a, b) => (Number(b.go_tango_score) || 0) - (Number(a.go_tango_score) || 0));
+  const cooling = destinations
+    .filter((d) => d && d.now_cooling_display_eligible && Number(d.go_tango_score) >= minScore)
+    .sort((a, b) => (Number(b.go_tango_score) || 0) - (Number(a.go_tango_score) || 0));
+
+  const toInputDest = (d, status) => ({
+    id: String(d.id || ''),
+    name: String(d.name || d.id || ''),
+    region: DAILY_TAPE_DESTINATION_REGION.get(d.id) || undefined,
+    status,
+    goTangoScore: Number.isFinite(Number(d.go_tango_score)) ? Number(d.go_tango_score) : undefined,
+    scoreDelta3d: Number.isFinite(Number(d.activity_ratio)) ? Number(d.activity_ratio) : undefined,
+    arrivalsToday: Number.isFinite(Number(d.raw_ga_arrivals_24h)) ? Number(d.raw_ga_arrivals_24h) : undefined,
+  });
+
+  const inputDestinations = [];
+  // Cap leader names so the prompt stays focused; counts below use full lists.
+  heating.slice(0, 6).forEach((d) => inputDestinations.push(toInputDest(d, 'heating')));
+  cooling.slice(0, 4).forEach((d) => inputDestinations.push(toInputDest(d, 'cooling')));
+
+  const totals = homepage?.totals || (arrivalsPayload?.homepage && arrivalsPayload.homepage.totals);
+  let privateArrivals24h;
+  if (totals && Number.isFinite(Number(totals.total_private_arrivals_24h))) {
+    privateArrivals24h = Number(totals.total_private_arrivals_24h);
+  } else if (Number.isFinite(Number(arrivalsPayload?.total_arrivals_across_all))) {
+    privateArrivals24h = Number(arrivalsPayload.total_arrivals_across_all);
+  }
+
+  const savedAt = arrivalsPayload?.saved_at || scoreResponse?.source_saved_at || null;
+
+  return {
+    todayDate: (savedAt ? String(savedAt) : new Date().toISOString()).slice(0, 10),
+    updatedAt: dailyTapeUpdatedLabel(savedAt),
+    destinationCount: Number(scoreResponse?.total_destinations) || destinations.length,
+    heatingCount: heating.length,
+    coolingCount: cooling.length,
+    privateArrivals24h,
+    destinations: inputDestinations,
+  };
+}
+
+/**
+ * Generates the Daily Tape brief from cached source data (cron path).
+ * Returns the generated brief plus the input used.
+ */
+export async function buildDailyTapePackage(kvClient = kv, {
+  systemPrompt = TODAY_MOVEMENT_LLM_SYSTEM_PROMPT,
+  apiKey = process.env.OPENAI_API_KEY?.trim() || '',
+} = {}) {
+  const { arrivalsPayload, homepage, scoreResponse } = await loadBriefSourceDataFromKv(kvClient);
+  const input = buildTodayMovementInputFromSourceData({ arrivalsPayload, scoreResponse, homepage });
+
+  const result = await generateDailyTapeBrief({
+    input,
+    systemPrompt,
+    apiKey,
+    enrichNews: true,
+    kvClient,
+  });
+
+  return { input, result };
+}
+
+export async function persistDailyTapeToKv(kvClient, { brief, generator = 'daily-tape-llm', llmError = null, todayDate = null }) {
+  const savedAt = new Date().toISOString();
+  const record = {
+    saved_at: savedAt,
+    today_date: todayDate || (brief && brief.todayDate) || savedAt.slice(0, 10),
+    generator,
+    llm_error: llmError,
+    brief,
+  };
+  await kvClient.set(DAILY_TAPE_KV_KEYS.latest, record);
+  return record;
+}
+
+export function readDailyTapeFromKvRecord(record) {
+  if (!record || typeof record !== 'object' || !record.brief) {
+    return { ok: false, error: 'empty' };
+  }
+  return {
+    ok: true,
+    saved_at: record.saved_at || null,
+    today_date: record.today_date || null,
+    generator: record.generator || null,
+    llm_error: record.llm_error || null,
+    brief: record.brief,
+  };
+}
+
+export async function getDailyTapeFromKv(kvClient = kv) {
+  const record = await kvClient.get(DAILY_TAPE_KV_KEYS.latest);
+  return readDailyTapeFromKvRecord(record);
 }
