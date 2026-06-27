@@ -1472,6 +1472,279 @@
     margin: 0;
   }
 
+  /* ===== TODAY'S MOVEMENT — THE DAILY TAPE ===== */
+  .daily-tape-root {
+    margin: 28px 20px 8px;
+  }
+  .daily-tape {
+    position: relative;
+    border-top: 1px solid var(--border);
+    padding-top: 18px;
+  }
+  .daily-tape__eyebrow-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .daily-tape__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin: 0;
+  }
+  .daily-tape__eyebrow::before {
+    content: "";
+    width: 18px;
+    height: 1px;
+    background: var(--amber);
+  }
+  .daily-tape__updated {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 0;
+    white-space: nowrap;
+  }
+  .daily-tape__headline-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .daily-tape__headline {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: clamp(1.6rem, 1.3rem + 1.6vw, 2.1rem);
+    line-height: 1.05;
+    color: var(--text);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  /* Verdict pill — premium, not loud */
+  .daily-tape__verdict {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 5px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--border-light);
+    color: var(--text-dim);
+    background: rgba(255, 255, 255, 0.015);
+    white-space: nowrap;
+  }
+  .daily-tape__verdict::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 6px currentColor;
+  }
+  .daily-tape__verdict--heating {
+    color: var(--amber-bright);
+    border-color: rgba(232, 163, 23, 0.42);
+    background: rgba(232, 163, 23, 0.07);
+    box-shadow: 0 0 20px -8px rgba(232, 163, 23, 0.55);
+  }
+  .daily-tape__verdict--watching {
+    color: var(--teal);
+    border-color: rgba(94, 170, 168, 0.38);
+    background: rgba(94, 170, 168, 0.06);
+  }
+  .daily-tape__verdict--cooling {
+    color: var(--status-cooling);
+    border-color: rgba(91, 158, 168, 0.4);
+    background: rgba(91, 158, 168, 0.07);
+  }
+  .daily-tape__verdict--mixed {
+    color: var(--coral);
+    border-color: rgba(229, 140, 94, 0.4);
+    background: rgba(229, 140, 94, 0.06);
+  }
+  .daily-tape__verdict--quiet {
+    color: var(--text-faint);
+    border-color: var(--border);
+    background: transparent;
+  }
+  .daily-tape__verdict--quiet::before {
+    box-shadow: none;
+  }
+  /* Signal chips */
+  .daily-tape__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-bottom: 16px;
+  }
+  .daily-tape__chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.014);
+    color: var(--text-faint);
+  }
+  .daily-tape__chip-value {
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .daily-tape__chip--heating .daily-tape__chip-value { color: var(--amber-bright); }
+  .daily-tape__chip--heating { border-color: rgba(232, 163, 23, 0.28); }
+  .daily-tape__chip--cooling .daily-tape__chip-value { color: var(--status-cooling); }
+  .daily-tape__chip--cooling { border-color: rgba(91, 158, 168, 0.28); }
+  .daily-tape__chip--steady .daily-tape__chip-value { color: var(--status-steady); }
+  /* Body text */
+  .daily-tape__body { position: relative; }
+  .daily-tape__preview {
+    font-family: 'Fraunces', serif;
+    font-size: var(--fs-editorial);
+    line-height: 1.5;
+    color: var(--text-dim);
+    margin: 0;
+    position: relative;
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .daily-tape__preview::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2.1em;
+    background: linear-gradient(to bottom, rgba(10, 13, 17, 0) 0%, var(--bg) 92%);
+    pointer-events: none;
+  }
+  .daily-tape__full {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+  }
+  .daily-tape__para {
+    font-family: 'Fraunces', serif;
+    font-size: var(--fs-editorial);
+    line-height: 1.55;
+    color: var(--text-dim);
+    margin: 0;
+  }
+  .daily-tape__para:first-child { color: var(--text); }
+  /* Driver cards */
+  .daily-tape__drivers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .daily-tape__driver {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 13px 14px;
+    background: rgba(255, 255, 255, 0.012);
+    border-left-width: 2px;
+    border-left-color: var(--border-light);
+  }
+  .daily-tape__driver--heating { border-left-color: var(--amber); }
+  .daily-tape__driver--cooling { border-left-color: var(--status-cooling); }
+  .daily-tape__driver--steady { border-left-color: var(--teal); }
+  .daily-tape__driver--neutral { border-left-color: var(--coral); }
+  .daily-tape__driver-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+  .daily-tape__driver-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .daily-tape__driver-value {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .daily-tape__driver--heating .daily-tape__driver-value { color: var(--amber-bright); }
+  .daily-tape__driver--cooling .daily-tape__driver-value { color: var(--status-cooling); }
+  .daily-tape__driver--steady .daily-tape__driver-value { color: var(--teal); }
+  .daily-tape__driver--neutral .daily-tape__driver-value { color: var(--coral); }
+  .daily-tape__driver-detail {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-dim);
+    margin: 0;
+  }
+  /* CTA */
+  .daily-tape__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--amber);
+    background: transparent;
+    border: 1px solid rgba(232, 163, 23, 0.32);
+    border-radius: 8px;
+    padding: 9px 16px;
+    cursor: pointer;
+    transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+  }
+  .daily-tape__cta:hover {
+    color: var(--amber-bright);
+    border-color: var(--amber-bright);
+    background: rgba(232, 163, 23, 0.06);
+  }
+  .daily-tape__cta:focus-visible {
+    outline: 2px solid var(--amber-bright);
+    outline-offset: 2px;
+  }
+  .daily-tape__cta-icon {
+    display: inline-block;
+    transition: transform 0.2s ease;
+    font-size: 9px;
+  }
+  .daily-tape[data-expanded="true"] .daily-tape__cta-icon {
+    transform: rotate(180deg);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .daily-tape__cta,
+    .daily-tape__cta-icon { transition: none; }
+  }
+
   /* ===== SLEEPER PICK PHOTO (UI refresh, optional) ===== */
   .sleeper.has-photo {
     padding-top: 132px;
@@ -5602,6 +5875,15 @@
     .todays-movement__sub {
       font-size: 14px;
     }
+    .daily-tape-root {
+      margin: 22px 16px 8px;
+    }
+    .daily-tape__drivers {
+      grid-template-columns: 1fr;
+    }
+    .daily-tape__eyebrow-row {
+      gap: 8px;
+    }
     #tab-watch .watch-list-body {
       padding-left: 16px;
       padding-right: 16px;
@@ -5707,10 +5989,8 @@
 
     <!-- TODAY'S MOVEMENT -->
     <div class="todays-movement">
-      <div class="todays-movement__intro">
-        <p class="todays-movement__eyebrow">Today's Movement</p>
-        <p class="todays-movement__sub">Where private travel is heating up, cooling off, and quietly breaking out.</p>
-      </div>
+      <!-- THE DAILY TAPE (hydrated by renderTodayMovementDailyTape) -->
+      <div id="daily-tape-root" class="daily-tape-root"></div>
 
     <!-- IN SEASON -->
     <div class="section-head" id="in-season-section-head">
@@ -14070,6 +14350,684 @@
     ].join('');
   }
 
+  // ===================================================================
+  // TODAY'S MOVEMENT — THE DAILY TAPE
+  // A daily private-travel "market read" synthesized from destination
+  // movement, private-arrival data, GoTango scores and news context.
+  // ===================================================================
+
+  /**
+   * @typedef {"heating"|"cooling"|"steady"|"neutral"} TapeTone
+   * @typedef {"HEATING"|"WATCHING"|"COOLING"|"MIXED SIGNAL"|"QUIET"} TapeVerdict
+   * @typedef {"LOW"|"MEDIUM"|"HIGH"} TapeConfidence
+   *
+   * @typedef {Object} TodayMovementSignalChip
+   * @property {string} label
+   * @property {string|number} value
+   * @property {TapeTone} [tone]
+   *
+   * @typedef {Object} TodayMovementDriver
+   * @property {string} label
+   * @property {string} [value]
+   * @property {string} detail
+   * @property {TapeTone} [tone]
+   *
+   * @typedef {Object} TodayMovementBrief
+   * @property {string} headline
+   * @property {TapeVerdict} verdict
+   * @property {TapeConfidence} [confidence]
+   * @property {string} updatedLabel
+   * @property {string} collapsedText
+   * @property {string[]} paragraphs
+   * @property {TodayMovementSignalChip[]} signalChips
+   * @property {TodayMovementDriver[]} drivers
+   *
+   * @typedef {Object} TodayMovementInputDestination
+   * @property {string} id
+   * @property {string} name
+   * @property {string} [region]
+   * @property {"heating"|"cooling"|"steady"} status
+   * @property {number} [goTangoScore]
+   * @property {number} [scoreDelta1d]
+   * @property {number} [scoreDelta3d]
+   * @property {number} [arrivalsToday]
+   * @property {number} [arrivalsYesterday]
+   * @property {number} [arrivals3DayAvg]
+   * @property {number} [arrivals7DayAvg]
+   * @property {string} [aiNewsBlurb]
+   * @property {string[]} [sourceHeadlines]
+   *
+   * @typedef {Object} TodayMovementInput
+   * @property {string} todayDate
+   * @property {string} [updatedAt]
+   * @property {number} destinationCount
+   * @property {number} heatingCount
+   * @property {number} coolingCount
+   * @property {number} [steadyCount]
+   * @property {number} [privateArrivals24h]
+   * @property {TodayMovementInputDestination[]} destinations
+   */
+
+  // -------------------------------------------------------------------
+  // LLM SYSTEM PROMPT
+  // This is the exact prompt for backend AI synthesis of the Daily Tape.
+  // The deterministic builder below is the offline fallback when
+  // /api/get-daily-tape is unavailable or returns no brief.
+  // -------------------------------------------------------------------
+  const TODAY_MOVEMENT_LLM_SYSTEM_PROMPT = `You are the Daily Tape writer for GoTango, a private-travel intelligence product with a luxury editorial voice. You write the “Today’s Movement” section on the Now page. Your job is to synthesize destination movement, private-arrival data, GoTango scores, heating/cooling status, recent trend changes, and AI-generated destination news blurbs into a sharp daily read on what is happening in private travel today.
+
+Write with the energy of a market note and the polish of a luxury travel brief. Do not sound generic. Do not simply list destinations. Decide what the day’s narrative is.
+
+The reader may be a first-time user, so the copy should feel exciting and immediately understandable. The reader may also be a daily returning user, so the copy should include real signal, comparison to yesterday, and what to watch next.
+
+Rules:
+- Write 8-10 sentences total.
+- Break the output into 3 or 4 short paragraphs.
+- Paragraph 1 should explain what is moving today.
+- Paragraph 2 should compare today with yesterday and the last few days.
+- Paragraph 3 should explain why the movement matters, using destination news blurbs where relevant.
+- Paragraph 4, if needed, should give a caveat or say what to watch next.
+- Always include a clear point of view.
+- Mention uncertainty when the data looks noisy.
+- Do not overclaim.
+- Do not use “MATTERS” as a verdict label.
+- Use “HEATING” as the primary positive verdict label.
+- Avoid generic travel-writing clichés.
+- Use GoTango language: tape, signal, heat, cooling, rotation, breakout, holding rank, watch next, private-arrival push, high-season routes.
+
+Return strict JSON:
+{
+  "headline": string,
+  "verdict": "HEATING" | "WATCHING" | "COOLING" | "MIXED SIGNAL" | "QUIET",
+  "confidence": "LOW" | "MEDIUM" | "HIGH",
+  "paragraphs": string[],
+  "signalChips": [
+    {
+      "label": string,
+      "value": string,
+      "tone": "heating" | "cooling" | "steady" | "neutral"
+    }
+  ],
+  "drivers": [
+    {
+      "label": string,
+      "value": string,
+      "detail": string,
+      "tone": "heating" | "cooling" | "steady" | "neutral"
+    }
+  ]
+}`;
+
+  const DAILY_TAPE_NEWS_ENRICH_LIMIT = 5;
+
+  /**
+   * Fan out to /api/get-destination-news for top heating leaders so the
+   * NEWS LAYER driver and AI synthesis use live blurbs and headlines.
+   * @param {TodayMovementInput} input
+   * @returns {Promise<TodayMovementInput>}
+   */
+  async function enrichTodayMovementInputWithNews(input, limit = DAILY_TAPE_NEWS_ENRICH_LIMIT) {
+    if (!input || !Array.isArray(input.destinations) || !input.destinations.length) {
+      return input;
+    }
+
+    const heating = input.destinations
+      .filter((d) => d && d.status === 'heating')
+      .sort((a, b) => (Number(b.goTangoScore) || 0) - (Number(a.goTangoScore) || 0))
+      .slice(0, limit);
+
+    if (!heating.length) return input;
+
+    const enriched = await Promise.all(heating.map(async (dest) => {
+      try {
+        const response = await fetch(`/api/get-destination-news?id=${encodeURIComponent(dest.id)}`);
+        if (!response.ok) return dest;
+        const data = await response.json();
+        if (!data || data.ok !== true || !data.news) return dest;
+
+        const sourceHeadlines = (data.news.citations || [])
+          .map((c) => (c && c.title != null ? String(c.title).trim() : ''))
+          .filter(Boolean);
+
+        return {
+          ...dest,
+          aiNewsBlurb: data.news.blurb || dest.aiNewsBlurb,
+          sourceHeadlines: sourceHeadlines.length ? sourceHeadlines : dest.sourceHeadlines,
+        };
+      } catch (error) {
+        console.warn('[Daily Tape] news enrich failed for', dest.id, error);
+        return dest;
+      }
+    }));
+
+    const byId = new Map(enriched.map((d) => [d.id, d]));
+    return {
+      ...input,
+      destinations: input.destinations.map((d) => byId.get(d.id) || d),
+    };
+  }
+
+  /**
+   * @param {TodayMovementInput} input
+   * @returns {Promise<{ ok: boolean, brief?: TodayMovementBrief, error?: string }>}
+   */
+  async function fetchDailyTapeBriefFromApi(input) {
+    try {
+      const response = await fetch('/api/get-daily-tape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemPrompt: TODAY_MOVEMENT_LLM_SYSTEM_PROMPT,
+          input,
+        }),
+      });
+      if (!response.ok) {
+        return { ok: false, error: `HTTP ${response.status}` };
+      }
+      const data = await response.json();
+      if (!data || data.ok !== true || !data.brief) {
+        return { ok: false, error: (data && data.error) || 'no_brief' };
+      }
+      return { ok: true, brief: normalizeBriefFromAi(data.brief, input) };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  /**
+   * @param {Partial<TodayMovementBrief>} aiBrief
+   * @param {TodayMovementInput} input
+   * @returns {TodayMovementBrief}
+   */
+  function normalizeBriefFromAi(aiBrief, input) {
+    const paragraphs = Array.isArray(aiBrief.paragraphs)
+      ? aiBrief.paragraphs.map((p) => String(p).trim()).filter(Boolean)
+      : [];
+    const collapsedText = paragraphs.length ? paragraphs.join(' ') : String(aiBrief.collapsedText || '');
+
+    let signalChips = Array.isArray(aiBrief.signalChips) ? aiBrief.signalChips : [];
+    if (!signalChips.length && input) {
+      signalChips = [];
+      if (Number.isFinite(input.heatingCount)) {
+        signalChips.push({ label: 'HEATING', value: input.heatingCount, tone: 'heating' });
+      }
+      if (Number.isFinite(input.coolingCount)) {
+        signalChips.push({ label: 'COOLING', value: input.coolingCount, tone: 'cooling' });
+      }
+      if (Number.isFinite(input.destinationCount) && input.destinationCount > 0) {
+        signalChips.push({ label: 'DESTINATIONS', value: input.destinationCount, tone: 'neutral' });
+      }
+      if (Number.isFinite(input.privateArrivals24h) && input.privateArrivals24h > 0) {
+        signalChips.push({
+          label: 'ARRIVALS',
+          value: Math.round(input.privateArrivals24h).toLocaleString(),
+          tone: 'steady',
+        });
+      }
+    }
+
+    return {
+      headline: String(aiBrief.headline || 'The Daily Tape').trim(),
+      verdict: aiBrief.verdict || 'HEATING',
+      confidence: aiBrief.confidence || 'MEDIUM',
+      updatedLabel: input?.updatedAt || aiBrief.updatedLabel || _tapeUpdatedLabelFromDate(new Date()),
+      collapsedText,
+      paragraphs: paragraphs.length ? paragraphs : [collapsedText],
+      signalChips,
+      drivers: Array.isArray(aiBrief.drivers) ? aiBrief.drivers : [],
+    };
+  }
+
+  function _tapeJoinNames(names) {
+    const list = (names || []).filter(Boolean);
+    if (!list.length) return '';
+    if (list.length === 1) return list[0];
+    if (list.length === 2) return `${list[0]} and ${list[1]}`;
+    return `${list.slice(0, -1).join(', ')}, and ${list[list.length - 1]}`;
+  }
+
+  function _tapeFirstSentence(text, maxLen) {
+    if (!text) return '';
+    let s = String(text).trim().replace(/\s+/g, ' ');
+    const m = s.match(/^.*?[.!?](?=\s|$)/);
+    if (m && m[0]) s = m[0].trim();
+    if (maxLen && s.length > maxLen) s = s.slice(0, maxLen - 1).trim() + '…';
+    return s.replace(/[.!?]+$/, '');
+  }
+
+  function _tapeDistinctRegions(dests) {
+    const set = new Set();
+    (dests || []).forEach((d) => {
+      const r = (d && d.region ? String(d.region) : '').split(',')[0].trim();
+      if (r) set.add(r.toLowerCase());
+    });
+    return set.size;
+  }
+
+  /**
+   * Deterministic synthesis of the Daily Tape from available data.
+   * Mirrors the LLM prompt's structure and GoTango voice. Used as the
+   * offline fallback until a real AI synthesis endpoint is wired in.
+   * @param {TodayMovementInput} input
+   * @returns {TodayMovementBrief}
+   */
+  function buildTodayMovementBrief(input) {
+    const safe = input || /** @type {TodayMovementInput} */ ({});
+    const dests = Array.isArray(safe.destinations) ? safe.destinations : [];
+    const heating = dests.filter((d) => d && d.status === 'heating');
+    const cooling = dests.filter((d) => d && d.status === 'cooling');
+
+    const byScore = (a, b) => (Number(b.goTangoScore) || 0) - (Number(a.goTangoScore) || 0);
+    const heatLeaders = heating.slice().sort(byScore);
+    const coolLeaders = cooling.slice().sort(byScore);
+
+    const heatingCount = Number.isFinite(safe.heatingCount) ? safe.heatingCount : heating.length;
+    const coolingCount = Number.isFinite(safe.coolingCount) ? safe.coolingCount : cooling.length;
+    const destinationCount = Number.isFinite(safe.destinationCount) ? safe.destinationCount : dests.length;
+    const arrivals = Number(safe.privateArrivals24h);
+
+    // ---- Verdict ----
+    /** @type {TapeVerdict} */
+    let verdict;
+    if (heatingCount === 0 && coolingCount === 0) {
+      verdict = 'QUIET';
+    } else if (heatingCount >= 3 && heatingCount >= coolingCount * 1.5) {
+      verdict = 'HEATING';
+    } else if (coolingCount > heatingCount * 1.5 && coolingCount >= 3) {
+      verdict = 'COOLING';
+    } else if (heatingCount >= 2 && coolingCount >= 2) {
+      verdict = 'MIXED SIGNAL';
+    } else {
+      verdict = 'WATCHING';
+    }
+
+    // ---- Breadth ----
+    const heatRegions = _tapeDistinctRegions(heatLeaders);
+    const breadthBroad = heatRegions >= 3 || (heatingCount >= 6 && heatRegions >= 2);
+
+    // ---- Confidence ----
+    /** @type {TapeConfidence} */
+    let confidence;
+    const totalSignal = heatingCount + coolingCount;
+    if (totalSignal >= 10 && breadthBroad) confidence = 'HIGH';
+    else if (totalSignal <= 2) confidence = 'LOW';
+    else confidence = 'MEDIUM';
+
+    const leadStr = _tapeJoinNames(heatLeaders.slice(0, 3).map((d) => d.name));
+    const coolStr = _tapeJoinNames(coolLeaders.slice(0, 2).map((d) => d.name));
+
+    const newsDest = heatLeaders.find((d) => d.aiNewsBlurb || (d.sourceHeadlines && d.sourceHeadlines.length))
+      || dests.find((d) => d.aiNewsBlurb || (d.sourceHeadlines && d.sourceHeadlines.length));
+    const newsName = newsDest ? newsDest.name : '';
+    const newsBlurb = newsDest && newsDest.aiNewsBlurb ? _tapeFirstSentence(newsDest.aiNewsBlurb, 120) : '';
+    const newsHeadlines = newsDest && Array.isArray(newsDest.sourceHeadlines)
+      ? newsDest.sourceHeadlines.filter(Boolean).slice(0, 2)
+      : [];
+
+    // ---- Paragraphs (GoTango voice) ----
+    const paragraphs = [];
+
+    // P1 — what is moving today
+    if (verdict === 'HEATING') {
+      const p1a = leadStr
+        ? `The tape is running hot today, with ${leadStr} carrying the private-arrival push.`
+        : `The tape is running warm today, with leisure routes carrying the private-arrival push.`;
+      const p1b = breadthBroad
+        ? `The heat reads broad rather than the work of one marquee market — ${heatingCount} destinations are registering as heating against ${coolingCount} cooling.`
+        : `The move is concentrated for now — ${heatingCount} destinations heating against ${coolingCount} cooling, with a short list of names doing most of the lifting.`;
+      paragraphs.push(`${p1a} ${p1b}`);
+    } else if (verdict === 'COOLING') {
+      const p1a = coolStr
+        ? `The tape is cooling today, with ${coolStr} bleeding velocity off recent highs.`
+        : `The tape is cooling today as recent leaders bleed velocity off their highs.`;
+      paragraphs.push(`${p1a} Roughly ${coolingCount} destinations are softening against ${heatingCount} still heating, so the board is tilting toward the exits rather than the breakouts.`);
+    } else if (verdict === 'MIXED SIGNAL') {
+      paragraphs.push(`The tape is split today: ${leadStr || 'a handful of leisure routes'} are heating while ${coolStr || 'an equal cluster'} cools, leaving ${heatingCount} up against ${coolingCount} down. There is no single narrative carrying the day — the signal is a rotation, not a surge.`);
+    } else if (verdict === 'QUIET') {
+      paragraphs.push(`The tape is quiet today, with no destination posting a decisive heating or cooling read across the ${destinationCount}-market board. On days like this the smart move is to watch the baseline rather than chase a signal that is not there.`);
+    } else {
+      paragraphs.push(`The tape is in a watching posture today: ${leadStr || 'a few leisure routes'} are firming up, but the move is not yet broad or confirmed, with ${heatingCount} heating against ${coolingCount} cooling. We are reading early interest, not a full breakout.`);
+    }
+
+    // P2 — vs yesterday / last few days
+    const p2a = breadthBroad
+      ? `Compared with yesterday, today looks less like a single surge and more like a rotation into familiar high-season routes.`
+      : `Compared with yesterday, the move is still leaning on a tight group of names rather than the whole board.`;
+    const p2b = coolingCount > 0 && coolStr
+      ? `The cooling side matters too: ${coolStr} ${coolLeaders.length > 1 ? 'are' : 'is'} losing velocity, which usually means guests have already landed or the event-driven rush has peaked.`
+      : `The cooling side is thin right now, which keeps the read clean but worth re-checking once the next day of arrivals lands.`;
+    paragraphs.push(`${p2a} ${p2b}`);
+
+    // P3 — why it matters + news layer
+    if (newsName && newsBlurb) {
+      const newsFragment = newsBlurb.charAt(0).toLowerCase() + newsBlurb.slice(1);
+      paragraphs.push(`The move earns more credibility where the news layer lines up: ${newsName} is drawing real-world attention — ${newsFragment} — which makes the signal more than a one-day traffic spike. Read together, the tape says luxury leisure is holding rank, and the breadth behind the leaders is the part worth respecting.`);
+    } else if (newsName && newsHeadlines.length) {
+      paragraphs.push(`The move earns more credibility where the news layer lines up: ${newsName} is showing up in live headlines (${newsHeadlines.join(' · ')}), which gives the private-arrival push real-world context even before the full trend confirms.`);
+    } else if (newsName) {
+      paragraphs.push(`The move earns more credibility where the news layer lines up, and ${newsName} is one market where hospitality and seasonal programming back the private-arrival push. That context makes the read more than a one-day traffic spike, even if it is not yet definitive.`);
+    } else {
+      paragraphs.push(`Where it matters: the arrival pattern is the cleaner signal today, with the news layer still thin, so we are weighting the private-arrival push and GoTango score over any single headline. That keeps the read honest — real movement, not narrative.`);
+    }
+
+    // P4 — caveat / watch next
+    if (verdict === 'HEATING' || verdict === 'MIXED SIGNAL' || verdict === 'WATCHING') {
+      paragraphs.push(`Weekend and event-driven arrivals can inflate the read, so we would watch the next 24 hours before calling it a full breakout. The signal to watch next is whether today's leaders hold rank tomorrow or whether the heat rotates into the next cluster of summer routes.`);
+    } else if (verdict === 'COOLING') {
+      paragraphs.push(`We would not over-read a single soft session — some of this is simply the high-season rush peaking on schedule. Watch next for whether the cooling list stabilizes or whether the heat has genuinely rotated elsewhere on the board.`);
+    } else {
+      paragraphs.push(`On a quiet tape the next signal to watch is the first market that breaks from the baseline — that is usually where the next rotation starts.`);
+    }
+
+    // ---- Signal chips ----
+    /** @type {TodayMovementSignalChip[]} */
+    const signalChips = [];
+    if (Number.isFinite(heatingCount)) signalChips.push({ label: 'HEATING', value: heatingCount, tone: 'heating' });
+    if (Number.isFinite(coolingCount)) signalChips.push({ label: 'COOLING', value: coolingCount, tone: 'cooling' });
+    if (Number.isFinite(destinationCount) && destinationCount > 0) signalChips.push({ label: 'DESTINATIONS', value: destinationCount, tone: 'neutral' });
+    if (Number.isFinite(arrivals) && arrivals > 0) signalChips.push({ label: 'ARRIVALS', value: Math.round(arrivals).toLocaleString(), tone: 'steady' });
+
+    // ---- Drivers ----
+    /** @type {TodayMovementDriver[]} */
+    const drivers = [];
+    drivers.push({
+      label: 'BREADTH',
+      value: breadthBroad ? 'WIDER HEAT' : 'CONCENTRATED',
+      detail: breadthBroad
+        ? 'More than one leisure cluster is participating, which makes the move more interesting than a single-destination spike.'
+        : 'The heat is leaning on a short list of names, so the signal is real but narrow until more markets join.',
+      tone: breadthBroad ? 'heating' : 'steady',
+    });
+    drivers.push({
+      label: 'NEWS LAYER',
+      value: (newsBlurb || newsHeadlines.length) ? 'SUPPORTED' : 'THIN',
+      detail: newsHeadlines.length
+        ? `Live headlines (${newsHeadlines.join(' · ')}) back the arrival pattern with hospitality, events, and seasonal context.`
+        : newsBlurb
+          ? 'Destination blurbs give the arrival pattern real-world context through events, hospitality, and seasonal programming.'
+          : 'No strong news context backs today\u2019s move yet, so the arrival data is doing the talking on its own.',
+      tone: (newsBlurb || newsHeadlines.length) ? 'steady' : 'neutral',
+    });
+    if (verdict === 'COOLING') {
+      drivers.push({
+        label: 'CAVEAT',
+        value: 'PEAK FADE',
+        detail: 'Some cooling is just the high-season rush peaking on schedule rather than genuine loss of interest.',
+        tone: 'cooling',
+      });
+    } else {
+      drivers.push({
+        label: 'WATCH NEXT',
+        value: 'HOLDING RANK',
+        detail: 'The next signal is whether today\u2019s leaders stay elevated tomorrow or fade as a weekend effect.',
+        tone: 'neutral',
+      });
+    }
+
+    const headline = 'The Daily Tape';
+    const collapsedText = paragraphs.join(' ');
+
+    return {
+      headline,
+      verdict,
+      confidence,
+      updatedLabel: safe.updatedAt || _tapeUpdatedLabelFromDate(new Date()),
+      collapsedText,
+      paragraphs,
+      signalChips,
+      drivers,
+    };
+  }
+
+  function _tapeUpdatedLabelFromDate(date) {
+    try {
+      const d = date instanceof Date ? date : new Date(date);
+      if (Number.isNaN(d.getTime())) return '';
+      const hh = String(d.getUTCHours()).padStart(2, '0');
+      return `UPDATED ${hh}:00Z`;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function _tapeUpdatedLabelFromPayload(payload) {
+    const savedAt = payload && payload.saved_at;
+    if (savedAt) {
+      const label = _tapeUpdatedLabelFromDate(savedAt);
+      if (label) return label;
+    }
+    return _tapeUpdatedLabelFromDate(new Date());
+  }
+
+  /**
+   * Maps the live Now-page data (arrivals payload + GoTango Score v2) into a
+   * TodayMovementInput. Reuses the same heating/cooling shortlists that drive
+   * the stat tiles so the Daily Tape stays consistent with the rest of the page.
+   * Returns null when there is not enough real data to synthesize from.
+   * @returns {TodayMovementInput|null}
+   */
+  function buildTodayMovementInputFromPage(arrivalsData, goTangoScoreV2Data) {
+    const payload = getArrivalsPayload(arrivalsData);
+    if (!payload || !Array.isArray(payload.destinations)) return null;
+
+    const okDests = payload.destinations.filter((d) => d && d.ok === true);
+    if (!okDests.length) return null;
+
+    const enriched = enrichDestinationsWithGoTangoScoreV2(okDests);
+    const heatingList = _goTangoScoreV2Active ? _buildNowHeatingShortlist(enriched) : [];
+    const coolingList = _goTangoScoreV2Active ? _buildNowCoolingShortlist(enriched) : [];
+    const heatingIds = new Set(heatingList.map((d) => d.id));
+    const coolingIds = new Set(coolingList.map((d) => d.id));
+
+    const toInputDest = (dest, status) => ({
+      id: String(dest.id || ''),
+      name: String(dest.name || dest.id || ''),
+      region: dest.region ? String(dest.region) : undefined,
+      status,
+      goTangoScore: Number.isFinite(Number(dest.go_tango_score)) ? Number(dest.go_tango_score) : undefined,
+      scoreDelta1d: Number.isFinite(Number(dest.private_arrivals_wow_pct)) ? Number(dest.private_arrivals_wow_pct) : undefined,
+      arrivalsToday: _integerArrivals24h(dest) || undefined,
+    });
+
+    const inputDestinations = [];
+    heatingList.forEach((d) => inputDestinations.push(toInputDest(d, 'heating')));
+    coolingList.forEach((d) => inputDestinations.push(toInputDest(d, 'cooling')));
+
+    const destinationCount = getTotalDestinations(payload) || enriched.length;
+
+    const counts = (goTangoScoreV2Data && goTangoScoreV2Data.category_counts) || {};
+    const steadyCount = Number.isFinite(Number(counts.steady)) || Number.isFinite(Number(counts.in_season))
+      ? (Number(counts.steady || 0) + Number(counts.in_season || 0))
+      : undefined;
+
+    const totals = payload.homepage && payload.homepage.totals;
+    let privateArrivals24h;
+    if (totals && Number.isFinite(Number(totals.total_private_arrivals_24h))) {
+      privateArrivals24h = Number(totals.total_private_arrivals_24h);
+    } else if (Number.isFinite(Number(payload.total_arrivals_across_all))) {
+      privateArrivals24h = Number(payload.total_arrivals_across_all);
+    }
+
+    return {
+      todayDate: (payload.saved_at ? String(payload.saved_at) : new Date().toISOString()).slice(0, 10),
+      updatedAt: _tapeUpdatedLabelFromPayload(payload),
+      destinationCount,
+      heatingCount: heatingList.length,
+      coolingCount: coolingList.length,
+      steadyCount,
+      privateArrivals24h,
+      destinations: inputDestinations,
+    };
+  }
+
+  /** @type {TodayMovementBrief} Dev/local fallback when no real data is available. */
+  const FALLBACK_TODAY_MOVEMENT_BRIEF = {
+    headline: 'The Daily Tape',
+    verdict: 'HEATING',
+    confidence: 'MEDIUM',
+    updatedLabel: _tapeUpdatedLabelFromDate(new Date()),
+    paragraphs: [
+      'Private travel is giving the day a clear summer-weekend tilt, with beach and island markets carrying the tape while a few recent resort spikes begin to cool.',
+      'Compared with yesterday, today looks less like a single surge and more like a broader rotation into familiar high-season routes. The important signal is breadth: more destinations are participating, and the heat is not isolated to one obvious winner.',
+      'The news layer gives the move more texture where hospitality openings, events, restaurants, nightlife, or seasonal programming line up with the private-arrival push. That makes the signal more credible than a one-day traffic spike, but not yet definitive.',
+      'The next thing to watch is whether the same destinations hold rank tomorrow or whether today\u2019s heat migrates into the next cluster of summer routes.',
+    ],
+    get collapsedText() { return this.paragraphs.join(' '); },
+    signalChips: [
+      { label: 'HEATING', value: '10', tone: 'heating' },
+      { label: 'COOLING', value: '4', tone: 'cooling' },
+      { label: 'DESTINATIONS', value: '51', tone: 'neutral' },
+    ],
+    drivers: [
+      {
+        label: 'BREADTH',
+        value: 'WIDER HEAT',
+        detail: 'More than one leisure cluster is participating, which makes the move more interesting than a single-destination spike.',
+        tone: 'heating',
+      },
+      {
+        label: 'NEWS LAYER',
+        value: 'SUPPORTED',
+        detail: 'Destination blurbs give the arrival pattern real-world context through events, hospitality, and seasonal programming.',
+        tone: 'steady',
+      },
+      {
+        label: 'WATCH NEXT',
+        value: 'HOLDING RANK',
+        detail: 'The next signal is whether today\u2019s leaders stay elevated tomorrow or fade as a weekend effect.',
+        tone: 'neutral',
+      },
+    ],
+  };
+
+  const TAPE_VERDICT_CLASS = {
+    HEATING: 'daily-tape__verdict--heating',
+    WATCHING: 'daily-tape__verdict--watching',
+    COOLING: 'daily-tape__verdict--cooling',
+    'MIXED SIGNAL': 'daily-tape__verdict--mixed',
+    QUIET: 'daily-tape__verdict--quiet',
+  };
+
+  function _tapeToneClass(prefix, tone) {
+    const t = tone === 'heating' || tone === 'cooling' || tone === 'steady' ? tone : 'neutral';
+    return `${prefix}--${t}`;
+  }
+
+  /**
+   * Renders the Daily Tape section into #daily-tape-root.
+   * @param {TodayMovementBrief} brief
+   * @param {{ defaultExpanded?: boolean }} [options]
+   */
+  function renderTodayMovementDailyTape(brief, options) {
+    const root = document.getElementById('daily-tape-root');
+    if (!root || !brief) return;
+    const opts = options || {};
+    const startExpanded = opts.defaultExpanded === true;
+
+    const paragraphs = Array.isArray(brief.paragraphs) && brief.paragraphs.length
+      ? brief.paragraphs
+      : [String(brief.collapsedText || '')];
+    const collapsedText = brief.collapsedText || paragraphs.join(' ');
+    const verdict = brief.verdict || 'HEATING';
+    const verdictClass = TAPE_VERDICT_CLASS[verdict] || TAPE_VERDICT_CLASS.HEATING;
+
+    const chipsHtml = (brief.signalChips || [])
+      .filter((c) => c && c.label != null && c.value != null && c.value !== '')
+      .map((c) => `
+        <span class="daily-tape__chip ${_tapeToneClass('daily-tape__chip', c.tone)}">
+          <span class="daily-tape__chip-value">${_escapeHtml(String(c.value))}</span>${_escapeHtml(String(c.label))}
+        </span>`)
+      .join('');
+
+    const paragraphsHtml = paragraphs
+      .map((p) => `<p class="daily-tape__para">${_escapeHtml(String(p))}</p>`)
+      .join('');
+
+    const driversHtml = (brief.drivers || [])
+      .filter((d) => d && d.label)
+      .map((d) => `
+        <div class="daily-tape__driver ${_tapeToneClass('daily-tape__driver', d.tone)}">
+          <div class="daily-tape__driver-head">
+            <span class="daily-tape__driver-label">${_escapeHtml(String(d.label))}</span>
+            ${d.value ? `<span class="daily-tape__driver-value">${_escapeHtml(String(d.value))}</span>` : ''}
+          </div>
+          <p class="daily-tape__driver-detail">${_escapeHtml(String(d.detail || ''))}</p>
+        </div>`)
+      .join('');
+
+    root.innerHTML = `
+      <section class="daily-tape" data-expanded="${startExpanded ? 'true' : 'false'}">
+        <div class="daily-tape__eyebrow-row">
+          <p class="daily-tape__eyebrow">Today's Movement</p>
+          ${brief.updatedLabel ? `<p class="daily-tape__updated">${_escapeHtml(String(brief.updatedLabel))}</p>` : ''}
+        </div>
+        <div class="daily-tape__headline-row">
+          <h2 class="daily-tape__headline">${_escapeHtml(String(brief.headline || 'The Daily Tape'))}</h2>
+          <span class="daily-tape__verdict ${verdictClass}">${_escapeHtml(String(verdict))}</span>
+        </div>
+        ${chipsHtml ? `<div class="daily-tape__chips">${chipsHtml}</div>` : ''}
+        <div class="daily-tape__body">
+          <p class="daily-tape__preview" data-tape-preview ${startExpanded ? 'hidden' : ''}>${_escapeHtml(collapsedText)}</p>
+          <div class="daily-tape__full" id="daily-tape-full" data-tape-full ${startExpanded ? '' : 'hidden'}>
+            ${paragraphsHtml}
+            ${driversHtml ? `<div class="daily-tape__drivers">${driversHtml}</div>` : ''}
+          </div>
+        </div>
+        <button type="button" class="daily-tape__cta" data-tape-cta aria-expanded="${startExpanded ? 'true' : 'false'}" aria-controls="daily-tape-full">
+          <span data-tape-cta-label>${startExpanded ? 'Collapse' : 'Read the Tape'}</span>
+          <span class="daily-tape__cta-icon" aria-hidden="true">&#9662;</span>
+        </button>
+      </section>`;
+
+    const section = root.querySelector('.daily-tape');
+    const btn = root.querySelector('[data-tape-cta]');
+    const ctaLabel = root.querySelector('[data-tape-cta-label]');
+    const preview = root.querySelector('[data-tape-preview]');
+    const full = root.querySelector('[data-tape-full]');
+    if (!btn || !section) return;
+
+    btn.addEventListener('click', () => {
+      const expanded = section.getAttribute('data-expanded') === 'true';
+      const next = !expanded;
+      section.setAttribute('data-expanded', next ? 'true' : 'false');
+      btn.setAttribute('aria-expanded', next ? 'true' : 'false');
+      if (ctaLabel) ctaLabel.textContent = next ? 'Collapse' : 'Read the Tape';
+      if (preview) preview.hidden = next;
+      if (full) full.hidden = !next;
+    });
+  }
+
+  async function refreshTodayMovementDailyTape(arrivalsData, goTangoScoreV2Data) {
+    try {
+      const baseInput = buildTodayMovementInputFromPage(arrivalsData, goTangoScoreV2Data);
+      if (!baseInput) {
+        renderTodayMovementDailyTape(FALLBACK_TODAY_MOVEMENT_BRIEF);
+        return;
+      }
+
+      const enrichedInput = await enrichTodayMovementInputWithNews(baseInput);
+
+      const aiResult = await fetchDailyTapeBriefFromApi(enrichedInput);
+      if (aiResult.ok && aiResult.brief) {
+        renderTodayMovementDailyTape(aiResult.brief);
+        return;
+      }
+
+      if (aiResult.error) {
+        console.info('[Daily Tape] AI synthesis unavailable; using deterministic fallback.', aiResult.error);
+      }
+
+      renderTodayMovementDailyTape(buildTodayMovementBrief(enrichedInput));
+    } catch (error) {
+      console.warn('Error rendering Daily Tape; using fallback:', error);
+      try {
+        renderTodayMovementDailyTape(FALLBACK_TODAY_MOVEMENT_BRIEF);
+      } catch (e) {
+        /* noop */
+      }
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', async () => {
     updateClock();
     setInterval(updateClock, 60000);
@@ -14089,6 +15047,7 @@
     }
     updateStats(arrivalsData);
     updateTodaysPick(arrivalsData);
+    await refreshTodayMovementDailyTape(arrivalsData, goTangoScoreV2Data);
     renderNowMomentumCategories(arrivalsData);
     renderMoversIndex(arrivalsData, moversIndexData);
     renderWorldMap(arrivalsData);
