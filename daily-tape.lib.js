@@ -496,36 +496,48 @@ export async function buildDailyTapePackage(kvClient = kv, {
 /**
  * Refresh orchestrator shared by the FlightAware pull and the daily cron.
  *
- * The brief is regenerated once per arrivals snapshot: each saved record is
- * tagged with the arrivals `source_saved_at`, and a refresh is skipped when the
- * cached brief already matches the current snapshot (unless `force` is set).
- * This guarantees a fresh article whenever new data lands, while keeping it to a
- * single generation per day.
+ * The brief is regenerated once per arrivals snapshot. Each saved record is
+ * tagged with the arrivals `source_saved_at` and a `today_date`, and a non-forced
+ * refresh is skipped when the cached brief already matches the current snapshot
+ * OR is already for the same UTC day. The day-level check is a deliberate
+ * belt-and-suspenders guard so the cron safety net never produces a second
+ * article on a day the pull already generated one, even if the snapshot tag is
+ * missing. `force` bypasses both checks.
+ *
+ * `loadSourceData` and `generate` are injectable for testing.
  */
 export async function refreshDailyTapeCache(kvClient = kv, {
   force = false,
   systemPrompt = TODAY_MOVEMENT_LLM_SYSTEM_PROMPT,
   apiKey = process.env.OPENAI_API_KEY?.trim() || '',
+  loadSourceData = loadBriefSourceDataFromKv,
+  generate = generateDailyTapeBrief,
 } = {}) {
-  const { arrivalsPayload, homepage, scoreResponse } = await loadBriefSourceDataFromKv(kvClient);
+  const { arrivalsPayload, homepage, scoreResponse } = await loadSourceData(kvClient);
   const sourceSavedAt = arrivalsPayload?.saved_at || scoreResponse?.source_saved_at || null;
+  const todayDate = (sourceSavedAt ? String(sourceSavedAt) : new Date().toISOString()).slice(0, 10);
 
   if (!force) {
     const existing = await getDailyTapeFromKv(kvClient);
-    if (existing.ok && sourceSavedAt && existing.source_saved_at === sourceSavedAt) {
-      return {
-        ok: true,
-        skipped: true,
-        reason: 'already_generated_for_snapshot',
-        source_saved_at: sourceSavedAt,
-        generator: existing.generator,
-        brief: existing.brief,
-      };
+    if (existing.ok) {
+      const sameSnapshot = Boolean(sourceSavedAt) && existing.source_saved_at === sourceSavedAt;
+      const sameDay = Boolean(existing.today_date) && existing.today_date === todayDate;
+      if (sameSnapshot || sameDay) {
+        return {
+          ok: true,
+          skipped: true,
+          reason: sameSnapshot ? 'already_generated_for_snapshot' : 'already_generated_today',
+          source_saved_at: sourceSavedAt,
+          today_date: todayDate,
+          generator: existing.generator,
+          brief: existing.brief,
+        };
+      }
     }
   }
 
   const input = buildTodayMovementInputFromSourceData({ arrivalsPayload, scoreResponse, homepage });
-  const result = await generateDailyTapeBrief({
+  const result = await generate({
     input,
     systemPrompt,
     apiKey,
