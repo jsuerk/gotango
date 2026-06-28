@@ -1519,7 +1519,7 @@
     font-weight: 500;
     font-size: clamp(1.5rem, 1.25rem + 1.4vw, 2rem);
     line-height: 1.08;
-    color: var(--text);
+    color: var(--amber);
     margin: 0 0 12px;
     letter-spacing: -0.01em;
   }
@@ -1560,7 +1560,7 @@
     font-family: 'Fraunces', serif;
     font-size: var(--fs-editorial);
     line-height: 1.6;
-    color: var(--text-dim);
+    color: var(--text);
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -14472,7 +14472,7 @@ Return strict JSON:
     }
 
     return {
-      headline: String(aiBrief.headline || 'The Daily Tape').trim(),
+      headline: String(aiBrief.headline || 'The Daily Take').trim(),
       verdict: aiBrief.verdict || 'HEATING',
       confidence: aiBrief.confidence || 'MEDIUM',
       updatedLabel: input?.updatedAt || aiBrief.updatedLabel || _tapeUpdatedLabelFromDate(new Date()),
@@ -14669,7 +14669,7 @@ Return strict JSON:
       });
     }
 
-    const headline = 'The Daily Tape';
+    const headline = 'The Daily Take';
     const collapsedText = paragraphs.join(' ');
 
     return {
@@ -14767,7 +14767,7 @@ Return strict JSON:
 
   /** @type {TodayMovementBrief} Dev/local fallback when no real data is available. */
   const FALLBACK_TODAY_MOVEMENT_BRIEF = {
-    headline: 'The Daily Tape',
+    headline: 'The Daily Take',
     verdict: 'HEATING',
     confidence: 'MEDIUM',
     updatedLabel: _tapeUpdatedLabelFromDate(new Date()),
@@ -14835,7 +14835,7 @@ Return strict JSON:
           <p class="daily-tape__eyebrow">Today's Movement</p>
           ${brief.updatedLabel ? `<p class="daily-tape__updated">${_escapeHtml(String(brief.updatedLabel))}</p>` : ''}
         </div>
-        <h2 class="daily-tape__headline">${_escapeHtml(String(brief.headline || 'The Daily Tape'))}</h2>
+        <h2 class="daily-tape__headline">${_escapeHtml(String(brief.headline || 'The Daily Take'))}</h2>
         <div class="daily-tape__content ${startExpanded ? '' : 'is-collapsed'}" id="daily-tape-content" data-tape-content>
           ${paragraphsHtml}
         </div>
