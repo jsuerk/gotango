@@ -76,7 +76,8 @@ async function fetchJson(url, init = {}) {
 }
 
 async function publishViaFetch(baseUrl, secret) {
-  const url = `${baseUrl}${REFRESH_PATH}`;
+  // Manual publish always regenerates, even if the snapshot is unchanged.
+  const url = `${baseUrl}${REFRESH_PATH}?force=1`;
   console.log(`Publishing Daily Tape via ${url} ...`);
   return fetchJson(url, {
     method: 'POST',
@@ -87,9 +88,10 @@ async function publishViaFetch(baseUrl, secret) {
 function publishViaVercelCurl() {
   console.log('No local build secret — using vercel curl against linked project ...');
   const deployment = process.env.GOTANGO_PREVIEW_DEPLOYMENT || '';
+  const forcedPath = `${REFRESH_PATH}?force=1`;
   const curlArgs = deployment
-    ? ['curl', '--yes', '--deployment', deployment, REFRESH_PATH]
-    : ['curl', '--yes', REFRESH_PATH];
+    ? ['curl', '--yes', '--deployment', deployment, forcedPath]
+    : ['curl', '--yes', forcedPath];
   const result = spawnSync('vercel', curlArgs, {
     cwd: ROOT,
     encoding: 'utf8',
