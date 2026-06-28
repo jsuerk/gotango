@@ -4,8 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "node --test tests/gotango-score-v2.test.js tests/gotango-score-v2-preview-client.test.js tests/weekly-brief.test.js",
-    "build:weekly-brief": "node scripts/build-weekly-brief.mjs"
+    "test": "node --test tests/gotango-score-v2.test.js tests/gotango-score-v2-preview-client.test.js tests/weekly-brief.test.js tests/daily-tape.test.js",
+    "build:weekly-brief": "node scripts/build-weekly-brief.mjs",
+    "publish:daily-tape": "node scripts/publish-daily-tape.mjs"
   },
   "dependencies": {
     "@vercel/kv": "^3.0.0"

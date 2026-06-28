@@ -10,6 +10,10 @@
       "schedule": "0 14 * * *"
     },
     {
+      "path": "/api/refresh-daily-tape",
+      "schedule": "30 14 * * *"
+    },
+    {
       "path": "/api/refresh-weekly-brief",
       "schedule": "0 15 * * 2"
     }
