@@ -15,6 +15,7 @@ import {
   persistDailyTapeToKv,
   readDailyTapeFromKvRecord,
   getDailyTapeFromKv,
+  refreshDailyTapeCache,
 } from '../daily-tape.lib.js';
 
 const SAMPLE_INPUT = {
@@ -136,6 +137,9 @@ test('buildSignalChipsFromInput formats arrivals count', () => {
 });
 
 test('enrichTodayMovementInputWithNewsFromKv attaches blurb and headlines', async () => {
+  // Use timestamps relative to now so the fixture never expires under a moving clock.
+  const generatedAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const fakeKv = {
     async get() {
       return {
@@ -144,8 +148,8 @@ test('enrichTodayMovementInputWithNewsFromKv attaches blurb and headlines', asyn
             destination_id: 'mykonos',
             publishable: true,
             generator_version: 'news_v2',
-            generated_at: '2026-06-27T10:00:00.000Z',
-            expires_at: '2026-06-28T10:00:00.000Z',
+            generated_at: generatedAt,
+            expires_at: expiresAt,
             blurb: 'Fresh hospitality openings are lining up with early private arrivals.',
             citations: [
               { title: 'Mykonos opens for the season', domain: 'example.com', url: 'https://example.com/a' },
@@ -234,26 +238,56 @@ test('Daily Tape KV save/read round-trips a brief', async () => {
     signalChips: [],
     drivers: [],
   };
-  const record = await persistDailyTapeToKv(fakeKv, { brief, generator: 'daily-tape-llm', todayDate: '2026-06-27' });
+  const record = await persistDailyTapeToKv(fakeKv, {
+    brief,
+    generator: 'daily-tape-llm',
+    todayDate: '2026-06-27',
+    sourceSavedAt: '2026-06-27T14:00:00.000Z',
+  });
   assert.equal(record.today_date, '2026-06-27');
+  assert.equal(record.source_saved_at, '2026-06-27T14:00:00.000Z');
   assert.equal(store.get(DAILY_TAPE_KV_KEYS.latest).brief.verdict, 'HEATING');
 
   const hit = await getDailyTapeFromKv(fakeKv);
   assert.equal(hit.ok, true);
   assert.equal(hit.brief.headline, 'The Daily Tape');
   assert.equal(hit.generator, 'daily-tape-llm');
+  // Snapshot tag survives the round-trip so refreshes stay idempotent per pull.
+  assert.equal(hit.source_saved_at, '2026-06-27T14:00:00.000Z');
 });
 
-test('readDailyTapeFromKvRecord rejects empty records', () => {
+test('readDailyTapeFromKvRecord rejects empty records and exposes source snapshot', () => {
   assert.equal(readDailyTapeFromKvRecord(null).ok, false);
   assert.equal(readDailyTapeFromKvRecord({}).ok, false);
-  assert.equal(readDailyTapeFromKvRecord({ brief: { headline: 'x' } }).ok, true);
+  const read = readDailyTapeFromKvRecord({ brief: { headline: 'x' }, source_saved_at: 'snap-1' });
+  assert.equal(read.ok, true);
+  assert.equal(read.source_saved_at, 'snap-1');
 });
 
-test('publish:daily-tape script targets refresh endpoint', () => {
+test('refreshDailyTapeCache is exported for the pull + cron pathways', () => {
+  assert.equal(typeof refreshDailyTapeCache, 'function');
+});
+
+test('fetch-all-arrivals regenerates the Daily Take after saving the snapshot', () => {
+  const src = readFileSync(new URL('../api/fetch-all-arrivals.js', import.meta.url), 'utf8');
+  assert.match(src, /import \{ refreshDailyTapeCache \} from '\.\.\/daily-tape\.lib\.js'/);
+  assert.match(src, /regenerateDailyTapeInline/);
+  // Must only run after a successful KV save so it uses fresh data.
+  assert.match(src, /if \(responseBody\.kv_saved\)/);
+});
+
+test('refresh-daily-tape endpoint supports idempotent + forced refresh', () => {
+  const src = readFileSync(new URL('../api/refresh-daily-tape.js', import.meta.url), 'utf8');
+  assert.match(src, /refreshDailyTapeCache/);
+  assert.match(src, /parseForce/);
+  assert.match(src, /skipped/);
+});
+
+test('publish:daily-tape script targets refresh endpoint and forces regeneration', () => {
   const script = readFileSync(new URL('../scripts/publish-daily-tape.mjs', import.meta.url), 'utf8');
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   assert.match(script, /\/api\/refresh-daily-tape/);
   assert.match(script, /DAILY_TAPE_BUILD_SECRET/);
+  assert.match(script, /force=1/);
   assert.equal(pkg.scripts['publish:daily-tape'], 'node scripts/publish-daily-tape.mjs');
 });

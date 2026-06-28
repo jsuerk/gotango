@@ -1,9 +1,11 @@
 import crypto from 'node:crypto';
 import { kv } from '@vercel/kv';
-import {
-  buildDailyTapePackage,
-  persistDailyTapeToKv,
-} from '../daily-tape.lib.js';
+import { refreshDailyTapeCache } from '../daily-tape.lib.js';
+
+function parseForce(req) {
+  const raw = String(req.query?.force ?? '').toLowerCase();
+  return raw === '1' || raw === 'true';
+}
 
 function timingSafeMatch(provided, expected) {
   const expectedBuf = Buffer.from(String(expected).trim());
@@ -70,8 +72,26 @@ export default async function handler(req, res) {
     return res.status(auth.status).json({ ok: false, error: auth.error });
   }
 
+  // Default (cron) runs idempotently: it only regenerates when the arrivals
+  // snapshot changed since the cached brief, acting as a safety net for the
+  // inline regeneration in fetch-all-arrivals. `?force=1` always regenerates.
+  const force = parseForce(req);
+
   try {
-    const { input, result } = await buildDailyTapePackage(kv);
+    const result = await refreshDailyTapeCache(kv, { force });
+
+    if (result.skipped) {
+      console.log(
+        `[refresh-daily-tape] up to date for snapshot=${result.source_saved_at} source=${auth.source}`,
+      );
+      return res.status(200).json({
+        ok: true,
+        skipped: true,
+        reason: result.reason,
+        source_saved_at: result.source_saved_at,
+        generator: result.generator,
+      });
+    }
 
     if (!result.ok) {
       // Leave any previously cached brief in place so users keep yesterday's
@@ -83,26 +103,20 @@ export default async function handler(req, res) {
         ok: false,
         error: result.error,
         llm_error: result.llm_error,
-        heating_count: input.heatingCount,
-        cooling_count: input.coolingCount,
+        heating_count: result.input?.heatingCount,
+        cooling_count: result.input?.coolingCount,
       });
     }
 
-    const record = await persistDailyTapeToKv(kv, {
-      brief: result.brief,
-      generator: result.generator,
-      llmError: result.llm_error,
-      todayDate: input.todayDate,
-    });
-
     console.log(
-      `[refresh-daily-tape] saved verdict=${result.brief.verdict} generator=${result.generator} heating=${input.heatingCount} cooling=${input.coolingCount} source=${auth.source}`,
+      `[refresh-daily-tape] saved verdict=${result.brief.verdict} generator=${result.generator} heating=${result.input.heatingCount} cooling=${result.input.coolingCount} snapshot=${result.source_saved_at} source=${auth.source}`,
     );
 
     return res.status(200).json({
       ok: true,
-      saved_at: record.saved_at,
-      today_date: record.today_date,
+      saved_at: result.record.saved_at,
+      today_date: result.record.today_date,
+      source_saved_at: result.source_saved_at,
       generator: result.generator,
       verdict: result.brief.verdict,
     });

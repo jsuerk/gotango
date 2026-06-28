@@ -471,13 +471,15 @@ export function buildTodayMovementInputFromSourceData({ arrivalsPayload, scoreRe
 
 /**
  * Generates the Daily Tape brief from cached source data (cron path).
- * Returns the generated brief plus the input used.
+ * Returns the generated brief, the input used, and the arrivals snapshot the
+ * brief was built from (used for once-per-snapshot idempotency).
  */
 export async function buildDailyTapePackage(kvClient = kv, {
   systemPrompt = TODAY_MOVEMENT_LLM_SYSTEM_PROMPT,
   apiKey = process.env.OPENAI_API_KEY?.trim() || '',
 } = {}) {
   const { arrivalsPayload, homepage, scoreResponse } = await loadBriefSourceDataFromKv(kvClient);
+  const sourceSavedAt = arrivalsPayload?.saved_at || scoreResponse?.source_saved_at || null;
   const input = buildTodayMovementInputFromSourceData({ arrivalsPayload, scoreResponse, homepage });
 
   const result = await generateDailyTapeBrief({
@@ -488,14 +490,87 @@ export async function buildDailyTapePackage(kvClient = kv, {
     kvClient,
   });
 
-  return { input, result };
+  return { input, result, sourceSavedAt };
 }
 
-export async function persistDailyTapeToKv(kvClient, { brief, generator = 'daily-tape-llm', llmError = null, todayDate = null }) {
+/**
+ * Refresh orchestrator shared by the FlightAware pull and the daily cron.
+ *
+ * The brief is regenerated once per arrivals snapshot: each saved record is
+ * tagged with the arrivals `source_saved_at`, and a refresh is skipped when the
+ * cached brief already matches the current snapshot (unless `force` is set).
+ * This guarantees a fresh article whenever new data lands, while keeping it to a
+ * single generation per day.
+ */
+export async function refreshDailyTapeCache(kvClient = kv, {
+  force = false,
+  systemPrompt = TODAY_MOVEMENT_LLM_SYSTEM_PROMPT,
+  apiKey = process.env.OPENAI_API_KEY?.trim() || '',
+} = {}) {
+  const { arrivalsPayload, homepage, scoreResponse } = await loadBriefSourceDataFromKv(kvClient);
+  const sourceSavedAt = arrivalsPayload?.saved_at || scoreResponse?.source_saved_at || null;
+
+  if (!force) {
+    const existing = await getDailyTapeFromKv(kvClient);
+    if (existing.ok && sourceSavedAt && existing.source_saved_at === sourceSavedAt) {
+      return {
+        ok: true,
+        skipped: true,
+        reason: 'already_generated_for_snapshot',
+        source_saved_at: sourceSavedAt,
+        generator: existing.generator,
+        brief: existing.brief,
+      };
+    }
+  }
+
+  const input = buildTodayMovementInputFromSourceData({ arrivalsPayload, scoreResponse, homepage });
+  const result = await generateDailyTapeBrief({
+    input,
+    systemPrompt,
+    apiKey,
+    enrichNews: true,
+    kvClient,
+  });
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      skipped: false,
+      error: result.error,
+      llm_error: result.llm_error,
+      input,
+      source_saved_at: sourceSavedAt,
+    };
+  }
+
+  const record = await persistDailyTapeToKv(kvClient, {
+    brief: result.brief,
+    generator: result.generator,
+    llmError: result.llm_error,
+    todayDate: input.todayDate,
+    sourceSavedAt,
+  });
+
+  return {
+    ok: true,
+    skipped: false,
+    record,
+    input,
+    brief: result.brief,
+    generator: result.generator,
+    source_saved_at: sourceSavedAt,
+  };
+}
+
+export async function persistDailyTapeToKv(kvClient, { brief, generator = 'daily-tape-llm', llmError = null, todayDate = null, sourceSavedAt = null }) {
   const savedAt = new Date().toISOString();
   const record = {
     saved_at: savedAt,
     today_date: todayDate || (brief && brief.todayDate) || savedAt.slice(0, 10),
+    // Arrivals snapshot this brief was generated from; drives once-per-pull
+    // idempotency so the same data never yields two different articles.
+    source_saved_at: sourceSavedAt,
     generator,
     llm_error: llmError,
     brief,
@@ -512,6 +587,7 @@ export function readDailyTapeFromKvRecord(record) {
     ok: true,
     saved_at: record.saved_at || null,
     today_date: record.today_date || null,
+    source_saved_at: record.source_saved_at || null,
     generator: record.generator || null,
     llm_error: record.llm_error || null,
     brief: record.brief,
