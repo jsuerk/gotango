@@ -208,6 +208,7 @@ Additional rules:
 - Do not overclaim.
 - Do not use “MATTERS” as a verdict label.
 - Use “HEATING” as the primary positive verdict label.
+- Always include 2 to 4 signalChips and 2 to 4 driver cards in the JSON, even though the page may not display them.
 
 Return strict JSON:
 {
@@ -911,6 +912,45 @@ export function buildSignalChipsFromInput(input) {
   return chips;
 }
 
+/**
+ * Deterministically builds 2 valid driver cards from the input. Used as a
+ * repair fallback when the model omits or malforms the `drivers` array. Drivers
+ * are internal metadata (not rendered on the Now page), so they must never be
+ * the reason an otherwise-valid article is discarded.
+ */
+export function buildDriversFromInput(input, draft = null) {
+  const heatingCount = Number(input?.heatingCount);
+  const coolingCount = Number(input?.coolingCount);
+  const heatingBroad = Number.isFinite(heatingCount) && heatingCount >= 3;
+  const drivers = [{
+    label: 'BREADTH',
+    value: heatingBroad ? 'WIDER HEAT' : 'CONCENTRATED',
+    detail: heatingBroad
+      ? 'More than one cluster is participating, so the move is broader than a single destination.'
+      : 'A short list of names is doing most of the lifting for now.',
+    tone: heatingBroad ? 'heating' : 'steady',
+  }];
+
+  const verdict = draft?.verdict != null ? String(draft.verdict).trim() : '';
+  const coolingLeads = Number.isFinite(coolingCount) && Number.isFinite(heatingCount) && coolingCount > heatingCount;
+  if (verdict === 'COOLING' || coolingLeads) {
+    drivers.push({
+      label: 'CAVEAT',
+      value: 'PEAK FADE',
+      detail: 'Some cooling is the high-season rush peaking on schedule rather than lost interest.',
+      tone: 'cooling',
+    });
+  } else {
+    drivers.push({
+      label: 'WATCH NEXT',
+      value: 'HOLDING RANK',
+      detail: 'The next signal is whether today’s names stay elevated tomorrow or fade.',
+      tone: 'neutral',
+    });
+  }
+  return drivers;
+}
+
 export function normalizeDailyTapeBrief(draft, input, meta = {}) {
   const paragraphs = (draft.paragraphs || [])
     .map((p) => String(p).trim())
@@ -1116,6 +1156,27 @@ IMPORTANT RETRY: ${corrections.join(' ')} Keep the same JSON schema.`;
       };
     }
     validation = validateDailyTapeDraft(result.draft, workingInput);
+  }
+
+  // Drivers and signal chips are internal metadata the Now page does not render
+  // (the section shows only the headline and the read). A flaky model miss on
+  // these arrays must never discard an otherwise-valid article, so when the ONLY
+  // remaining issues are these recoverable metadata arrays, repair them
+  // deterministically from the input rather than failing the whole generation.
+  if (!validation.ok) {
+    const RECOVERABLE_METADATA_ERRORS = new Set([
+      'drivers_count',
+      'invalid_driver',
+      'invalid_signal_chips',
+      'invalid_signal_chip',
+    ]);
+    const onlyMetadataIssues = validation.errors.length > 0
+      && validation.errors.every((e) => RECOVERABLE_METADATA_ERRORS.has(String(e)));
+    if (onlyMetadataIssues) {
+      result.draft.drivers = buildDriversFromInput(workingInput, result.draft);
+      result.draft.signalChips = buildSignalChipsFromInput(workingInput);
+      validation = validateDailyTapeDraft(result.draft, workingInput);
+    }
   }
 
   if (!validation.ok) {
