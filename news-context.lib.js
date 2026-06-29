@@ -59,8 +59,11 @@ export const NEWS_KV_KEYS = {
   meta: 'gotango:news:meta',
   runs: 'gotango:news:runs',
   lock: 'gotango:news:lock',
+  dailyRefreshState: 'gotango:news:daily_refresh_state',
   diagnostics: (id) => `gotango:news:diagnostics:${id}`,
 };
+
+export const ARRIVALS_LATEST_KV_KEY = 'gotango:arrivals:latest';
 
 export const DESTINATION_START_DEADLINE_MS = 40_000;
 export const HARD_EXECUTION_DEADLINE_MS = 52_000;
@@ -713,6 +716,54 @@ export function authorizeNewsRequest(req) {
   }
 
   return { ok: true };
+}
+
+export function getNewsRefreshCronSecrets() {
+  return [
+    process.env.CRON_SECRET,
+    process.env.NEWS_CONTEXT_SECRET,
+    process.env.DAILY_TAPE_BUILD_SECRET,
+  ].filter((secret) => secret != null && String(secret).trim() !== '');
+}
+
+export function authorizeNewsCronRequest(req) {
+  const cronHeader = req.headers?.['x-vercel-cron'] ?? req.headers?.['X-Vercel-Cron'];
+  if (cronHeader === '1') {
+    return { ok: true, source: 'vercel-cron' };
+  }
+
+  if (process.env.VERCEL_ENV === 'preview') {
+    return { ok: true, source: 'preview' };
+  }
+
+  const bypass = req.headers?.['x-vercel-protection-bypass'];
+  const expectedBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  if (bypass && expectedBypass && timingSafeBearerMatch(bypass, expectedBypass)) {
+    return { ok: true, source: 'protection-bypass' };
+  }
+
+  const secrets = getNewsRefreshCronSecrets();
+  if (secrets.length === 0) {
+    return { ok: false, status: 503, error: 'Service unavailable' };
+  }
+
+  const authHeader = req.headers?.authorization ?? req.headers?.Authorization;
+  if (!authHeader || typeof authHeader !== 'string') {
+    return { ok: false, status: 403, error: 'Forbidden' };
+  }
+
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (!match) {
+    return { ok: false, status: 403, error: 'Forbidden' };
+  }
+
+  const provided = match[1].trim();
+  const authorized = secrets.some((secret) => timingSafeBearerMatch(provided, secret));
+  if (!authorized) {
+    return { ok: false, status: 403, error: 'Forbidden' };
+  }
+
+  return { ok: true, source: 'bearer' };
 }
 
 export function rejectUnknownQueryParams(req, allowedKeys) {
@@ -5575,6 +5626,322 @@ export function buildConfigSafeIdentity(config) {
     excluded_meanings: config.excluded_meanings,
     search_hints: config.search_hints,
   };
+}
+
+export async function loadArrivalsSourceSavedAt(kvClient) {
+  try {
+    const payload = await kvClient.get(ARRIVALS_LATEST_KV_KEY);
+    return payload?.saved_at || null;
+  } catch {
+    return null;
+  }
+}
+
+export function shouldSkipDailyNewsRefresh({ force = false, state, sourceSavedAt, todayDate }) {
+  if (force) return { skip: false };
+  if (state?.completed && state?.source_saved_at === sourceSavedAt) {
+    return { skip: true, reason: 'already_refreshed_for_snapshot' };
+  }
+  if (state?.completed && state?.today_date === todayDate) {
+    return { skip: true, reason: 'already_refreshed_today' };
+  }
+  return { skip: false };
+}
+
+export function partitionNewsRefreshBatchResults(results, pendingDestinationIds) {
+  const pendingSet = new Set(pendingDestinationIds);
+  const stillPending = [];
+
+  for (const result of results) {
+    if (!pendingSet.has(result.destination_id)) continue;
+    if (result.rejection_reason === REJECTION_REASONS.FUNCTION_DEADLINE) {
+      stillPending.push(result.destination_id);
+    }
+  }
+
+  const processedIds = new Set(results.map((result) => result.destination_id));
+  for (const destinationId of pendingDestinationIds) {
+    if (!processedIds.has(destinationId) && !stillPending.includes(destinationId)) {
+      stillPending.push(destinationId);
+    }
+  }
+
+  return stillPending;
+}
+
+export async function acquireNewsRunLock(kvClient, runId) {
+  const acquiredAt = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + LOCK_TTL_SECONDS * 1000).toISOString();
+  const lockPayload = {
+    run_id: runId,
+    acquired_at: acquiredAt,
+    expires_at: expiresAt,
+  };
+
+  const result = await kvClient.set(NEWS_KV_KEYS.lock, lockPayload, {
+    nx: true,
+    ex: LOCK_TTL_SECONDS,
+  });
+
+  if (result !== 'OK' && result !== true) {
+    return { acquired: false };
+  }
+
+  return { acquired: true, lockPayload };
+}
+
+export async function releaseNewsRunLock(kvClient, runId) {
+  try {
+    const current = await kvClient.get(NEWS_KV_KEYS.lock);
+    if (current && typeof current === 'object' && current.run_id === runId) {
+      await kvClient.del(NEWS_KV_KEYS.lock);
+    }
+  } catch (err) {
+    console.error('[news-context] lock release skipped:', err);
+  }
+}
+
+export async function saveNewsRunResults(
+  kvClient,
+  {
+    runId,
+    startedAt,
+    completedAt,
+    durationMs,
+    configuredModel,
+    maxOutputTokens,
+    attempted,
+    metrics,
+    results,
+  },
+) {
+  const runSummary = compactRunSummary({
+    runId,
+    startedAt,
+    completedAt,
+    durationMs,
+    configuredModel,
+    maxOutputTokens,
+    attempted,
+    metrics,
+  });
+
+  const meta = {
+    run_id: runId,
+    started_at: startedAt,
+    completed_at: completedAt,
+    duration_ms: durationMs,
+    configured_model: configuredModel,
+    max_output_tokens: maxOutputTokens,
+    attempted,
+    completed: metrics.completedCount,
+    publishable_count: metrics.publishableCount,
+    rejected_count: metrics.rejectedCount,
+    failed_count: metrics.failedCount,
+    skipped_count: metrics.skippedCount,
+    web_search_calls: metrics.totals.web_search_calls,
+    input_tokens: metrics.totals.input_tokens,
+    cached_input_tokens: metrics.totals.cached_input_tokens,
+    output_tokens: metrics.totals.output_tokens,
+    reasoning_tokens: metrics.totals.reasoning_tokens,
+    total_tokens: metrics.totals.total_tokens,
+    estimated_search_cost: metrics.totals.estimated_search_cost,
+    estimated_model_cost: metrics.totals.estimated_model_cost,
+    estimated_total_cost: metrics.totals.estimated_total_cost,
+    pricing_version: runSummary.pricing_version,
+    generator_version: runSummary.generator_version,
+  };
+
+  const existingLatest = await kvClient.get(NEWS_KV_KEYS.latest);
+  const mergedLatest = mergeLatestNews(existingLatest, results, completedAt);
+
+  for (const result of results) {
+    await kvClient.set(NEWS_KV_KEYS.diagnostics(result.destination_id), result);
+  }
+
+  await kvClient.set(NEWS_KV_KEYS.latest, mergedLatest);
+  await kvClient.set(NEWS_KV_KEYS.meta, meta);
+  await kvClient.lpush(NEWS_KV_KEYS.runs, runSummary);
+  await kvClient.ltrim(NEWS_KV_KEYS.runs, 0, 29);
+}
+
+export function getNewsRefreshApiBaseUrl(req) {
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  const host = req?.headers?.['x-forwarded-host'] || req?.headers?.host;
+  const proto = req?.headers?.['x-forwarded-proto'] || 'https';
+  if (host) return `${proto}://${host}`;
+  return null;
+}
+
+export function scheduleNewsRefreshContinuation(req) {
+  const secrets = getNewsRefreshCronSecrets();
+  if (!secrets.length) {
+    console.warn('[refresh-all-destination-news] continuation skipped: no auth secret');
+    return;
+  }
+
+  const baseUrl = getNewsRefreshApiBaseUrl(req);
+  if (!baseUrl) {
+    console.warn('[refresh-all-destination-news] continuation skipped: unknown base URL');
+    return;
+  }
+
+  const url = `${baseUrl}/api/refresh-all-destination-news?continue=1`;
+  fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${String(secrets[0]).trim()}`,
+    },
+  }).catch((err) => {
+    console.warn('[refresh-all-destination-news] continuation fetch failed:', err);
+  });
+}
+
+/**
+ * Daily refresh orchestrator shared by the scheduled cron and continuation calls.
+ *
+ * Each batch processes as many destinations as the worker pool can finish within
+ * the serverless deadline. Remaining destinations stay queued in KV until the next
+ * continuation or safety-net cron run. A non-forced refresh is skipped when the
+ * cached state already matches the current arrivals snapshot or UTC day.
+ */
+export async function refreshAllDestinationNewsCache(kvClient, {
+  force = false,
+  apiKey = process.env.OPENAI_API_KEY?.trim() || '',
+} = {}) {
+  if (!apiKey) {
+    return { ok: false, error: 'missing_openai_api_key' };
+  }
+
+  const sourceSavedAt = await loadArrivalsSourceSavedAt(kvClient);
+  const todayDate = (sourceSavedAt ? String(sourceSavedAt) : new Date().toISOString()).slice(0, 10);
+  const allConfigs = getDestinationNewsConfigsInOrder();
+  const allDestinationIds = allConfigs.map((config) => config.destination_id);
+
+  let state = await kvClient.get(NEWS_KV_KEYS.dailyRefreshState);
+  const skipCheck = shouldSkipDailyNewsRefresh({ force, state, sourceSavedAt, todayDate });
+  if (skipCheck.skip) {
+    return {
+      ok: true,
+      skipped: true,
+      reason: skipCheck.reason,
+      source_saved_at: sourceSavedAt,
+      today_date: todayDate,
+      completed: true,
+    };
+  }
+
+  const needsNewRun =
+    force
+    || !state
+    || state.source_saved_at !== sourceSavedAt
+    || state.today_date !== todayDate;
+
+  if (needsNewRun) {
+    state = {
+      source_saved_at: sourceSavedAt,
+      today_date: todayDate,
+      pending_destination_ids: allDestinationIds,
+      completed: false,
+      started_at: new Date().toISOString(),
+    };
+  }
+
+  const pendingSet = new Set(state.pending_destination_ids || []);
+  const pendingConfigs = allConfigs.filter((config) => pendingSet.has(config.destination_id));
+
+  if (!pendingConfigs.length) {
+    state.completed = true;
+    await kvClient.set(NEWS_KV_KEYS.dailyRefreshState, state);
+    return {
+      ok: true,
+      skipped: true,
+      reason: 'no_pending_destinations',
+      source_saved_at: sourceSavedAt,
+      today_date: todayDate,
+      completed: true,
+    };
+  }
+
+  const runId = crypto.randomUUID();
+  const functionStartMs = Date.now();
+  const startedAt = new Date().toISOString();
+  const lock = await acquireNewsRunLock(kvClient, runId);
+  if (!lock.acquired) {
+    return { ok: false, error: 'lock_contended', retry: true };
+  }
+
+  const configuredModel = getConfiguredModel();
+  const maxOutputTokens = parseMaxOutputTokens();
+  const ttlHours = parseTtlHours();
+  const concurrency = parseWorkerConcurrency();
+
+  try {
+    const results = await runNewsWorkerPool({
+      destinations: pendingConfigs,
+      apiKey,
+      generatedAt: startedAt,
+      ttlHours,
+      functionStartMs,
+      concurrency,
+    });
+
+    const completedAt = new Date().toISOString();
+    const durationMs = Date.now() - functionStartMs;
+    const metrics = aggregateRunMetrics(results);
+
+    await saveNewsRunResults(kvClient, {
+      runId,
+      startedAt,
+      completedAt,
+      durationMs,
+      configuredModel,
+      maxOutputTokens,
+      attempted: pendingConfigs.length,
+      metrics,
+      results,
+    });
+
+    const stillPending = partitionNewsRefreshBatchResults(
+      results,
+      state.pending_destination_ids || [],
+    );
+
+    state.pending_destination_ids = stillPending;
+    state.completed = stillPending.length === 0;
+    state.last_batch_at = completedAt;
+    state.last_batch_attempted = pendingConfigs.length;
+    state.last_batch_publishable = metrics.publishableCount;
+    await kvClient.set(NEWS_KV_KEYS.dailyRefreshState, state);
+
+    return {
+      ok: true,
+      skipped: false,
+      run_id: runId,
+      completed: state.completed,
+      pending_remaining: stillPending.length,
+      source_saved_at: sourceSavedAt,
+      today_date: todayDate,
+      attempted: pendingConfigs.length,
+      publishable_count: metrics.publishableCount,
+      rejected_count: metrics.rejectedCount,
+      failed_count: metrics.failedCount,
+      skipped_count: metrics.skippedCount,
+      duration_ms: durationMs,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+      source_saved_at: sourceSavedAt,
+      today_date: todayDate,
+    };
+  } finally {
+    await releaseNewsRunLock(kvClient, runId);
+  }
 }
 
 export {
