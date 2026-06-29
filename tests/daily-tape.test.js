@@ -502,10 +502,13 @@ test('buildTodayMovementInputFromSourceData maps score response to input', () =>
     now_minimum_public_score: 60,
     source_saved_at: '2026-06-27T14:00:00.000Z',
     destinations: [
-      { id: 'mykonos', name: 'Mykonos', go_tango_score: 88, now_heating_display_eligible: true, now_cooling_display_eligible: false, raw_ga_arrivals_24h: 30 },
-      { id: 'st-tropez', name: 'St. Tropez', go_tango_score: 81, now_heating_display_eligible: true, now_cooling_display_eligible: false },
-      { id: 'low-score', name: 'Low Score', go_tango_score: 40, now_heating_display_eligible: true, now_cooling_display_eligible: false },
-      { id: 'aspen', name: 'Aspen', go_tango_score: 66, now_heating_display_eligible: false, now_cooling_display_eligible: true },
+      { id: 'mykonos', name: 'Mykonos', go_tango_score: 88, confirmed_category: 'heating_up', now_heating_display_eligible: true, now_cooling_display_eligible: false, raw_ga_arrivals_24h: 30 },
+      { id: 'st-tropez', name: 'St. Tropez', go_tango_score: 81, confirmed_category: 'heating_up', now_heating_display_eligible: true, now_cooling_display_eligible: false },
+      // Confirmed heating but not actively moving today: counted by the hero bar
+      // / Movers page, so the Daily Tape must count it too (the bug this guards).
+      { id: 'charleston', name: 'Charleston', go_tango_score: 90, confirmed_category: 'heating_up', now_heating_display_eligible: false, now_cooling_display_eligible: false },
+      { id: 'low-score', name: 'Low Score', go_tango_score: 40, confirmed_category: 'steady', now_heating_display_eligible: false, now_cooling_display_eligible: false },
+      { id: 'aspen', name: 'Aspen', go_tango_score: 66, confirmed_category: 'cooling', now_heating_display_eligible: false, now_cooling_display_eligible: true },
     ],
   };
   const input = buildTodayMovementInputFromSourceData({
@@ -515,18 +518,23 @@ test('buildTodayMovementInputFromSourceData maps score response to input', () =>
   });
 
   assert.equal(input.destinationCount, 51);
-  // low-score (40) is excluded by the minimum public score of 60.
-  assert.equal(input.heatingCount, 2);
+  // Counts must match the Now hero bar / Movers page, which count every
+  // confirmed_category heating_up / cooling destination — including Charleston,
+  // which is confirmed heating but not actively moving today.
+  assert.equal(input.heatingCount, 3);
   assert.equal(input.coolingCount, 1);
   assert.equal(input.privateArrivals24h, 1744);
   assert.equal(input.updatedAt, 'UPDATED 14:00Z');
+  // Named heating list surfaces actively-moving (display-eligible) names first,
+  // then falls back to GoTango Score order, so Charleston trails despite its
+  // higher score.
   const heatingNames = input.destinations.filter((d) => d.status === 'heating').map((d) => d.name);
-  assert.deepEqual(heatingNames, ['Mykonos', 'St. Tropez']);
+  assert.deepEqual(heatingNames, ['Mykonos', 'St. Tropez', 'Charleston']);
   // Score leaders are ranked by GoTango Score (>= min public score), independent
   // of heating/cooling status, and exclude the sub-threshold low-score entry.
   assert.ok(Array.isArray(input.scoreLeaders));
-  assert.deepEqual(input.scoreLeaders.map((d) => d.name), ['Mykonos', 'St. Tropez', 'Aspen']);
-  assert.equal(input.scoreLeaders[0].goTangoScore, 88);
+  assert.deepEqual(input.scoreLeaders.map((d) => d.name), ['Charleston', 'Mykonos', 'St. Tropez', 'Aspen']);
+  assert.equal(input.scoreLeaders[0].goTangoScore, 90);
   const validation = validateTodayMovementInput(input);
   assert.equal(validation.ok, true);
 });
@@ -598,7 +606,7 @@ const FAKE_SOURCE = {
     now_minimum_public_score: 60,
     source_saved_at: '2026-06-28T14:00:00.000Z',
     destinations: [
-      { id: 'mykonos', name: 'Mykonos', go_tango_score: 88, now_heating_display_eligible: true, now_cooling_display_eligible: false },
+      { id: 'mykonos', name: 'Mykonos', go_tango_score: 88, confirmed_category: 'heating_up', now_heating_display_eligible: true, now_cooling_display_eligible: false },
     ],
   },
 };
