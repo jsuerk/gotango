@@ -8,7 +8,10 @@ import {
   buildDailyTapePrompt,
   buildSignalChipsFromInput,
   buildTodayMovementInputFromSourceData,
+  buildDailyTapeUserMessage,
   findForbiddenDailyTapeCopyPhrases,
+  findLeadershipMisattributions,
+  getDailyTapeScoreLeaders,
   normalizeDailyTapeBrief,
   parseDailyTapeJsonFromModelText,
   validateDailyTapeDraft,
@@ -55,9 +58,48 @@ test('TODAY_MOVEMENT_LLM_SYSTEM_PROMPT forbids MATTERS and requires accessible T
   assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Looking Forward/);
   assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /private arrivals/);
   assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /observed arrivals/);
+  assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /GoTango Score leadership rule/);
   assert.doesNotMatch(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Daily Tape writer/);
   assert.doesNotMatch(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /private travel today/);
 });
+
+const SCORE_LEADER_INPUT = {
+  todayDate: '2026-06-28',
+  updatedAt: 'UPDATED 14:00Z',
+  destinationCount: 51,
+  heatingCount: 3,
+  coolingCount: 1,
+  scoreLeaders: [
+    { id: 'hamptons', name: 'Hamptons', goTangoScore: 99 },
+    { id: 'nantucket', name: 'Nantucket', goTangoScore: 97 },
+    { id: 'nassau', name: 'Nassau', goTangoScore: 91 },
+  ],
+  destinations: [
+    { id: 'nassau', name: 'Nassau', status: 'heating', goTangoScore: 91 },
+    { id: '30a', name: '30A', status: 'heating', goTangoScore: 88 },
+    { id: 'olbia', name: 'Sardinia / Olbia', status: 'heating', goTangoScore: 85 },
+    { id: 'aspen', name: 'Aspen', status: 'cooling', goTangoScore: 55 },
+  ],
+};
+
+function makeScoreLedDraft(headline, leadParagraph) {
+  return {
+    headline,
+    verdict: 'HEATING',
+    confidence: 'HIGH',
+    paragraphs: [
+      leadParagraph || 'Hamptons holds the top GoTango score today, while Nassau and 30A gain momentum.',
+      'Compared with yesterday, the move looks broader rather than one marquee surge.',
+      'Destination news adds texture through hospitality openings and seasonal programming.',
+      'Looking forward, watch whether the heating names keep climbing or fade.',
+    ],
+    signalChips: [{ label: 'HEATING', value: '3', tone: 'heating' }],
+    drivers: [
+      { label: 'BREADTH', value: 'WIDER HEAT', detail: 'Multiple clusters are participating.', tone: 'heating' },
+      { label: 'WATCH NEXT', value: 'HOLDING RANK', detail: 'Leaders need to repeat tomorrow.', tone: 'neutral' },
+    ],
+  };
+}
 
 test('validateTodayMovementInput accepts well-formed input', () => {
   const result = validateTodayMovementInput(SAMPLE_INPUT);
@@ -152,6 +194,68 @@ test('findForbiddenDailyTapeCopyPhrases ignores tape inside unrelated words', ()
   assert.ok(findForbiddenDailyTapeCopyPhrases('the tape is hot').includes('the tape'));
   assert.ok(findForbiddenDailyTapeCopyPhrases('private arrivals rose today').includes('private arrivals'));
   assert.ok(findForbiddenDailyTapeCopyPhrases('each private arrival matters').includes('private arrival'));
+});
+
+test('getDailyTapeScoreLeaders ranks by GoTango Score, not heating status', () => {
+  const leaders = getDailyTapeScoreLeaders(SCORE_LEADER_INPUT);
+  assert.equal(leaders[0].name, 'Hamptons');
+  assert.equal(leaders[0].goTangoScore, 99);
+  assert.equal(leaders[1].name, 'Nantucket');
+});
+
+test('findLeadershipMisattributions flags only non-top-score leadership phrasing', () => {
+  // Nassau is heating but not the top GoTango Score (Hamptons 99) -> flagged.
+  assert.deepEqual(findLeadershipMisattributions('Nassau leads the way today', SCORE_LEADER_INPUT), ['Nassau']);
+  // Top-score destination may lead.
+  assert.deepEqual(findLeadershipMisattributions('Hamptons leads the way as Nassau heats up', SCORE_LEADER_INPUT), []);
+  // Momentum framing for a non-top destination is allowed.
+  assert.deepEqual(findLeadershipMisattributions('Nassau heats up behind the leaders', SCORE_LEADER_INPUT), []);
+});
+
+test('validateDailyTapeDraft rejects a heating destination described as the leader (screenshot scenario)', () => {
+  // Hamptons 99, Nantucket 97, Nassau 91 heating. Headline must not crown Nassau.
+  const result = validateDailyTapeDraft(
+    makeScoreLedDraft('Nassau leads the way as 30A and Olbia heat up'),
+    SCORE_LEADER_INPUT,
+  );
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.some((e) => String(e).startsWith('leadership_misattribution:')));
+  assert.ok(result.errors.some((e) => /Nassau/.test(String(e))));
+});
+
+test('validateDailyTapeDraft accepts score-led headline that frames Nassau as momentum', () => {
+  const result = validateDailyTapeDraft(
+    makeScoreLedDraft('Hamptons holds the top spot as Nassau heats up behind the leaders'),
+    SCORE_LEADER_INPUT,
+  );
+  assert.equal(result.ok, true);
+});
+
+test('validateDailyTapeDraft allows Nassau to lead when it has the top GoTango Score', () => {
+  const nassauTopInput = {
+    ...SCORE_LEADER_INPUT,
+    scoreLeaders: [
+      { id: 'nassau', name: 'Nassau', goTangoScore: 99 },
+      { id: 'hamptons', name: 'Hamptons', goTangoScore: 95 },
+    ],
+    destinations: [
+      { id: 'nassau', name: 'Nassau', status: 'heating', goTangoScore: 99 },
+      { id: '30a', name: '30A', status: 'heating', goTangoScore: 88 },
+    ],
+  };
+  const result = validateDailyTapeDraft(
+    makeScoreLedDraft('Nassau leads the way as 30A heats up'),
+    nassauTopInput,
+  );
+  assert.equal(result.ok, true);
+});
+
+test('buildDailyTapeUserMessage surfaces GoTango Score leaders ahead of heating momentum', () => {
+  const msg = buildDailyTapeUserMessage(SCORE_LEADER_INPUT);
+  assert.match(msg, /GoTango Score leaders/);
+  assert.match(msg, /1\. Hamptons — score 99/);
+  assert.match(msg, /Heating momentum/);
+  assert.ok(msg.indexOf('GoTango Score leaders') < msg.indexOf('Heating momentum'));
 });
 
 test('parseDailyTapeJsonFromModelText handles fenced JSON', () => {
@@ -272,6 +376,11 @@ test('buildTodayMovementInputFromSourceData maps score response to input', () =>
   assert.equal(input.updatedAt, 'UPDATED 14:00Z');
   const heatingNames = input.destinations.filter((d) => d.status === 'heating').map((d) => d.name);
   assert.deepEqual(heatingNames, ['Mykonos', 'St. Tropez']);
+  // Score leaders are ranked by GoTango Score (>= min public score), independent
+  // of heating/cooling status, and exclude the sub-threshold low-score entry.
+  assert.ok(Array.isArray(input.scoreLeaders));
+  assert.deepEqual(input.scoreLeaders.map((d) => d.name), ['Mykonos', 'St. Tropez', 'Aspen']);
+  assert.equal(input.scoreLeaders[0].goTangoScore, 88);
   const validation = validateTodayMovementInput(input);
   assert.equal(validation.ok, true);
 });
