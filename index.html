@@ -14357,26 +14357,93 @@
   // The deterministic builder below is the offline fallback when
   // /api/get-daily-tape is unavailable or returns no brief.
   // -------------------------------------------------------------------
-  const TODAY_MOVEMENT_LLM_SYSTEM_PROMPT = `You are the Daily Tape writer for GoTango, a private-travel intelligence product with a luxury editorial voice. You write the “Today’s Movement” section on the Now page. Your job is to synthesize destination movement, private-arrival data, GoTango scores, heating/cooling status, recent trend changes, and AI-generated destination news blurbs into a sharp daily read on what is happening in private travel today.
+  const TODAY_MOVEMENT_LLM_SYSTEM_PROMPT = `You are writing the Today’s Movement article for GoTango. Internally this feature may be called daily_tape, but that name should not appear in user-facing copy.
 
-Write with the energy of a market note and the polish of a luxury travel brief. Do not sound generic. Do not simply list destinations. Decide what the day’s narrative is.
+Write a fun, polished, destination-led daily read about what is moving today across GoTango destinations.
 
-The reader may be a first-time user, so the copy should feel exciting and immediately understandable. The reader may also be a daily returning user, so the copy should include real signal, comparison to yesterday, and what to watch next.
+The article should be accessible to a broad audience. Do not assume the reader cares specifically about private aviation. Use arrival data and GoTango scores as context, but write about destination momentum, events, travel energy, seasonal movement, and what is worth watching.
 
-Rules:
-- Write 8-10 sentences total.
-- Break the output into 3 or 4 short paragraphs.
-- Paragraph 1 should explain what is moving today.
-- Paragraph 2 should compare today with yesterday and the last few days.
-- Paragraph 3 should explain why the movement matters, using destination news blurbs where relevant.
-- Paragraph 4, if needed, should give a caveat or say what to watch next.
+Do not use the words or phrases:
+- Daily Tape
+- tape
+- private travel
+- private-travel
+- private arrivals
+- private arrival
+- private-arrival (including compounds like private-arrival push or private-arrival depth)
+- private aviation
+unless quoting an existing UI label outside the generated article, which should generally be avoided.
+
+Preferred language:
+- arrivals
+- observed arrivals
+- arrival movement
+- destination movement
+- GoTango score
+- GoTango signal
+- destination momentum
+- today’s read
+- today’s take
+- GoTango read
+- travel signal
+- momentum
+- heating
+- cooling
+- holding rank
+- keeping pace
+- watch next
+- what is building
+- what is fading
+- what is happening now
+- what could happen next
+
+Headline rules:
+The headline should be fun, specific, and destination-led.
+
+The headline should NOT sound like:
+“Private-travel tape is leaning into the summer leisure rotation...”
+
+The headline SHOULD sound more like:
+“Nassau grabs the spotlight as 30A, Olbia, Aspen, and Jackson Hole keep pace”
+“The islands are hot, the mountains are waking up, and 30A is still holding rank”
+“Beach weekends are winning today, but the mountain towns are starting to move”
+“The Hamptons take the lead as summer favorites keep the pressure on”
+“Nassau is out front today, but the summer crowd is right behind it”
+“Aspen and Jackson Hole join the beach rush in today’s GoTango read”
+
+Headline requirements:
+- Under 130 characters when possible.
+- Mention 1 to 4 destinations when supported by the data.
+- Make it feel current and human.
+- Make it sticky enough that a user wants to read more.
+- Do not simply summarize numbers.
+- Do not overclaim.
+- Do not use “tape.”
+- Do not use “private travel.”
+- Do not use “private arrivals” or “private arrival.”
+
+Article structure (4 paragraphs):
+- Paragraph 1: What is happening today. Mention the leading destinations or destination clusters.
+- Paragraph 2: What changed versus yesterday and the last few days.
+- Paragraph 3: Why it may be happening. Use destination news blurbs where available.
+- Paragraph 4 (Looking Forward): Explain what to watch over the next few days or weeks.
+
+Looking Forward should:
+- Pull from current destination news articles and destination news blurbs when available.
+- Mention upcoming events, seasonal openings, festivals, hospitality programming, dining, nightlife, major weekends, or destination-specific momentum only when supported by available news.
+- If news is missing, fall back to GoTango score movement, heating/cooling status, arrivals today vs yesterday, 3-day trend, and 7-day trend.
+- Avoid inventing events.
+- Avoid unsupported predictions.
+- Use cautious but interesting language.
+
+Additional rules:
+- Write 8-12 sentences total across the four paragraphs.
 - Always include a clear point of view.
 - Mention uncertainty when the data looks noisy.
 - Do not overclaim.
 - Do not use “MATTERS” as a verdict label.
 - Use “HEATING” as the primary positive verdict label.
 - Avoid generic travel-writing clichés.
-- Use GoTango language: tape, signal, heat, cooling, rotation, breakout, holding rank, watch next, private-arrival push, high-season routes.
 
 Return strict JSON:
 {
@@ -14575,53 +14642,53 @@ Return strict JSON:
     // P1 — what is moving today
     if (verdict === 'HEATING') {
       const p1a = leadStr
-        ? `The tape is running hot today, with ${leadStr} carrying the private-arrival push.`
-        : `The tape is running warm today, with leisure routes carrying the private-arrival push.`;
+        ? `Today’s read has a clear shape, with ${leadStr} out front.`
+        : `Today’s read has a clear shape, with familiar summer destinations out front.`;
       const p1b = breadthBroad
-        ? `The heat reads broad rather than the work of one marquee market — ${heatingCount} destinations are registering as heating against ${coolingCount} cooling.`
+        ? `The heat reads broad rather than the work of one marquee market — ${heatingCount} destinations are heating against ${coolingCount} cooling.`
         : `The move is concentrated for now — ${heatingCount} destinations heating against ${coolingCount} cooling, with a short list of names doing most of the lifting.`;
       paragraphs.push(`${p1a} ${p1b}`);
     } else if (verdict === 'COOLING') {
       const p1a = coolStr
-        ? `The tape is cooling today, with ${coolStr} bleeding velocity off recent highs.`
-        : `The tape is cooling today as recent leaders bleed velocity off their highs.`;
+        ? `Momentum is cooling today, with ${coolStr} losing velocity off recent highs.`
+        : `Momentum is cooling today as recent leaders lose velocity off their highs.`;
       paragraphs.push(`${p1a} Roughly ${coolingCount} destinations are softening against ${heatingCount} still heating, so the board is tilting toward the exits rather than the breakouts.`);
     } else if (verdict === 'MIXED SIGNAL') {
-      paragraphs.push(`The tape is split today: ${leadStr || 'a handful of leisure routes'} are heating while ${coolStr || 'an equal cluster'} cools, leaving ${heatingCount} up against ${coolingCount} down. There is no single narrative carrying the day — the signal is a rotation, not a surge.`);
+      paragraphs.push(`Today’s read is split: ${leadStr || 'a handful of summer favorites'} are heating while ${coolStr || 'an equal cluster'} cools, leaving ${heatingCount} up against ${coolingCount} down. There is no single narrative carrying the day — the signal is a rotation, not a surge.`);
     } else if (verdict === 'QUIET') {
-      paragraphs.push(`The tape is quiet today, with no destination posting a decisive heating or cooling read across the ${destinationCount}-market board. On days like this the smart move is to watch the baseline rather than chase a signal that is not there.`);
+      paragraphs.push(`Today’s read is quiet, with no destination posting a decisive heating or cooling move across the ${destinationCount}-destination board. On days like this the smart move is to watch the baseline rather than chase a signal that is not there.`);
     } else {
-      paragraphs.push(`The tape is in a watching posture today: ${leadStr || 'a few leisure routes'} are firming up, but the move is not yet broad or confirmed, with ${heatingCount} heating against ${coolingCount} cooling. We are reading early interest, not a full breakout.`);
+      paragraphs.push(`Today’s read is in a watching posture: ${leadStr || 'a few summer favorites'} are firming up, but the move is not yet broad or confirmed, with ${heatingCount} heating against ${coolingCount} cooling. We are reading early interest, not a full breakout.`);
     }
 
     // P2 — vs yesterday / last few days
     const p2a = breadthBroad
-      ? `Compared with yesterday, today looks less like a single surge and more like a rotation into familiar high-season routes.`
-      : `Compared with yesterday, the move is still leaning on a tight group of names rather than the whole board.`;
+      ? `Compared with yesterday and the last few days, today looks less like a single surge and more like a rotation into familiar high-season routes.`
+      : `Compared with yesterday and the last few days, the move is still leaning on a tight group of names rather than the whole board.`;
     const p2b = coolingCount > 0 && coolStr
       ? `The cooling side matters too: ${coolStr} ${coolLeaders.length > 1 ? 'are' : 'is'} losing velocity, which usually means guests have already landed or the event-driven rush has peaked.`
       : `The cooling side is thin right now, which keeps the read clean but worth re-checking once the next day of arrivals lands.`;
     paragraphs.push(`${p2a} ${p2b}`);
 
-    // P3 — why it matters + news layer
+    // P3 — why it may be happening + news layer
     if (newsName && newsBlurb) {
       const newsFragment = newsBlurb.charAt(0).toLowerCase() + newsBlurb.slice(1);
-      paragraphs.push(`The move earns more credibility where the news layer lines up: ${newsName} is drawing real-world attention — ${newsFragment} — which makes the signal more than a one-day traffic spike. Read together, the tape says luxury leisure is holding rank, and the breadth behind the leaders is the part worth respecting.`);
+      paragraphs.push(`The destination news gives the movement more texture: ${newsName} is drawing real-world attention — ${newsFragment} — which makes the signal more than a one-day spike. Read together, the GoTango read says summer leisure is holding rank, and the breadth behind the leaders is the part worth respecting.`);
     } else if (newsName && newsHeadlines.length) {
-      paragraphs.push(`The move earns more credibility where the news layer lines up: ${newsName} is showing up in live headlines (${newsHeadlines.join(' · ')}), which gives the private-arrival push real-world context even before the full trend confirms.`);
+      paragraphs.push(`The destination news gives the movement more texture: ${newsName} is showing up in live headlines (${newsHeadlines.join(' · ')}), which gives the arrival movement real-world context even before the full trend confirms.`);
     } else if (newsName) {
-      paragraphs.push(`The move earns more credibility where the news layer lines up, and ${newsName} is one market where hospitality and seasonal programming back the private-arrival push. That context makes the read more than a one-day traffic spike, even if it is not yet definitive.`);
+      paragraphs.push(`The destination news gives the movement more texture, and ${newsName} is one market where hospitality and seasonal programming back the arrival momentum. That context makes the read more than a one-day spike, even if it is not yet definitive.`);
     } else {
-      paragraphs.push(`Where it matters: the arrival pattern is the cleaner signal today, with the news layer still thin, so we are weighting the private-arrival push and GoTango score over any single headline. That keeps the read honest — real movement, not narrative.`);
+      paragraphs.push(`Where fresh headlines are thin, the arrival pattern is the cleaner signal today, so we are weighting GoTango score movement and heating/cooling status over any single headline. That keeps the read honest — real movement, not narrative.`);
     }
 
-    // P4 — caveat / watch next
+    // P4 — Looking Forward
     if (verdict === 'HEATING' || verdict === 'MIXED SIGNAL' || verdict === 'WATCHING') {
-      paragraphs.push(`Weekend and event-driven arrivals can inflate the read, so we would watch the next 24 hours before calling it a full breakout. The signal to watch next is whether today's leaders hold rank tomorrow or whether the heat rotates into the next cluster of summer routes.`);
+      paragraphs.push(`Looking forward, watch whether today's leaders hold rank tomorrow or whether the heat rotates into the next cluster of summer routes. Weekend and event-driven arrivals can inflate the read, so the next few days will tell us whether this is a deeper run or a short burst.`);
     } else if (verdict === 'COOLING') {
-      paragraphs.push(`We would not over-read a single soft session — some of this is simply the high-season rush peaking on schedule. Watch next for whether the cooling list stabilizes or whether the heat has genuinely rotated elsewhere on the board.`);
+      paragraphs.push(`Looking forward, watch whether the cooling list stabilizes or whether momentum has genuinely rotated elsewhere on the board. We would not over-read a single soft session — some of this is simply the high-season rush peaking on schedule.`);
     } else {
-      paragraphs.push(`On a quiet tape the next signal to watch is the first market that breaks from the baseline — that is usually where the next rotation starts.`);
+      paragraphs.push(`Looking forward, the next signal to watch is the first destination that breaks from the baseline — that is usually where the next rotation starts.`);
     }
 
     // ---- Signal chips ----
@@ -14669,7 +14736,16 @@ Return strict JSON:
       });
     }
 
-    const headline = 'The Daily Take';
+    const headlineNames = heatLeaders.slice(0, 4).map((d) => d.name).filter(Boolean);
+    let headline;
+    if (headlineNames.length >= 2) {
+      headline = `${headlineNames[0]} leads today as ${headlineNames.slice(1, 3).join(', ')} keep pace`;
+    } else if (headlineNames.length === 1) {
+      headline = `${headlineNames[0]} takes the lead in today's GoTango read`;
+    } else {
+      headline = "Today's Movement";
+    }
+    if (headline.length > 130) headline = headline.slice(0, 127).trim() + '…';
     const collapsedText = paragraphs.join(' ');
 
     return {
@@ -14767,15 +14843,15 @@ Return strict JSON:
 
   /** @type {TodayMovementBrief} Dev/local fallback when no real data is available. */
   const FALLBACK_TODAY_MOVEMENT_BRIEF = {
-    headline: 'The Daily Take',
+    headline: 'Beach weekends are winning today, but the mountain towns are starting to move',
     verdict: 'HEATING',
     confidence: 'MEDIUM',
     updatedLabel: _tapeUpdatedLabelFromDate(new Date()),
     paragraphs: [
-      'Private travel is giving the day a clear summer-weekend tilt, with beach and island markets carrying the tape while a few recent resort spikes begin to cool.',
-      'Compared with yesterday, today looks less like a single surge and more like a broader rotation into familiar high-season routes. The important signal is breadth: more destinations are participating, and the heat is not isolated to one obvious winner.',
-      'The news layer gives the move more texture where hospitality openings, events, restaurants, nightlife, or seasonal programming line up with the private-arrival push. That makes the signal more credible than a one-day traffic spike, but not yet definitive.',
-      'The next thing to watch is whether the same destinations hold rank tomorrow or whether today\u2019s heat migrates into the next cluster of summer routes.',
+      'Today’s read has a clear summer shape: beach and island destinations are out front, but the story is bigger than one place. Several destinations are heating, and the strongest names stretch from coastal weekends to mountain escapes.',
+      'Compared with yesterday and the last few days, the move looks broader rather than louder. A few leaders still have the sharpest breakout feel, but others are holding rank or adding score momentum, which makes today feel like a wider summer rotation instead of a one-place spike.',
+      'The destination news gives the movement more texture where hospitality openings, events, restaurants, nightlife, or seasonal programming line up with the arrival momentum. That makes the signal more credible than a one-day spike, but not yet definitive.',
+      'Looking forward, watch whether today’s leaders keep widening their lead or whether the next cluster of summer routes starts to move. Where fresh headlines are thin, the GoTango score becomes the signal: if those destinations keep climbing without an obvious news hook, they may be moving before the story fully catches up.',
     ],
     get collapsedText() { return this.paragraphs.join(' '); },
     signalChips: [

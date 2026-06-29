@@ -31,26 +31,95 @@ const DAILY_TAPE_DESTINATION_REGION = new Map(
   DESTINATIONS.map((d) => [d.id, d.region]),
 );
 
-export const TODAY_MOVEMENT_LLM_SYSTEM_PROMPT = `You are the Daily Tape writer for GoTango, a private-travel intelligence product with a luxury editorial voice. You write the “Today’s Movement” section on the Now page. Your job is to synthesize destination movement, private-arrival data, GoTango scores, heating/cooling status, recent trend changes, and AI-generated destination news blurbs into a sharp daily read on what is happening in private travel today.
+export const DAILY_TAPE_PROMPT_VERSION = 'daily_tape_copy_v2';
 
-Write with the energy of a market note and the polish of a luxury travel brief. Do not sound generic. Do not simply list destinations. Decide what the day’s narrative is.
+export const TODAY_MOVEMENT_LLM_SYSTEM_PROMPT = `You are writing the Today’s Movement article for GoTango. Internally this feature may be called daily_tape, but that name should not appear in user-facing copy.
 
-The reader may be a first-time user, so the copy should feel exciting and immediately understandable. The reader may also be a daily returning user, so the copy should include real signal, comparison to yesterday, and what to watch next.
+Write a fun, polished, destination-led daily read about what is moving today across GoTango destinations.
 
-Rules:
-- Write 8-10 sentences total.
-- Break the output into 3 or 4 short paragraphs.
-- Paragraph 1 should explain what is moving today.
-- Paragraph 2 should compare today with yesterday and the last few days.
-- Paragraph 3 should explain why the movement matters, using destination news blurbs where relevant.
-- Paragraph 4, if needed, should give a caveat or say what to watch next.
+The article should be accessible to a broad audience. Do not assume the reader cares specifically about private aviation. Use arrival data and GoTango scores as context, but write about destination momentum, events, travel energy, seasonal movement, and what is worth watching.
+
+Do not use the words or phrases:
+- Daily Tape
+- tape
+- private travel
+- private-travel
+- private arrivals
+- private arrival
+- private-arrival (including compounds like private-arrival push or private-arrival depth)
+- private aviation
+unless quoting an existing UI label outside the generated article, which should generally be avoided.
+
+Preferred language:
+- arrivals
+- observed arrivals
+- arrival movement
+- destination movement
+- GoTango score
+- GoTango signal
+- destination momentum
+- today’s read
+- today’s take
+- GoTango read
+- travel signal
+- momentum
+- heating
+- cooling
+- holding rank
+- keeping pace
+- watch next
+- what is building
+- what is fading
+- what is happening now
+- what could happen next
+
+Headline rules:
+The headline should be fun, specific, and destination-led.
+
+The headline should NOT sound like:
+“Private-travel tape is leaning into the summer leisure rotation...”
+
+The headline SHOULD sound more like:
+“Nassau grabs the spotlight as 30A, Olbia, Aspen, and Jackson Hole keep pace”
+“The islands are hot, the mountains are waking up, and 30A is still holding rank”
+“Beach weekends are winning today, but the mountain towns are starting to move”
+“The Hamptons take the lead as summer favorites keep the pressure on”
+“Nassau is out front today, but the summer crowd is right behind it”
+“Aspen and Jackson Hole join the beach rush in today’s GoTango read”
+
+Headline requirements:
+- Under 130 characters when possible.
+- Mention 1 to 4 destinations when supported by the data.
+- Make it feel current and human.
+- Make it sticky enough that a user wants to read more.
+- Do not simply summarize numbers.
+- Do not overclaim.
+- Do not use “tape.”
+- Do not use “private travel.”
+- Do not use “private arrivals” or “private arrival.”
+
+Article structure (4 paragraphs):
+- Paragraph 1: What is happening today. Mention the leading destinations or destination clusters.
+- Paragraph 2: What changed versus yesterday and the last few days.
+- Paragraph 3: Why it may be happening. Use destination news blurbs where available.
+- Paragraph 4 (Looking Forward): Explain what to watch over the next few days or weeks.
+
+Looking Forward should:
+- Pull from current destination news articles and destination news blurbs when available.
+- Mention upcoming events, seasonal openings, festivals, hospitality programming, dining, nightlife, major weekends, or destination-specific momentum only when supported by available news.
+- If news is missing, fall back to GoTango score movement, heating/cooling status, arrivals today vs yesterday, 3-day trend, and 7-day trend.
+- Avoid inventing events.
+- Avoid unsupported predictions.
+- Use cautious but interesting language.
+
+Additional rules:
+- Write 8-12 sentences total across the four paragraphs.
 - Always include a clear point of view.
 - Mention uncertainty when the data looks noisy.
 - Do not overclaim.
 - Do not use “MATTERS” as a verdict label.
 - Use “HEATING” as the primary positive verdict label.
 - Avoid generic travel-writing clichés.
-- Use GoTango language: tape, signal, heat, cooling, rotation, breakout, holding rank, watch next, private-arrival push, high-season routes.
 
 Return strict JSON:
 {
@@ -79,6 +148,45 @@ const VALID_VERDICTS = new Set(['HEATING', 'WATCHING', 'COOLING', 'MIXED SIGNAL'
 const VALID_CONFIDENCE = new Set(['LOW', 'MEDIUM', 'HIGH']);
 const VALID_TONES = new Set(['heating', 'cooling', 'steady', 'neutral']);
 
+const FORBIDDEN_DAILY_TAPE_COPY_PATTERNS = [
+  /\bdaily[\s-]tape\b/i,
+  /\bprivate[\s-]travel tape\b/i,
+  /\btravel tape\b/i,
+  /\bthe tape\b/i,
+  /\bprivate travel\b/i,
+  /\bprivate-travel\b/i,
+  /\bprivate arrivals\b/i,
+  /\bprivate arrival\b/i,
+  /\bprivate-arrival\b/i,
+  /\bprivate aviation\b/i,
+  /\btapes?\b/i,
+];
+
+export function findForbiddenDailyTapeCopyPhrases(text) {
+  const haystack = String(text || '');
+  const hits = [];
+  for (const pattern of FORBIDDEN_DAILY_TAPE_COPY_PATTERNS) {
+    const match = haystack.match(pattern);
+    if (match) hits.push(match[0]);
+  }
+  return hits;
+}
+
+function collectForbiddenDailyTapeCopyFromDraft(draft) {
+  const parts = [];
+  if (draft?.headline) parts.push(String(draft.headline));
+  if (Array.isArray(draft?.paragraphs)) {
+    for (const p of draft.paragraphs) parts.push(String(p));
+  }
+  const hits = [];
+  for (const part of parts) {
+    for (const phrase of findForbiddenDailyTapeCopyPhrases(part)) {
+      if (!hits.includes(phrase)) hits.push(phrase);
+    }
+  }
+  return hits;
+}
+
 export function getDailyTapeModel() {
   return process.env.DAILY_TAPE_MODEL
     || process.env.WEEKLY_BRIEF_MODEL
@@ -91,7 +199,7 @@ export function buildDailyTapeUserMessage(input) {
 
 ${JSON.stringify(input, null, 2)}
 
-Write today's Daily Tape from the input above. Return strict JSON only.`;
+Write today's Today’s Movement article from the input above. Return strict JSON only.`;
 }
 
 export function buildDailyTapePrompt(systemPrompt, input) {
@@ -192,6 +300,11 @@ export function validateDailyTapeDraft(draft) {
     }
   }
 
+  const forbiddenCopy = collectForbiddenDailyTapeCopyFromDraft(draft);
+  if (forbiddenCopy.length) {
+    errors.push(`forbidden_copy:${forbiddenCopy.join(',')}`);
+  }
+
   return { ok: errors.length === 0, errors };
 }
 
@@ -236,7 +349,7 @@ export function normalizeDailyTapeBrief(draft, input, meta = {}) {
   const confidenceRaw = draft.confidence != null ? String(draft.confidence).trim() : 'MEDIUM';
 
   return {
-    headline: String(draft.headline || 'The Daily Tape').trim(),
+    headline: String(draft.headline || "Today's Movement").trim(),
     verdict: String(draft.verdict).trim(),
     confidence: VALID_CONFIDENCE.has(confidenceRaw) ? confidenceRaw : 'MEDIUM',
     updatedLabel: input?.updatedAt ? String(input.updatedAt) : '',
@@ -363,7 +476,7 @@ export async function generateDailyTapeBrief({
     };
   }
 
-  const result = await callDailyTapeOpenAi({
+  let result = await callDailyTapeOpenAi({
     systemPrompt,
     input: workingInput,
     apiKey,
@@ -378,7 +491,28 @@ export async function generateDailyTapeBrief({
     };
   }
 
-  const validation = validateDailyTapeDraft(result.draft);
+  let validation = validateDailyTapeDraft(result.draft);
+  const forbiddenCopy = validation.errors.find((e) => String(e).startsWith('forbidden_copy:'));
+  if (!validation.ok && forbiddenCopy) {
+    const retryPrompt = `${systemPrompt}
+
+IMPORTANT RETRY: Your previous draft used banned user-facing wording (${forbiddenCopy.replace(/^forbidden_copy:/, '')}). Rewrite the entire article without Daily Tape, tape, private travel, private-travel, private arrivals, private arrival, private-arrival phrasing, or private aviation. Prefer arrivals, arrival movement, destination movement, GoTango score, and GoTango signal. Keep the same JSON schema.`;
+    result = await callDailyTapeOpenAi({
+      systemPrompt: retryPrompt,
+      input: workingInput,
+      apiKey,
+    });
+    if (!result.ok) {
+      return {
+        ok: false,
+        error: result.error || 'llm_failed',
+        llm_error: result.error || 'llm_failed',
+        input: workingInput,
+      };
+    }
+    validation = validateDailyTapeDraft(result.draft);
+  }
+
   if (!validation.ok) {
     llmError = `validation: ${validation.errors.join(', ')}`;
     return {
@@ -584,6 +718,7 @@ export async function persistDailyTapeToKv(kvClient, { brief, generator = 'daily
     // idempotency so the same data never yields two different articles.
     source_saved_at: sourceSavedAt,
     generator,
+    prompt_version: DAILY_TAPE_PROMPT_VERSION,
     llm_error: llmError,
     brief,
   };

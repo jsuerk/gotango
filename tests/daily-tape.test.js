@@ -4,9 +4,11 @@ import { readFileSync } from 'node:fs';
 import {
   TODAY_MOVEMENT_LLM_SYSTEM_PROMPT,
   DAILY_TAPE_KV_KEYS,
+  DAILY_TAPE_PROMPT_VERSION,
   buildDailyTapePrompt,
   buildSignalChipsFromInput,
   buildTodayMovementInputFromSourceData,
+  findForbiddenDailyTapeCopyPhrases,
   normalizeDailyTapeBrief,
   parseDailyTapeJsonFromModelText,
   validateDailyTapeDraft,
@@ -46,10 +48,15 @@ const SAMPLE_INPUT = {
   ],
 };
 
-test('TODAY_MOVEMENT_LLM_SYSTEM_PROMPT forbids MATTERS and requires HEATING', () => {
-  assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Daily Tape writer for GoTango/);
+test('TODAY_MOVEMENT_LLM_SYSTEM_PROMPT forbids MATTERS and requires accessible Today’s Movement copy', () => {
+  assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Today’s Movement article for GoTango/);
   assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Do not use “MATTERS” as a verdict label/);
   assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Use “HEATING” as the primary positive verdict label/);
+  assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Looking Forward/);
+  assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /private arrivals/);
+  assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /observed arrivals/);
+  assert.doesNotMatch(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Daily Tape writer/);
+  assert.doesNotMatch(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /private travel today/);
 });
 
 test('validateTodayMovementInput accepts well-formed input', () => {
@@ -75,14 +82,14 @@ test('validateDailyTapeDraft rejects MATTERS verdict', () => {
 
 test('validateDailyTapeDraft accepts valid draft', () => {
   const result = validateDailyTapeDraft({
-    headline: 'Island markets carry the tape',
+    headline: 'Nassau grabs the spotlight as 30A and Aspen keep pace',
     verdict: 'HEATING',
     confidence: 'HIGH',
     paragraphs: [
-      'Private travel is tilting toward beach and island markets today.',
+      'Today’s read has a clear summer shape, with Nassau out front and several beach destinations adding momentum.',
       'Compared with yesterday, the move looks broader rather than one marquee surge.',
-      'News blurbs from Mykonos add credibility to the private-arrival push.',
-      'Watch whether the same destinations hold rank tomorrow.',
+      'Destination news from Mykonos adds texture through hospitality openings and seasonal programming.',
+      'Looking forward, watch whether today’s leaders hold rank or whether the heat rotates into the next cluster of summer routes.',
     ],
     signalChips: [
       { label: 'HEATING', value: '10', tone: 'heating' },
@@ -97,6 +104,56 @@ test('validateDailyTapeDraft accepts valid draft', () => {
   assert.equal(result.ok, true);
 });
 
+test('validateDailyTapeDraft rejects forbidden user-facing copy', () => {
+  const result = validateDailyTapeDraft({
+    headline: 'The Daily Tape is heating up',
+    verdict: 'HEATING',
+    confidence: 'HIGH',
+    paragraphs: [
+      'Private travel is tilting toward beach markets today.',
+      'Compared with yesterday, the move looks broader.',
+      'News blurbs add credibility to the private-arrival push.',
+      'Watch whether leaders hold rank tomorrow.',
+    ],
+    signalChips: [{ label: 'HEATING', value: '10', tone: 'heating' }],
+    drivers: [
+      { label: 'BREADTH', value: 'WIDE', detail: 'Broad move.', tone: 'heating' },
+      { label: 'WATCH NEXT', value: 'RANK', detail: 'Hold rank.', tone: 'neutral' },
+    ],
+  });
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.some((e) => String(e).startsWith('forbidden_copy:')));
+});
+
+test('validateDailyTapeDraft rejects private arrivals phrasing', () => {
+  const result = validateDailyTapeDraft({
+    headline: 'Beach markets lead the board',
+    verdict: 'HEATING',
+    confidence: 'HIGH',
+    paragraphs: [
+      'Private arrivals are clustering at summer beach destinations today.',
+      'Compared with yesterday, the move looks broader.',
+      'Destination news adds texture to the arrival movement.',
+      'Looking forward, watch whether leaders hold rank tomorrow.',
+    ],
+    signalChips: [{ label: 'HEATING', value: '10', tone: 'heating' }],
+    drivers: [
+      { label: 'BREADTH', value: 'WIDE', detail: 'Broad move.', tone: 'heating' },
+      { label: 'WATCH NEXT', value: 'RANK', detail: 'Hold rank.', tone: 'neutral' },
+    ],
+  });
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.some((e) => String(e).startsWith('forbidden_copy:')));
+  assert.ok(result.errors.some((e) => /private arrivals/i.test(String(e))));
+});
+
+test('findForbiddenDailyTapeCopyPhrases ignores tape inside unrelated words', () => {
+  assert.deepEqual(findForbiddenDailyTapeCopyPhrases('The landscape is shifting'), []);
+  assert.ok(findForbiddenDailyTapeCopyPhrases('the tape is hot').includes('the tape'));
+  assert.ok(findForbiddenDailyTapeCopyPhrases('private arrivals rose today').includes('private arrivals'));
+  assert.ok(findForbiddenDailyTapeCopyPhrases('each private arrival matters').includes('private arrival'));
+});
+
 test('parseDailyTapeJsonFromModelText handles fenced JSON', () => {
   const draft = parseDailyTapeJsonFromModelText('```json\n{"headline":"The Daily Tape","verdict":"HEATING"}\n```');
   assert.equal(draft.headline, 'The Daily Tape');
@@ -105,7 +162,7 @@ test('parseDailyTapeJsonFromModelText handles fenced JSON', () => {
 
 test('normalizeDailyTapeBrief builds collapsedText and chips fallback', () => {
   const brief = normalizeDailyTapeBrief({
-    headline: 'The Daily Tape',
+    headline: 'Nassau leads today',
     verdict: 'HEATING',
     confidence: 'MEDIUM',
     paragraphs: ['First paragraph.', 'Second paragraph.', 'Third paragraph.'],
@@ -230,7 +287,7 @@ test('Daily Tape KV save/read round-trips a brief', async () => {
   assert.equal(empty.ok, false);
 
   const brief = {
-    headline: 'The Daily Tape',
+    headline: 'Nassau leads today',
     verdict: 'HEATING',
     confidence: 'MEDIUM',
     paragraphs: ['One.', 'Two.', 'Three.'],
@@ -246,11 +303,12 @@ test('Daily Tape KV save/read round-trips a brief', async () => {
   });
   assert.equal(record.today_date, '2026-06-27');
   assert.equal(record.source_saved_at, '2026-06-27T14:00:00.000Z');
+  assert.equal(record.prompt_version, DAILY_TAPE_PROMPT_VERSION);
   assert.equal(store.get(DAILY_TAPE_KV_KEYS.latest).brief.verdict, 'HEATING');
 
   const hit = await getDailyTapeFromKv(fakeKv);
   assert.equal(hit.ok, true);
-  assert.equal(hit.brief.headline, 'The Daily Tape');
+  assert.equal(hit.brief.headline, 'Nassau leads today');
   assert.equal(hit.generator, 'daily-tape-llm');
   // Snapshot tag survives the round-trip so refreshes stay idempotent per pull.
   assert.equal(hit.source_saved_at, '2026-06-27T14:00:00.000Z');
@@ -395,4 +453,56 @@ test('publish:daily-tape script targets refresh endpoint and forces regeneration
   assert.match(script, /DAILY_TAPE_BUILD_SECRET/);
   assert.match(script, /force=1/);
   assert.equal(pkg.scripts['publish:daily-tape'], 'node scripts/publish-daily-tape.mjs');
+});
+
+const BANNED_USER_FACING_PHRASE_CHECKS = [
+  { label: 'Daily Tape', pattern: /\bdaily[\s-]tape\b/i },
+  { label: 'private travel', pattern: /\bprivate travel\b/i },
+  { label: 'private-travel', pattern: /\bprivate-travel\b/i },
+  { label: 'private arrivals', pattern: /\bprivate arrivals\b/i },
+  { label: 'private arrival', pattern: /\bprivate arrival\b/i },
+  { label: 'private aviation', pattern: /\bprivate aviation\b/i },
+  { label: 'the tape', pattern: /\bthe tape\b/i },
+  { label: 'travel tape', pattern: /\btravel tape\b/i },
+];
+
+function extractTodayMovementFallbackCopy(html) {
+  const block = html.match(/const FALLBACK_TODAY_MOVEMENT_BRIEF = \{([\s\S]*?)\n  \};/);
+  assert.ok(block, 'FALLBACK_TODAY_MOVEMENT_BRIEF block missing');
+  const headline = block[1].match(/headline:\s*'([^']+)'/);
+  const paragraphs = [...block[1].matchAll(/^\s+'([^']+)',$/gm)].map((m) => m[1]);
+  return {
+    headline: headline ? headline[1] : '',
+    paragraphs,
+  };
+}
+
+function extractTodayMovementPositivePromptExamples(prompt) {
+  const section = prompt.match(/The headline SHOULD sound more like:\n([\s\S]*?)\n\nHeadline requirements:/);
+  if (!section) return [];
+  return section[1]
+    .split('\n')
+    .map((line) => line.replace(/^“|”$/g, '').trim())
+    .filter(Boolean);
+}
+
+test('Today’s Movement fallback copy and positive prompt examples avoid banned user-facing phrases', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const fallback = extractTodayMovementFallbackCopy(html);
+  const positiveExamples = extractTodayMovementPositivePromptExamples(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT);
+  const samples = [
+    fallback.headline,
+    ...fallback.paragraphs,
+    ...positiveExamples,
+  ];
+
+  for (const text of samples) {
+    for (const check of BANNED_USER_FACING_PHRASE_CHECKS) {
+      assert.doesNotMatch(
+        text,
+        check.pattern,
+        `Unexpected "${check.label}" in user-facing Today’s Movement copy: ${text}`,
+      );
+    }
+  }
 });
