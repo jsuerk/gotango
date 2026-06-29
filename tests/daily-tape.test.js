@@ -6,7 +6,10 @@ import {
   DAILY_TAPE_KV_KEYS,
   DAILY_TAPE_PROMPT_VERSION,
   GOTANGO_VOICE_GUIDE,
+  TODAYS_MOVEMENT_HUMAN_EDITOR_VOICE,
+  DAILY_TAPE_HUMAN_EDITOR_REWRITE_INSTRUCTION,
   buildDailyTapePrompt,
+  buildDailyTapeDestinationRoles,
   buildSignalChipsFromInput,
   buildTodayMovementInputFromSourceData,
   buildDailyTapeUserMessage,
@@ -61,8 +64,9 @@ test('TODAY_MOVEMENT_LLM_SYSTEM_PROMPT forbids MATTERS and requires accessible T
   assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /private arrivals/);
   assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /GoTango Score leadership rule/);
   assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /smart but not stiff/);
-  assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /decide the most interesting destination story/);
-  assert.equal(DAILY_TAPE_PROMPT_VERSION, 'daily_tape_gotango_voice_v4');
+  assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Human-editor rule/);
+  assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Start with the day’s tension/);
+  assert.equal(DAILY_TAPE_PROMPT_VERSION, 'daily_tape_human_editor_v5');
   assert.doesNotMatch(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Daily Tape writer/);
   assert.doesNotMatch(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /private travel today/);
 });
@@ -278,12 +282,50 @@ test('findBoringDailyTapeCopyIssues flags mechanical Today’s Movement headline
   assert.ok(boring.includes('boring_headline_no_destinations'));
 });
 
-test('findBoringDailyTapeCopyIssues accepts a destination-led headline', () => {
+test('findBoringDailyTapeCopyIssues accepts a destination-led headline with tension', () => {
   const issues = findBoringDailyTapeCopyIssues(
-    makeScoreLedDraft('Hamptons holds the top spot, but Nassau is making the board more interesting'),
+    makeScoreLedDraft('Hamptons is still the name to beat, but Nassau is making the day interesting'),
     SCORE_LEADER_INPUT,
   );
   assert.equal(issues.length, 0);
+});
+
+test('findBoringDailyTapeCopyIssues flags clinical list-style headlines', () => {
+  const issues = findBoringDailyTapeCopyIssues(
+    makeScoreLedDraft('Hamptons stays on top as Nassau, Sardinia / Olbia and 30A keep heating up'),
+    SCORE_LEADER_INPUT,
+  );
+  assert.ok(issues.includes('boring_headline_no_relationship'));
+});
+
+test('findBoringDailyTapeCopyIssues flags clinical metric-first openings', () => {
+  const issues = findBoringDailyTapeCopyIssues(
+    makeScoreLedDraft(
+      'Hamptons is still the name to beat, but Nassau is making the day interesting',
+      'Hamptons still holds the highest GoTango Score, but the more interesting story today is the wave just behind it.',
+    ),
+    SCORE_LEADER_INPUT,
+  );
+  assert.ok(issues.some((issue) => issue === 'boring_body_no_point_of_view' || issue === 'boring_body_clinical_terms'));
+});
+
+test('findBoringDailyTapeCopyIssues accepts human-editor opening sentences', () => {
+  const issues = findBoringDailyTapeCopyIssues(
+    makeScoreLedDraft(
+      'Hamptons is still the name to beat, but Nassau is making the day interesting',
+      'Hamptons is still the name to beat, with Nantucket close enough to keep pressure on the top of the board.',
+    ),
+    SCORE_LEADER_INPUT,
+  );
+  assert.equal(issues.length, 0);
+});
+
+test('buildDailyTapeDestinationRoles classifies leader, pressure, and momentum stories', () => {
+  const roles = buildDailyTapeDestinationRoles(SCORE_LEADER_INPUT);
+  assert.equal(roles.leader?.name, 'Hamptons');
+  assert.ok(roles.pressure.some((d) => d.name === 'Nantucket'));
+  assert.ok(roles.momentumStories.some((d) => d.name === 'Nassau'));
+  assert.ok(!roles.momentumStories.some((d) => d.name === 'Hamptons'));
 });
 
 test('buildDailyTapeUserMessage surfaces GoTango Score leaders ahead of heating momentum', () => {
@@ -292,16 +334,46 @@ test('buildDailyTapeUserMessage surfaces GoTango Score leaders ahead of heating 
   assert.match(msg, /1\. Hamptons — score 99/);
   assert.match(msg, /Heating momentum/);
   assert.match(msg, /GoTango Voice guidance/);
-  assert.match(msg, /smart but not stiff/);
+  assert.match(msg, /Human Editor Voice/);
+  assert.match(msg, /Destination roles/);
+  assert.match(msg, /Leader: Hamptons/);
+  assert.match(msg, /Momentum stories:/);
   assert.match(msg, /Looking Forward paragraph/);
   assert.match(msg, /Evidence hierarchy/);
   assert.ok(msg.indexOf('GoTango Score leaders') < msg.indexOf('Heating momentum'));
-  assert.ok(msg.indexOf('Evidence hierarchy') < msg.indexOf('GoTango Score leaders'));
+  assert.ok(msg.indexOf('Destination roles') < msg.indexOf('Full structured input'));
 });
 
-test('GOTANGO_VOICE_GUIDE is reusable shared copy guidance', () => {
+test('GOTANGO_VOICE_GUIDE includes human editor guidance for Today\'s Movement', () => {
   assert.match(GOTANGO_VOICE_GUIDE, /destination-led/);
-  assert.match(GOTANGO_VOICE_GUIDE, /What should users watch next/);
+  assert.match(TODAYS_MOVEMENT_HUMAN_EDITOR_VOICE, /Start with the story, not the metric/);
+  assert.match(TODAYS_MOVEMENT_HUMAN_EDITOR_VOICE, /Destination roles/);
+});
+
+test('human-editor rewrite instruction preserves facts and tension guidance', () => {
+  assert.match(DAILY_TAPE_HUMAN_EDITOR_REWRITE_INSTRUCTION, /Start with the day['’]s tension/);
+  assert.match(DAILY_TAPE_HUMAN_EDITOR_REWRITE_INSTRUCTION, /Use numbers as proof, not the lead/);
+  assert.match(DAILY_TAPE_HUMAN_EDITOR_REWRITE_INSTRUCTION, /Give destinations roles instead of listing them/);
+});
+
+test('findBoringDailyTapeCopyIssues flags observed arrivals in generated prose', () => {
+  const issues = findBoringDailyTapeCopyIssues({
+    headline: 'Hamptons is still the name to beat, but Nassau is making the day interesting',
+    verdict: 'HEATING',
+    confidence: 'HIGH',
+    paragraphs: [
+      'Hamptons is still the name to beat, with observed arrivals clustering at summer beach destinations.',
+      'This is not just one place having a good day.',
+      'The calendar helps explain why.',
+      'The next question is whether the challengers stay hot long enough to move the order.',
+    ],
+    signalChips: [{ label: 'HEATING', value: '3', tone: 'heating' }],
+    drivers: [
+      { label: 'BREADTH', value: 'WIDE', detail: 'Broad move.', tone: 'heating' },
+      { label: 'WATCH NEXT', value: 'RANK', detail: 'Hold rank.', tone: 'neutral' },
+    ],
+  }, SCORE_LEADER_INPUT);
+  assert.ok(issues.includes('boring_body_clinical_terms'));
 });
 
 test('parseDailyTapeJsonFromModelText handles fenced JSON', () => {
@@ -661,9 +733,18 @@ test('Today’s Movement fallback copy and positive prompt examples avoid banned
     }
   }
 
-  assert.match(fallback.headline, /mountain|beach|weekend/i);
+  assert.match(fallback.headline, /name to beat/i);
+  assert.match(fallback.headline, /making the day interesting/i);
+  assert.doesNotMatch(fallback.headline, /stays on top as/i);
   assert.ok(
-    fallback.paragraphs.some((p) => /looking forward|watch/i.test(p)),
+    fallback.paragraphs.some((p) => /next question|watch/i.test(p)),
     'fallback should include a Looking Forward idea',
   );
+  assert.ok(
+    fallback.paragraphs[0].includes('name to beat'),
+    'fallback lead should open with story tension, not metric language',
+  );
+  for (const text of fallback.paragraphs) {
+    assert.doesNotMatch(text, /\bobserved arrivals\b/i, `fallback should avoid observed arrivals: ${text}`);
+  }
 });
