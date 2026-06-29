@@ -31,7 +31,7 @@ const DAILY_TAPE_DESTINATION_REGION = new Map(
   DESTINATIONS.map((d) => [d.id, d.region]),
 );
 
-export const DAILY_TAPE_PROMPT_VERSION = 'daily_tape_copy_v2';
+export const DAILY_TAPE_PROMPT_VERSION = 'daily_tape_score_leader_v3';
 
 export const TODAY_MOVEMENT_LLM_SYSTEM_PROMPT = `You are writing the Today’s Movement article for GoTango. Internally this feature may be called daily_tape, but that name should not appear in user-facing copy.
 
@@ -73,23 +73,28 @@ Preferred language:
 - what is happening now
 - what could happen next
 
+GoTango Score leadership rule:
+The GoTango Score is the primary durable destination ranking. Heating/cooling status is a momentum signal, not the ranking. Do not describe a destination as leading, out front, setting the pace, taking the top spot, owning the board, ranked first, or #1 unless it has the highest GoTango Score in the provided data. If a destination is heating but does not have the top GoTango Score, describe it as gaining momentum, heating up behind the leaders, keeping pace, climbing, or one to watch. Use the provided "GoTango Score leaders" list to decide who leads; use the "Heating momentum" list only to describe movement.
+
 Headline rules:
-The headline should be fun, specific, and destination-led.
+The headline should be fun, specific, and destination-led, and it must respect the GoTango Score leadership rule.
 
 The headline should NOT sound like:
 “Private-travel tape is leaning into the summer leisure rotation...”
+“Nassau leads the way...” (when Nassau is only heating and is not the top GoTango Score)
 
 The headline SHOULD sound more like:
-“Nassau grabs the spotlight as 30A, Olbia, Aspen, and Jackson Hole keep pace”
-“The islands are hot, the mountains are waking up, and 30A is still holding rank”
+“Hamptons holds the top spot as Nassau heats up behind the leaders”
+“Hamptons and Nantucket stay out front while Nassau gains momentum”
+“Hamptons leads today’s GoTango read as Nassau, 30A, and Olbia heat up”
+“Hamptons owns the top score, but Nassau is making the day more interesting”
 “Beach weekends are winning today, but the mountain towns are starting to move”
-“The Hamptons take the lead as summer favorites keep the pressure on”
-“Nassau is out front today, but the summer crowd is right behind it”
-“Aspen and Jackson Hole join the beach rush in today’s GoTango read”
 
 Headline requirements:
 - Under 130 characters when possible.
 - Mention 1 to 4 destinations when supported by the data.
+- Only the destination with the highest GoTango Score may be called the leader, out front, top spot, or the one setting the pace.
+- A heating destination that is not the top GoTango Score should be framed as momentum (heating up, gaining momentum, keeping pace), never as the leader.
 - Make it feel current and human.
 - Make it sticky enough that a user wants to read more.
 - Do not simply summarize numbers.
@@ -99,7 +104,7 @@ Headline requirements:
 - Do not use “private arrivals” or “private arrival.”
 
 Article structure (4 paragraphs):
-- Paragraph 1: What is happening today. Mention the leading destinations or destination clusters.
+- Paragraph 1: What is happening today. Lead with the top GoTango Score destination(s), then describe heating destinations as momentum.
 - Paragraph 2: What changed versus yesterday and the last few days.
 - Paragraph 3: Why it may be happening. Use destination news blurbs where available.
 - Paragraph 4 (Looking Forward): Explain what to watch over the next few days or weeks.
@@ -187,6 +192,108 @@ function collectForbiddenDailyTapeCopyFromDraft(draft) {
   return hits;
 }
 
+function escapeRegExpLiteral(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Leadership phrases that imply top ranking. Used to guard against describing a
+// heating-but-not-top-score destination as the leader.
+const LEADERSHIP_PHRASES = [
+  'leads the way',
+  'lead the way',
+  'leads',
+  'leading',
+  'takes the lead',
+  'take the lead',
+  'took the lead',
+  'sets the pace',
+  'set the pace',
+  'setting the pace',
+  'out front',
+  'top spot',
+  'owns the board',
+  'own the board',
+  'ranked first',
+  'grabs the top spot',
+];
+
+/**
+ * Collects the destinations referenced in the article input along with their
+ * GoTango Scores. Merges the score-leader list (primary ranking) with the
+ * heating/cooling destinations so the highest score can be determined.
+ */
+export function collectScoredDailyTapeDestinations(input) {
+  const byName = new Map();
+  const add = (name, score) => {
+    const cleanName = name != null ? String(name).trim() : '';
+    if (!cleanName) return;
+    const numeric = Number.isFinite(Number(score)) ? Number(score) : undefined;
+    const key = cleanName.toLowerCase();
+    const existing = byName.get(key);
+    if (!existing) {
+      byName.set(key, { name: cleanName, goTangoScore: numeric });
+    } else if (numeric != null && (existing.goTangoScore == null || numeric > existing.goTangoScore)) {
+      existing.goTangoScore = numeric;
+    }
+  };
+  if (Array.isArray(input?.scoreLeaders)) {
+    for (const d of input.scoreLeaders) add(d?.name, d?.goTangoScore);
+  }
+  if (Array.isArray(input?.destinations)) {
+    for (const d of input.destinations) add(d?.name, d?.goTangoScore);
+  }
+  return [...byName.values()];
+}
+
+/**
+ * Returns the GoTango Score leader entries (sorted by score descending). Falls
+ * back to deriving leaders from the destination list when no explicit
+ * scoreLeaders array is present (e.g. older inputs).
+ */
+export function getDailyTapeScoreLeaders(input) {
+  if (Array.isArray(input?.scoreLeaders) && input.scoreLeaders.length) {
+    return input.scoreLeaders
+      .map((d) => ({
+        name: d?.name != null ? String(d.name).trim() : '',
+        goTangoScore: Number.isFinite(Number(d?.goTangoScore)) ? Number(d.goTangoScore) : undefined,
+      }))
+      .filter((d) => d.name)
+      .sort((a, b) => (b.goTangoScore || 0) - (a.goTangoScore || 0));
+  }
+  return collectScoredDailyTapeDestinations(input)
+    .filter((d) => d.goTangoScore != null)
+    .sort((a, b) => (b.goTangoScore || 0) - (a.goTangoScore || 0));
+}
+
+/**
+ * Finds destinations that are described with leadership phrasing but do not hold
+ * the highest GoTango Score in the provided data. Used to reject/retry copy that
+ * treats a heating destination as the ranking leader.
+ */
+export function findLeadershipMisattributions(text, input) {
+  const haystack = String(text || '');
+  if (!haystack.trim()) return [];
+  const scored = collectScoredDailyTapeDestinations(input).filter((d) => d.goTangoScore != null);
+  if (!scored.length) return [];
+  const maxScore = Math.max(...scored.map((d) => d.goTangoScore));
+  const topNames = new Set(
+    scored.filter((d) => d.goTangoScore === maxScore).map((d) => d.name.toLowerCase()),
+  );
+  const allNames = [...new Set(collectScoredDailyTapeDestinations(input).map((d) => d.name).filter(Boolean))];
+  const phraseAlternation = LEADERSHIP_PHRASES.map(escapeRegExpLiteral).join('|');
+  const hits = [];
+  for (const name of allNames) {
+    if (topNames.has(name.toLowerCase())) continue;
+    // Match "<destination> ... <leadership phrase>" within a short, same-sentence
+    // window so we only flag leadership claims attached to this destination.
+    const proximity = new RegExp(`${escapeRegExpLiteral(name)}[^.!?]{0,40}?(?:${phraseAlternation})`, 'i');
+    if (proximity.test(haystack) && !hits.includes(name)) {
+      hits.push(name);
+    }
+  }
+  return hits;
+}
+
 export function getDailyTapeModel() {
   return process.env.DAILY_TAPE_MODEL
     || process.env.WEEKLY_BRIEF_MODEL
@@ -194,12 +301,50 @@ export function getDailyTapeModel() {
     || 'gpt-5.4-mini';
 }
 
-export function buildDailyTapeUserMessage(input) {
-  return `TODAY'S MOVEMENT INPUT (JSON):
+function formatDailyTapeLeaderSections(input) {
+  const lines = [];
+  const leaders = getDailyTapeScoreLeaders(input).slice(0, 5);
+  if (leaders.length) {
+    lines.push('GoTango Score leaders (primary ranking — only the top score may be called the leader/out front/top spot):');
+    leaders.forEach((d, i) => {
+      lines.push(`${i + 1}. ${d.name}${d.goTangoScore != null ? ` — score ${d.goTangoScore}` : ''}`);
+    });
+    lines.push('');
+  }
 
+  const heating = Array.isArray(input?.destinations)
+    ? input.destinations.filter((d) => d && d.status === 'heating')
+    : [];
+  if (heating.length) {
+    lines.push('Heating momentum (describe as gaining momentum / heating up, NOT as leading unless also the top score):');
+    heating.forEach((d) => {
+      lines.push(`- ${d.name}${d.goTangoScore != null ? ` — score ${d.goTangoScore}` : ''} — heating up`);
+    });
+    lines.push('');
+  }
+
+  const cooling = Array.isArray(input?.destinations)
+    ? input.destinations.filter((d) => d && d.status === 'cooling')
+    : [];
+  if (cooling.length) {
+    lines.push('Cooling:');
+    cooling.forEach((d) => {
+      lines.push(`- ${d.name}${d.goTangoScore != null ? ` — score ${d.goTangoScore}` : ''} — cooling`);
+    });
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+export function buildDailyTapeUserMessage(input) {
+  const leaderSections = formatDailyTapeLeaderSections(input);
+  return `TODAY'S MOVEMENT INPUT:
+
+${leaderSections}Full structured input (JSON):
 ${JSON.stringify(input, null, 2)}
 
-Write today's Today’s Movement article from the input above. Return strict JSON only.`;
+Write today's Today’s Movement article from the input above. Use the GoTango Score leaders to decide who "leads"/"tops"/"sets the pace"; use heating status only to describe momentum. A heating destination that is not the top GoTango Score must not be described as leading. Return strict JSON only.`;
 }
 
 export function buildDailyTapePrompt(systemPrompt, input) {
@@ -248,7 +393,7 @@ function validateDriver(driver) {
   return true;
 }
 
-export function validateDailyTapeDraft(draft) {
+export function validateDailyTapeDraft(draft, input = null) {
   const errors = [];
   if (!draft || typeof draft !== 'object') {
     return { ok: false, errors: ['draft_missing'] };
@@ -303,6 +448,20 @@ export function validateDailyTapeDraft(draft) {
   const forbiddenCopy = collectForbiddenDailyTapeCopyFromDraft(draft);
   if (forbiddenCopy.length) {
     errors.push(`forbidden_copy:${forbiddenCopy.join(',')}`);
+  }
+
+  // GoTango Score leadership guard: the headline and lead paragraph must not
+  // describe a non-top-score destination as the leader. Only runs when score
+  // context is supplied so existing callers without input keep their behavior.
+  if (input && collectScoredDailyTapeDestinations(input).some((d) => d.goTangoScore != null)) {
+    const leadParagraph = Array.isArray(draft.paragraphs) && draft.paragraphs.length
+      ? String(draft.paragraphs[0])
+      : '';
+    const leadText = [draft.headline, leadParagraph].filter(Boolean).join('  ');
+    const misattributed = findLeadershipMisattributions(leadText, input);
+    if (misattributed.length) {
+      errors.push(`leadership_misattribution:${misattributed.join(',')}`);
+    }
   }
 
   return { ok: errors.length === 0, errors };
@@ -491,12 +650,24 @@ export async function generateDailyTapeBrief({
     };
   }
 
-  let validation = validateDailyTapeDraft(result.draft);
+  let validation = validateDailyTapeDraft(result.draft, workingInput);
   const forbiddenCopy = validation.errors.find((e) => String(e).startsWith('forbidden_copy:'));
-  if (!validation.ok && forbiddenCopy) {
+  const leadershipIssue = validation.errors.find((e) => String(e).startsWith('leadership_misattribution:'));
+  if (!validation.ok && (forbiddenCopy || leadershipIssue)) {
+    const corrections = [];
+    if (forbiddenCopy) {
+      corrections.push(`Your previous draft used banned user-facing wording (${forbiddenCopy.replace(/^forbidden_copy:/, '')}). Rewrite without Daily Tape, tape, private travel, private-travel, private arrivals, private arrival, private-arrival phrasing, or private aviation. Prefer arrivals, arrival movement, destination movement, GoTango score, and GoTango signal.`);
+    }
+    if (leadershipIssue) {
+      const topLeaders = getDailyTapeScoreLeaders(workingInput)
+        .slice(0, 3)
+        .map((d) => `${d.name}${d.goTangoScore != null ? ` (score ${d.goTangoScore})` : ''}`)
+        .join(', ');
+      corrections.push(`Your previous draft described ${leadershipIssue.replace(/^leadership_misattribution:/, '')} as leading, but that destination is not the top GoTango Score. Only the highest GoTango Score destination may be called the leader, out front, top spot, or the one setting the pace. Current GoTango Score leaders: ${topLeaders}. Describe heating non-leaders as gaining momentum or heating up behind the leaders.`);
+    }
     const retryPrompt = `${systemPrompt}
 
-IMPORTANT RETRY: Your previous draft used banned user-facing wording (${forbiddenCopy.replace(/^forbidden_copy:/, '')}). Rewrite the entire article without Daily Tape, tape, private travel, private-travel, private arrivals, private arrival, private-arrival phrasing, or private aviation. Prefer arrivals, arrival movement, destination movement, GoTango score, and GoTango signal. Keep the same JSON schema.`;
+IMPORTANT RETRY: ${corrections.join(' ')} Keep the same JSON schema.`;
     result = await callDailyTapeOpenAi({
       systemPrompt: retryPrompt,
       input: workingInput,
@@ -510,7 +681,7 @@ IMPORTANT RETRY: Your previous draft used banned user-facing wording (${forbidde
         input: workingInput,
       };
     }
-    validation = validateDailyTapeDraft(result.draft);
+    validation = validateDailyTapeDraft(result.draft, workingInput);
   }
 
   if (!validation.ok) {
@@ -582,6 +753,20 @@ export function buildTodayMovementInputFromSourceData({ arrivalsPayload, scoreRe
   heating.slice(0, 6).forEach((d) => inputDestinations.push(toInputDest(d, 'heating')));
   cooling.slice(0, 4).forEach((d) => inputDestinations.push(toInputDest(d, 'cooling')));
 
+  // GoTango Score leaders are the primary ranking signal (independent of
+  // heating/cooling momentum). These let the writer decide who actually "leads"
+  // rather than treating a heating destination as the leader.
+  const scoreLeaders = destinations
+    .filter((d) => d && Number.isFinite(Number(d.go_tango_score)) && Number(d.go_tango_score) >= minScore)
+    .sort((a, b) => (Number(b.go_tango_score) || 0) - (Number(a.go_tango_score) || 0))
+    .slice(0, 5)
+    .map((d) => ({
+      id: String(d.id || ''),
+      name: String(d.name || d.id || ''),
+      region: DAILY_TAPE_DESTINATION_REGION.get(d.id) || undefined,
+      goTangoScore: Number.isFinite(Number(d.go_tango_score)) ? Number(d.go_tango_score) : undefined,
+    }));
+
   const totals = homepage?.totals || (arrivalsPayload?.homepage && arrivalsPayload.homepage.totals);
   let privateArrivals24h;
   if (totals && Number.isFinite(Number(totals.total_private_arrivals_24h))) {
@@ -599,6 +784,7 @@ export function buildTodayMovementInputFromSourceData({ arrivalsPayload, scoreRe
     heatingCount: heating.length,
     coolingCount: cooling.length,
     privateArrivals24h,
+    scoreLeaders,
     destinations: inputDestinations,
   };
 }

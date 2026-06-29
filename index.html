@@ -14397,23 +14397,28 @@ Preferred language:
 - what is happening now
 - what could happen next
 
+GoTango Score leadership rule:
+The GoTango Score is the primary durable destination ranking. Heating/cooling status is a momentum signal, not the ranking. Do not describe a destination as leading, out front, setting the pace, taking the top spot, owning the board, ranked first, or #1 unless it has the highest GoTango Score in the provided data. If a destination is heating but does not have the top GoTango Score, describe it as gaining momentum, heating up behind the leaders, keeping pace, climbing, or one to watch. Use the provided "GoTango Score leaders" list to decide who leads; use the "Heating momentum" list only to describe movement.
+
 Headline rules:
-The headline should be fun, specific, and destination-led.
+The headline should be fun, specific, and destination-led, and it must respect the GoTango Score leadership rule.
 
 The headline should NOT sound like:
 “Private-travel tape is leaning into the summer leisure rotation...”
+“Nassau leads the way...” (when Nassau is only heating and is not the top GoTango Score)
 
 The headline SHOULD sound more like:
-“Nassau grabs the spotlight as 30A, Olbia, Aspen, and Jackson Hole keep pace”
-“The islands are hot, the mountains are waking up, and 30A is still holding rank”
+“Hamptons holds the top spot as Nassau heats up behind the leaders”
+“Hamptons and Nantucket stay out front while Nassau gains momentum”
+“Hamptons leads today’s GoTango read as Nassau, 30A, and Olbia heat up”
+“Hamptons owns the top score, but Nassau is making the day more interesting”
 “Beach weekends are winning today, but the mountain towns are starting to move”
-“The Hamptons take the lead as summer favorites keep the pressure on”
-“Nassau is out front today, but the summer crowd is right behind it”
-“Aspen and Jackson Hole join the beach rush in today’s GoTango read”
 
 Headline requirements:
 - Under 130 characters when possible.
 - Mention 1 to 4 destinations when supported by the data.
+- Only the destination with the highest GoTango Score may be called the leader, out front, top spot, or the one setting the pace.
+- A heating destination that is not the top GoTango Score should be framed as momentum (heating up, gaining momentum, keeping pace), never as the leader.
 - Make it feel current and human.
 - Make it sticky enough that a user wants to read more.
 - Do not simply summarize numbers.
@@ -14593,6 +14598,18 @@ Return strict JSON:
     const heatLeaders = heating.slice().sort(byScore);
     const coolLeaders = cooling.slice().sort(byScore);
 
+    // GoTango Score is the primary ranking: pick the lead destination by score,
+    // not by heating status. Heating destinations are momentum, not leadership.
+    const scoreLeaderList = Array.isArray(safe.scoreLeaders) && safe.scoreLeaders.length
+      ? safe.scoreLeaders.slice().sort(byScore)
+      : dests.slice().sort(byScore);
+    const topLeader = scoreLeaderList.find((d) => Number.isFinite(Number(d.goTangoScore))) || scoreLeaderList[0] || null;
+    const topLeaderName = topLeader && topLeader.name ? String(topLeader.name) : '';
+    const isTopLeader = (name) => !!name && !!topLeaderName && String(name).toLowerCase() === topLeaderName.toLowerCase();
+    const heatersBehindLeader = heatLeaders
+      .map((d) => d.name)
+      .filter((name) => name && !isTopLeader(name));
+
     const heatingCount = Number.isFinite(safe.heatingCount) ? safe.heatingCount : heating.length;
     const coolingCount = Number.isFinite(safe.coolingCount) ? safe.coolingCount : cooling.length;
     const destinationCount = Number.isFinite(safe.destinationCount) ? safe.destinationCount : dests.length;
@@ -14641,9 +14658,16 @@ Return strict JSON:
 
     // P1 — what is moving today
     if (verdict === 'HEATING') {
-      const p1a = leadStr
-        ? `Today’s read has a clear shape, with ${leadStr} out front.`
-        : `Today’s read has a clear shape, with familiar summer destinations out front.`;
+      let p1a;
+      if (topLeaderName && heatersBehindLeader.length) {
+        p1a = `${topLeaderName} holds the top GoTango score today, while ${_tapeJoinNames(heatersBehindLeader.slice(0, 3))} ${heatersBehindLeader.length > 1 ? 'gain' : 'gains'} momentum.`;
+      } else if (topLeaderName) {
+        p1a = `${topLeaderName} holds the top GoTango score today and is among the names heating up.`;
+      } else if (leadStr) {
+        p1a = `Today’s read has a clear shape, with ${leadStr} gaining momentum.`;
+      } else {
+        p1a = `Today’s read has a clear shape across the board.`;
+      }
       const p1b = breadthBroad
         ? `The heat reads broad rather than the work of one marquee market — ${heatingCount} destinations are heating against ${coolingCount} cooling.`
         : `The move is concentrated for now — ${heatingCount} destinations heating against ${coolingCount} cooling, with a short list of names doing most of the lifting.`;
@@ -14736,12 +14760,17 @@ Return strict JSON:
       });
     }
 
-    const headlineNames = heatLeaders.slice(0, 4).map((d) => d.name).filter(Boolean);
+    // Headline leads with the GoTango Score leader; heating destinations that are
+    // not the top score are framed as momentum, never as the leader.
     let headline;
-    if (headlineNames.length >= 2) {
-      headline = `${headlineNames[0]} leads today as ${headlineNames.slice(1, 3).join(', ')} keep pace`;
-    } else if (headlineNames.length === 1) {
-      headline = `${headlineNames[0]} takes the lead in today's GoTango read`;
+    if (topLeaderName && heatersBehindLeader.length) {
+      const behind = _tapeJoinNames(heatersBehindLeader.slice(0, 3));
+      headline = `${topLeaderName} holds the top spot as ${behind} ${heatersBehindLeader.length > 1 ? 'heat up' : 'heats up'}`;
+    } else if (topLeaderName) {
+      headline = `${topLeaderName} leads today’s GoTango read`;
+    } else if (heatLeaders.length) {
+      const heatNames = _tapeJoinNames(heatLeaders.slice(0, 3).map((d) => d.name).filter(Boolean));
+      headline = `${heatNames} ${heatLeaders.length > 1 ? 'are gaining momentum' : 'is gaining momentum'} in today’s GoTango read`;
     } else {
       headline = "Today's Movement";
     }
@@ -14814,6 +14843,20 @@ Return strict JSON:
     heatingList.forEach((d) => inputDestinations.push(toInputDest(d, 'heating')));
     coolingList.forEach((d) => inputDestinations.push(toInputDest(d, 'cooling')));
 
+    // GoTango Score leaders (primary ranking) so the brief leads by score, not
+    // by heating status. Independent of the heating/cooling shortlists above.
+    const scoreLeaders = enriched
+      .filter((d) => Number.isFinite(Number(d.go_tango_score)))
+      .slice()
+      .sort((a, b) => (Number(b.go_tango_score) || 0) - (Number(a.go_tango_score) || 0))
+      .slice(0, 5)
+      .map((d) => ({
+        id: String(d.id || ''),
+        name: String(d.name || d.id || ''),
+        region: d.region ? String(d.region) : undefined,
+        goTangoScore: Number.isFinite(Number(d.go_tango_score)) ? Number(d.go_tango_score) : undefined,
+      }));
+
     const destinationCount = getTotalDestinations(payload) || enriched.length;
 
     const counts = (goTangoScoreV2Data && goTangoScoreV2Data.category_counts) || {};
@@ -14837,6 +14880,7 @@ Return strict JSON:
       coolingCount: coolingList.length,
       steadyCount,
       privateArrivals24h,
+      scoreLeaders,
       destinations: inputDestinations,
     };
   }
