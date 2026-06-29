@@ -4674,6 +4674,14 @@
   margin: 0;
 }
 
+.d-destination-news__blurb-p {
+  margin: 0;
+}
+
+.d-destination-news__blurb-p + .d-destination-news__blurb-p {
+  margin-top: 0.9em;
+}
+
 .d-destination-news__sources-wrap {
   margin-top: 18px;
 }
@@ -11741,6 +11749,44 @@
     return true;
   }
 
+  // Break the "What's Happening" blurb into 2–3 readable paragraphs. The blurb
+  // arrives as a single block of prose, so we split on sentence boundaries and
+  // distribute the sentences into balanced groups for easier scanning.
+  function _splitNewsBlurbIntoParagraphs(blurb) {
+    const text = typeof blurb === 'string' ? blurb.trim() : '';
+    if (!text) return [];
+
+    // Honor explicit paragraph breaks if the source already provides them.
+    const explicit = text.split(/\n{2,}/).map((part) => part.trim()).filter(Boolean);
+    if (explicit.length > 1) return explicit.slice(0, 3);
+
+    // Split into sentences at whitespace that follows sentence-ending punctuation
+    // and precedes a capital letter or opening quote.
+    const sentences = text
+      .split(/(?<=[.!?]["'\u201d\u2019]?)\s+(?=[A-Z"'\u201c\u2018])/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (sentences.length <= 1) return [text];
+
+    let target;
+    if (sentences.length === 2) target = 2;
+    else target = 3;
+
+    const base = Math.floor(sentences.length / target);
+    const remainder = sentences.length % target;
+
+    const paragraphs = [];
+    let index = 0;
+    for (let group = 0; group < target; group += 1) {
+      const size = base + (group < remainder ? 1 : 0);
+      if (size <= 0) continue;
+      paragraphs.push(sentences.slice(index, index + size).join(' '));
+      index += size;
+    }
+    return paragraphs;
+  }
+
   function _buildDestinationNewsSection(news) {
     const section = document.createElement('div');
     section.className = 'd-section d-section--news';
@@ -11776,9 +11822,15 @@
     noteContent.className = 'editor-note__content is-collapsed';
     noteContent.setAttribute('data-editor-note-content', '');
 
-    const blurb = document.createElement('p');
+    const blurb = document.createElement('div');
     blurb.className = 'd-destination-news__blurb';
-    blurb.textContent = news.blurb;
+    const blurbParagraphs = _splitNewsBlurbIntoParagraphs(news.blurb);
+    for (const paragraphText of blurbParagraphs) {
+      const paragraph = document.createElement('p');
+      paragraph.className = 'd-destination-news__blurb-p';
+      paragraph.textContent = paragraphText;
+      blurb.appendChild(paragraph);
+    }
     noteContent.appendChild(blurb);
     noteRoot.appendChild(noteContent);
 
