@@ -64,6 +64,7 @@ export const NEWS_KV_KEYS = {
 };
 
 export const ARRIVALS_LATEST_KV_KEY = 'gotango:arrivals:latest';
+export const ARRIVALS_META_KV_KEY = 'gotango:arrivals:meta';
 
 export const DESTINATION_START_DEADLINE_MS = 40_000;
 export const HARD_EXECUTION_DEADLINE_MS = 52_000;
@@ -5630,8 +5631,16 @@ export function buildConfigSafeIdentity(config) {
 
 export async function loadArrivalsSourceSavedAt(kvClient) {
   try {
-    const payload = await kvClient.get(ARRIVALS_LATEST_KV_KEY);
-    return payload?.saved_at || null;
+    // The arrivals `:latest` payload does not carry `saved_at` (that field lives
+    // in `:meta`), so fall back to meta and then `fetched_at`. Without this the
+    // value is always null, which makes shouldSkipDailyNewsRefresh treat every
+    // day as "already refreshed for snapshot" (null === null) and the daily
+    // news refresh never runs again after the first completed run.
+    const [latest, meta] = await Promise.all([
+      kvClient.get(ARRIVALS_LATEST_KV_KEY),
+      kvClient.get(ARRIVALS_META_KV_KEY),
+    ]);
+    return latest?.saved_at || meta?.saved_at || latest?.fetched_at || null;
   } catch {
     return null;
   }

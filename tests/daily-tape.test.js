@@ -10,6 +10,7 @@ import {
   DAILY_TAPE_HUMAN_EDITOR_REWRITE_INSTRUCTION,
   buildDailyTapePrompt,
   buildDailyTapeDestinationRoles,
+  buildDriversFromInput,
   buildSignalChipsFromInput,
   buildTodayMovementInputFromSourceData,
   buildDailyTapeUserMessage,
@@ -405,6 +406,33 @@ test('buildDailyTapePrompt embeds input JSON', () => {
   const prompt = buildDailyTapePrompt(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, SAMPLE_INPUT);
   assert.match(prompt, /TODAY'S MOVEMENT INPUT/);
   assert.match(prompt, /"mykonos"/);
+});
+
+test('buildDriversFromInput always returns 2-4 valid drivers', () => {
+  const drivers = buildDriversFromInput(SCORE_LEADER_INPUT);
+  assert.ok(Array.isArray(drivers));
+  assert.ok(drivers.length >= 2 && drivers.length <= 4);
+  for (const d of drivers) {
+    assert.ok(typeof d.label === 'string' && d.label.trim() !== '');
+    assert.ok(typeof d.detail === 'string' && d.detail.trim() !== '');
+  }
+});
+
+test('a draft missing drivers is repaired to a valid article (drivers are non-displayed metadata)', () => {
+  // Simulate the flaky model miss that was blanking the live article: a valid
+  // narrative but no drivers array. The deterministic repair must make it valid.
+  const draft = makeScoreLedDraft(
+    'Hamptons is still the name to beat, but Nassau is making the day interesting',
+  );
+  delete draft.drivers;
+  const before = validateDailyTapeDraft(draft, SCORE_LEADER_INPUT);
+  assert.equal(before.ok, false);
+  assert.ok(before.errors.includes('drivers_count'));
+
+  draft.drivers = buildDriversFromInput(SCORE_LEADER_INPUT, draft);
+  draft.signalChips = buildSignalChipsFromInput(SCORE_LEADER_INPUT);
+  const after = validateDailyTapeDraft(draft, SCORE_LEADER_INPUT);
+  assert.equal(after.ok, true);
 });
 
 test('buildSignalChipsFromInput formats arrivals count', () => {
