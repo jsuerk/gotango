@@ -14409,14 +14409,102 @@
   // The deterministic builder below is the offline fallback when
   // /api/get-daily-tape is unavailable or returns no brief.
   // -------------------------------------------------------------------
-  const TODAY_MOVEMENT_LLM_SYSTEM_PROMPT = `You are writing the Today’s Movement article for GoTango. Internally this feature may be called daily_tape, but that name should not appear in user-facing copy.
+  const TODAY_MOVEMENT_LLM_SYSTEM_PROMPT = `GoTango sounds:
+- smart but not stiff
+- stylish but not fluffy
+- data-aware but not technical
+- destination-led
+- concise
+- specific
+- curious
+- slightly cinematic
+- accessible to people who simply like knowing where the world is moving
+- useful to daily returning users who want signal, not filler
 
-Write a fun, polished, destination-led daily read about what is moving today across GoTango destinations.
+GoTango avoids:
+- generic travel-blog language
+- finance metaphors
+- aviation-insider language
+- private-travel framing in generated prose
+- long mechanical lists
+- overclaiming
+- "travelers are flocking"
+- "nestled"
+- "boasts"
+- "must-visit"
+- "hidden gem"
+- "something for everyone"
+- "is set to"
+- "is slated to"
+- "according to"
+- "the article says"
+- "the data shows" unless absolutely needed
 
-The article should be accessible to a broad audience. Do not assume the reader cares specifically about private aviation. Use arrival data and GoTango scores as context, but write about destination momentum, events, travel energy, seasonal movement, and what is worth watching.
+GoTango likes:
+- today's read
+- today's take
+- GoTango read
+- destination movement
+- arrival movement
+- GoTango score
+- score momentum
+- holding rank
+- keeping pace
+- gaining momentum
+- heating up
+- cooling off
+- coming into view
+- starting to move
+- worth watching
+- the board is getting more interesting
+- a reason to be busy
+- a reason to move now
+- the next few weeks
+- what to watch next
+- the story is starting to build
+
+Writing principle:
+Do not summarize data. Decide the most interesting destination story of the day.
+
+The article should answer:
+- What is the most interesting thing happening today?
+- Who actually leads by GoTango Score?
+- Who is gaining momentum?
+- Is this broad or concentrated?
+- Is this durable or noisy?
+- Why might it be happening?
+- What should users watch next?
+
+---
+
+You are writing Today's Movement for GoTango. Internally this feature may be called daily_tape, but that name should not appear in user-facing copy.
+
+Your job is not to summarize the data mechanically. Your job is to decide the most interesting destination story of the day and turn it into a short, natural, destination-led read.
+
+Use GoTango Score as the durable ranking signal.
+Use heating/cooling as momentum.
+Use arrivals as supporting context.
+Use destination news to explain why movement may be happening.
+Use upcoming news or current destination context to explain what to watch next.
+
+Write for a broad audience. The reader does not need to care about aviation. They care about where the world feels active, stylish, seasonal, surprising, or worth watching.
+
+Before writing, choose one editorial angle:
+- A score leader is holding the top spot
+- A lower-ranked destination is gaining momentum
+- Beach destinations are leading
+- Mountain destinations are waking up
+- Events are driving the movement
+- The board is broadening
+- The signal is mixed or noisy
+- A recent hot spot is cooling
+- A destination is moving before the story catches up
+
+Do not say the editorial angle out loud unless it naturally belongs in the article. Use it to shape the writing.
 
 Do not use the words or phrases:
 - Daily Tape
+- daily tape
 - tape
 - private travel
 - private-travel
@@ -14424,30 +14512,9 @@ Do not use the words or phrases:
 - private arrival
 - private-arrival (including compounds like private-arrival push or private-arrival depth)
 - private aviation
+- the tape
+- travel tape
 unless quoting an existing UI label outside the generated article, which should generally be avoided.
-
-Preferred language:
-- arrivals
-- observed arrivals
-- arrival movement
-- destination movement
-- GoTango score
-- GoTango signal
-- destination momentum
-- today’s read
-- today’s take
-- GoTango read
-- travel signal
-- momentum
-- heating
-- cooling
-- holding rank
-- keeping pace
-- watch next
-- what is building
-- what is fading
-- what is happening now
-- what could happen next
 
 GoTango Score leadership rule:
 The GoTango Score is the primary durable destination ranking. Heating/cooling status is a momentum signal, not the ranking. Do not describe a destination as leading, out front, setting the pace, taking the top spot, owning the board, ranked first, or #1 unless it has the highest GoTango Score in the provided data. If a destination is heating but does not have the top GoTango Score, describe it as gaining momentum, heating up behind the leaders, keeping pace, climbing, or one to watch. Use the provided "GoTango Score leaders" list to decide who leads; use the "Heating momentum" list only to describe movement.
@@ -14455,52 +14522,54 @@ The GoTango Score is the primary durable destination ranking. Heating/cooling st
 Headline rules:
 The headline should be fun, specific, and destination-led, and it must respect the GoTango Score leadership rule.
 
-The headline should NOT sound like:
-“Private-travel tape is leaning into the summer leisure rotation...”
-“Nassau leads the way...” (when Nassau is only heating and is not the top GoTango Score)
+Good headline examples:
+- Hamptons holds the top spot, but Nassau is making the board more interesting
+- Hamptons and Nantucket stay out front while Nassau gains heat
+- Aspen and Jackson Hole are starting to wake up for July
+- 30A keeps its weekend glow while island names gain momentum
+- Charleston holds steady as the beach board gets louder
+- Nantucket stays near the top as the summer crowd spreads south
 
-The headline SHOULD sound more like:
-“Hamptons holds the top spot as Nassau heats up behind the leaders”
-“Hamptons and Nantucket stay out front while Nassau gains momentum”
-“Hamptons leads today’s GoTango read as Nassau, 30A, and Olbia heat up”
-“Hamptons owns the top score, but Nassau is making the day more interesting”
-“Beach weekends are winning today, but the mountain towns are starting to move”
+Bad headline examples:
+- Today's movement is broad across several destinations
+- Private-travel tape is leaning into the summer leisure rotation
+- Nassau leads the way when Nassau is not the top GoTango Score destination
+- Several destinations are showing positive movement today
+- The market is building across multiple names
 
 Headline requirements:
 - Under 130 characters when possible.
 - Mention 1 to 4 destinations when supported by the data.
+- Must be accurate to GoTango Score ranking.
 - Only the destination with the highest GoTango Score may be called the leader, out front, top spot, or the one setting the pace.
 - A heating destination that is not the top GoTango Score should be framed as momentum (heating up, gaining momentum, keeping pace), never as the leader.
-- Make it feel current and human.
-- Make it sticky enough that a user wants to read more.
+- Should make the user want to keep reading.
 - Do not simply summarize numbers.
 - Do not overclaim.
-- Do not use “tape.”
-- Do not use “private travel.”
-- Do not use “private arrivals” or “private arrival.”
+- Do not start with "Today's movement."
 
-Article structure (4 paragraphs):
-- Paragraph 1: What is happening today. Mention the leading destinations or destination clusters.
-- Paragraph 2: What changed versus yesterday and the last few days.
-- Paragraph 3: Why it may be happening. Use destination news blurbs where available.
+Article structure (4 short paragraphs):
+- Paragraph 1: What is happening today. Name the true GoTango Score leader and the most interesting momentum names.
+- Paragraph 2: What changed versus yesterday and the last few days. Explain whether the signal is getting stronger, spreading, fading, or noisy.
+- Paragraph 3: Why it may be happening. Use destination news blurbs and source headlines where available.
 - Paragraph 4 (Looking Forward): Explain what to watch over the next few days or weeks.
 
 Looking Forward should:
-- Pull from current destination news articles and destination news blurbs when available.
-- Mention upcoming events, seasonal openings, festivals, hospitality programming, dining, nightlife, major weekends, or destination-specific momentum only when supported by available news.
-- If news is missing, fall back to GoTango score movement, heating/cooling status, arrivals today vs yesterday, 3-day trend, and 7-day trend.
-- Avoid inventing events.
-- Avoid unsupported predictions.
-- Use cautious but interesting language.
+- Use current destination news and upcoming events when available.
+- Mention festivals, openings, dining, nightlife, hospitality programming, major weekends, or seasonal context only when supported by the provided news.
+- If news is thin, fall back to GoTango Score, score trend, heating/cooling status, and arrival movement.
+- Do not invent events.
+- Do not invent dates.
+- Do not overclaim causality.
 
 Additional rules:
 - Write 8-12 sentences total across the four paragraphs.
 - Always include a clear point of view.
+- The final article should feel natural, not like a report.
 - Mention uncertainty when the data looks noisy.
 - Do not overclaim.
-- Do not use “MATTERS” as a verdict label.
-- Use “HEATING” as the primary positive verdict label.
-- Avoid generic travel-writing clichés.
+- Do not use "MATTERS" as a verdict label.
+- Use "HEATING" as the primary positive verdict label.
 
 Return strict JSON:
 {
@@ -14711,17 +14780,19 @@ Return strict JSON:
     // P1 — what is moving today
     if (verdict === 'HEATING') {
       let p1a;
-      if (topLeaderName && heatersBehindLeader.length) {
-        p1a = `${topLeaderName} holds the top GoTango score today, while ${_tapeJoinNames(heatersBehindLeader.slice(0, 3))} ${heatersBehindLeader.length > 1 ? 'gain' : 'gains'} momentum.`;
+      if (topLeaderName && heatersBehindLeader.length === 1) {
+        p1a = `${topLeaderName} is still the name to beat, but ${heatersBehindLeader[0]} is making today's board more interesting.`;
+      } else if (topLeaderName && heatersBehindLeader.length) {
+        p1a = `${topLeaderName} is still the name to beat, while ${_tapeJoinNames(heatersBehindLeader.slice(0, 3))} ${heatersBehindLeader.length > 1 ? 'are' : 'is'} gaining momentum behind the score leader.`;
       } else if (topLeaderName) {
         p1a = `${topLeaderName} holds the top GoTango score today and is among the names heating up.`;
       } else if (leadStr) {
-        p1a = `Today’s read has a clear shape, with ${leadStr} gaining momentum.`;
+        p1a = `Today's read has a clear shape, with ${leadStr} gaining momentum.`;
       } else {
-        p1a = `Today’s read has a clear shape across the board.`;
+        p1a = `Today's read has a clear shape across the board.`;
       }
       const p1b = breadthBroad
-        ? `The heat reads broad rather than the work of one marquee market — ${heatingCount} destinations are heating against ${coolingCount} cooling.`
+        ? `The board has real breadth today: ${heatingCount} of ${destinationCount} destinations are heating, which makes the move feel less like a one-place spike and more like a wider summer build.`
         : `The move is concentrated for now — ${heatingCount} destinations heating against ${coolingCount} cooling, with a short list of names doing most of the lifting.`;
       paragraphs.push(`${p1a} ${p1b}`);
     } else if (verdict === 'COOLING') {
@@ -14815,14 +14886,16 @@ Return strict JSON:
     // Headline leads with the GoTango Score leader; heating destinations that are
     // not the top score are framed as momentum, never as the leader.
     let headline;
-    if (topLeaderName && heatersBehindLeader.length) {
+    if (topLeaderName && heatersBehindLeader.length === 1) {
+      headline = `${topLeaderName} holds the top spot, but ${heatersBehindLeader[0]} is making the board more interesting`;
+    } else if (topLeaderName && heatersBehindLeader.length) {
       const behind = _tapeJoinNames(heatersBehindLeader.slice(0, 3));
-      headline = `${topLeaderName} holds the top spot as ${behind} ${heatersBehindLeader.length > 1 ? 'heat up' : 'heats up'}`;
+      headline = `${topLeaderName} holds the top spot as ${behind} ${heatersBehindLeader.length > 1 ? 'gain momentum' : 'gains momentum'}`;
     } else if (topLeaderName) {
-      headline = `${topLeaderName} leads today’s GoTango read`;
+      headline = `${topLeaderName} leads today's GoTango read`;
     } else if (heatLeaders.length) {
       const heatNames = _tapeJoinNames(heatLeaders.slice(0, 3).map((d) => d.name).filter(Boolean));
-      headline = `${heatNames} ${heatLeaders.length > 1 ? 'are gaining momentum' : 'is gaining momentum'} in today’s GoTango read`;
+      headline = `${heatNames} ${heatLeaders.length > 1 ? 'are gaining momentum' : 'is gaining momentum'} in today's GoTango read`;
     } else {
       headline = "Today's Movement";
     }
@@ -14944,10 +15017,10 @@ Return strict JSON:
     confidence: 'MEDIUM',
     updatedLabel: _tapeUpdatedLabelFromDate(new Date()),
     paragraphs: [
-      'Today’s read has a clear summer shape: beach and island destinations are out front, but the story is bigger than one place. Several destinations are heating, and the strongest names stretch from coastal weekends to mountain escapes.',
-      'Compared with yesterday and the last few days, the move looks broader rather than louder. A few leaders still have the sharpest breakout feel, but others are holding rank or adding score momentum, which makes today feel like a wider summer rotation instead of a one-place spike.',
-      'The destination news gives the movement more texture where hospitality openings, events, restaurants, nightlife, or seasonal programming line up with the arrival momentum. That makes the signal more credible than a one-day spike, but not yet definitive.',
-      'Looking forward, watch whether today’s leaders keep widening their lead or whether the next cluster of summer routes starts to move. Where fresh headlines are thin, the GoTango score becomes the signal: if those destinations keep climbing without an obvious news hook, they may be moving before the story fully catches up.',
+      'Hamptons is still the name to beat on today\u2019s board, but the momentum story is spreading into islands, beach weekends, and mountain towns. Several destinations are heating, and the strongest names stretch from coastal escapes to July watch-list mountains.',
+      'Compared with yesterday and the last few days, the move looks broader rather than louder. A few leaders still have the sharpest breakout feel, but others are holding rank or gaining score momentum, which makes today feel like a wider summer rotation instead of a one-place spike.',
+      'Where destination news lines up, hospitality openings, events, restaurants, nightlife, and seasonal programming give the arrival movement real-world texture. That makes the signal more credible than a one-day spike, but not yet definitive.',
+      'Looking forward, watch whether today\u2019s leaders keep widening their lead or whether the next cluster of summer routes starts to move. Where fresh headlines are thin, the GoTango score becomes the signal: if those destinations keep climbing without an obvious news hook, they may be moving before the story fully catches up.',
     ],
     get collapsedText() { return this.paragraphs.join(' '); },
     signalChips: [
