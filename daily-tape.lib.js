@@ -1226,12 +1226,28 @@ export function buildTodayMovementInputFromSourceData({ arrivalsPayload, scoreRe
     ? Number(scoreResponse.now_minimum_public_score)
     : NOW_MIN_PUBLIC_SCORE;
 
+  // Heating/cooling here must match what the Now hero bar and Movers page show
+  // the reader: both count every destination whose confirmed momentum category
+  // is heating_up / cooling (assignMoverSectionsV2 + _buildNowHeatingShortlist
+  // in index.html, mirrored client-side by buildTodayMovementInputFromPage).
+  // The earlier now_*_display_eligible filter was a stricter subset, so the
+  // article claimed fewer heating destinations than the hero bar (e.g. "5 of
+  // 51" while the bar showed 10). Within the named list we still surface the
+  // actively-moving (display-eligible) names first so the prose leads with the
+  // most prominent movers, then fall back to GoTango Score order.
+  const byScoreDesc = (a, b) => (Number(b.go_tango_score) || 0) - (Number(a.go_tango_score) || 0);
+  const eligibleFirst = (eligibleKey) => (a, b) => {
+    const aEligible = a && a[eligibleKey] ? 1 : 0;
+    const bEligible = b && b[eligibleKey] ? 1 : 0;
+    if (aEligible !== bEligible) return bEligible - aEligible;
+    return byScoreDesc(a, b);
+  };
   const heating = destinations
-    .filter((d) => d && d.now_heating_display_eligible && Number(d.go_tango_score) >= minScore)
-    .sort((a, b) => (Number(b.go_tango_score) || 0) - (Number(a.go_tango_score) || 0));
+    .filter((d) => d && d.confirmed_category === 'heating_up')
+    .sort(eligibleFirst('now_heating_display_eligible'));
   const cooling = destinations
-    .filter((d) => d && d.now_cooling_display_eligible && Number(d.go_tango_score) >= minScore)
-    .sort((a, b) => (Number(b.go_tango_score) || 0) - (Number(a.go_tango_score) || 0));
+    .filter((d) => d && d.confirmed_category === 'cooling')
+    .sort(eligibleFirst('now_cooling_display_eligible'));
 
   const toInputDest = (d, status) => ({
     id: String(d.id || ''),
