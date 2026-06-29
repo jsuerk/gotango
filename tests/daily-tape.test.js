@@ -5,11 +5,13 @@ import {
   TODAY_MOVEMENT_LLM_SYSTEM_PROMPT,
   DAILY_TAPE_KV_KEYS,
   DAILY_TAPE_PROMPT_VERSION,
+  GOTANGO_VOICE_GUIDE,
   buildDailyTapePrompt,
   buildSignalChipsFromInput,
   buildTodayMovementInputFromSourceData,
   buildDailyTapeUserMessage,
   findForbiddenDailyTapeCopyPhrases,
+  findBoringDailyTapeCopyIssues,
   findLeadershipMisattributions,
   getDailyTapeScoreLeaders,
   normalizeDailyTapeBrief,
@@ -52,13 +54,15 @@ const SAMPLE_INPUT = {
 };
 
 test('TODAY_MOVEMENT_LLM_SYSTEM_PROMPT forbids MATTERS and requires accessible Today’s Movement copy', () => {
-  assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Today’s Movement article for GoTango/);
+  assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Today’s Movement for GoTango/);
   assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Do not use “MATTERS” as a verdict label/);
   assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Use “HEATING” as the primary positive verdict label/);
   assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Looking Forward/);
   assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /private arrivals/);
-  assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /observed arrivals/);
   assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /GoTango Score leadership rule/);
+  assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /smart but not stiff/);
+  assert.match(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /decide the most interesting destination story/);
+  assert.equal(DAILY_TAPE_PROMPT_VERSION, 'daily_tape_gotango_voice_v4');
   assert.doesNotMatch(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /Daily Tape writer/);
   assert.doesNotMatch(TODAY_MOVEMENT_LLM_SYSTEM_PROMPT, /private travel today/);
 });
@@ -250,12 +254,54 @@ test('validateDailyTapeDraft allows Nassau to lead when it has the top GoTango S
   assert.equal(result.ok, true);
 });
 
+test('findForbiddenDailyTapeCopyPhrases rejects required banned phrases', () => {
+  const checks = [
+    ['Daily Tape', 'The Daily Tape is heating'],
+    ['private travel', 'private travel is up'],
+    ['private arrivals', 'private arrivals rose today'],
+    ['the tape', 'the tape is hot'],
+    ['travel tape', 'travel tape update'],
+    ['private aviation', 'private aviation demand'],
+  ];
+  for (const [label, text] of checks) {
+    const hits = findForbiddenDailyTapeCopyPhrases(text);
+    assert.ok(hits.length, `expected "${label}" to be flagged in: ${text}`);
+  }
+});
+
+test('findBoringDailyTapeCopyIssues flags mechanical Today’s Movement headlines', () => {
+  const boring = findBoringDailyTapeCopyIssues(
+    makeScoreLedDraft('Today’s movement is broad across several destinations'),
+    SCORE_LEADER_INPUT,
+  );
+  assert.ok(boring.includes('boring_headline_opener'));
+  assert.ok(boring.includes('boring_headline_no_destinations'));
+});
+
+test('findBoringDailyTapeCopyIssues accepts a destination-led headline', () => {
+  const issues = findBoringDailyTapeCopyIssues(
+    makeScoreLedDraft('Hamptons holds the top spot, but Nassau is making the board more interesting'),
+    SCORE_LEADER_INPUT,
+  );
+  assert.equal(issues.length, 0);
+});
+
 test('buildDailyTapeUserMessage surfaces GoTango Score leaders ahead of heating momentum', () => {
   const msg = buildDailyTapeUserMessage(SCORE_LEADER_INPUT);
   assert.match(msg, /GoTango Score leaders/);
   assert.match(msg, /1\. Hamptons — score 99/);
   assert.match(msg, /Heating momentum/);
+  assert.match(msg, /GoTango Voice guidance/);
+  assert.match(msg, /smart but not stiff/);
+  assert.match(msg, /Looking Forward paragraph/);
+  assert.match(msg, /Evidence hierarchy/);
   assert.ok(msg.indexOf('GoTango Score leaders') < msg.indexOf('Heating momentum'));
+  assert.ok(msg.indexOf('Evidence hierarchy') < msg.indexOf('GoTango Score leaders'));
+});
+
+test('GOTANGO_VOICE_GUIDE is reusable shared copy guidance', () => {
+  assert.match(GOTANGO_VOICE_GUIDE, /destination-led/);
+  assert.match(GOTANGO_VOICE_GUIDE, /What should users watch next/);
 });
 
 test('parseDailyTapeJsonFromModelText handles fenced JSON', () => {
@@ -587,11 +633,11 @@ function extractTodayMovementFallbackCopy(html) {
 }
 
 function extractTodayMovementPositivePromptExamples(prompt) {
-  const section = prompt.match(/The headline SHOULD sound more like:\n([\s\S]*?)\n\nHeadline requirements:/);
+  const section = prompt.match(/Good headline examples:\n([\s\S]*?)\n\nBad headline examples:/);
   if (!section) return [];
   return section[1]
     .split('\n')
-    .map((line) => line.replace(/^“|”$/g, '').trim())
+    .map((line) => line.replace(/^-\s*/, '').trim())
     .filter(Boolean);
 }
 
@@ -614,4 +660,10 @@ test('Today’s Movement fallback copy and positive prompt examples avoid banned
       );
     }
   }
+
+  assert.match(fallback.headline, /mountain|beach|weekend/i);
+  assert.ok(
+    fallback.paragraphs.some((p) => /looking forward|watch/i.test(p)),
+    'fallback should include a Looking Forward idea',
+  );
 });

@@ -22,6 +22,12 @@ import {
   buildBrowserSafeNewsPayload,
   findLatestEntryForId,
 } from './api/get-destination-news.js';
+import {
+  GOTANGO_VOICE_GUIDE,
+  DAILY_TAPE_GOTANGO_VOICE_REWRITE_INSTRUCTION,
+} from './gotango-voice.lib.js';
+
+export { GOTANGO_VOICE_GUIDE, DAILY_TAPE_GOTANGO_VOICE_REWRITE_INSTRUCTION };
 
 export const DAILY_TAPE_KV_KEYS = {
   latest: 'gotango:daily-tape:latest',
@@ -31,16 +37,40 @@ const DAILY_TAPE_DESTINATION_REGION = new Map(
   DESTINATIONS.map((d) => [d.id, d.region]),
 );
 
-export const DAILY_TAPE_PROMPT_VERSION = 'daily_tape_score_leader_v3';
+export const DAILY_TAPE_PROMPT_VERSION = 'daily_tape_gotango_voice_v4';
 
-export const TODAY_MOVEMENT_LLM_SYSTEM_PROMPT = `You are writing the Today’s Movement article for GoTango. Internally this feature may be called daily_tape, but that name should not appear in user-facing copy.
+export const TODAY_MOVEMENT_LLM_SYSTEM_PROMPT = `${GOTANGO_VOICE_GUIDE}
 
-Write a fun, polished, destination-led daily read about what is moving today across GoTango destinations.
+---
 
-The article should be accessible to a broad audience. Do not assume the reader cares specifically about private aviation. Use arrival data and GoTango scores as context, but write about destination momentum, events, travel energy, seasonal movement, and what is worth watching.
+You are writing Today’s Movement for GoTango. Internally this feature may be called daily_tape, but that name should not appear in user-facing copy.
+
+Your job is not to summarize the data mechanically. Your job is to decide the most interesting destination story of the day and turn it into a short, natural, destination-led read.
+
+Use GoTango Score as the durable ranking signal.
+Use heating/cooling as momentum.
+Use arrivals as supporting context.
+Use destination news to explain why movement may be happening.
+Use upcoming news or current destination context to explain what to watch next.
+
+Write for a broad audience. The reader does not need to care about aviation. They care about where the world feels active, stylish, seasonal, surprising, or worth watching.
+
+Before writing, choose one editorial angle:
+- A score leader is holding the top spot
+- A lower-ranked destination is gaining momentum
+- Beach destinations are leading
+- Mountain destinations are waking up
+- Events are driving the movement
+- The board is broadening
+- The signal is mixed or noisy
+- A recent hot spot is cooling
+- A destination is moving before the story catches up
+
+Do not say the editorial angle out loud unless it naturally belongs in the article. Use it to shape the writing.
 
 Do not use the words or phrases:
 - Daily Tape
+- daily tape
 - tape
 - private travel
 - private-travel
@@ -48,30 +78,9 @@ Do not use the words or phrases:
 - private arrival
 - private-arrival (including compounds like private-arrival push or private-arrival depth)
 - private aviation
+- the tape
+- travel tape
 unless quoting an existing UI label outside the generated article, which should generally be avoided.
-
-Preferred language:
-- arrivals
-- observed arrivals
-- arrival movement
-- destination movement
-- GoTango score
-- GoTango signal
-- destination momentum
-- today’s read
-- today’s take
-- GoTango read
-- travel signal
-- momentum
-- heating
-- cooling
-- holding rank
-- keeping pace
-- watch next
-- what is building
-- what is fading
-- what is happening now
-- what could happen next
 
 GoTango Score leadership rule:
 The GoTango Score is the primary durable destination ranking. Heating/cooling status is a momentum signal, not the ranking. Do not describe a destination as leading, out front, setting the pace, taking the top spot, owning the board, ranked first, or #1 unless it has the highest GoTango Score in the provided data. If a destination is heating but does not have the top GoTango Score, describe it as gaining momentum, heating up behind the leaders, keeping pace, climbing, or one to watch. Use the provided "GoTango Score leaders" list to decide who leads; use the "Heating momentum" list only to describe movement.
@@ -79,52 +88,64 @@ The GoTango Score is the primary durable destination ranking. Heating/cooling st
 Headline rules:
 The headline should be fun, specific, and destination-led, and it must respect the GoTango Score leadership rule.
 
-The headline should NOT sound like:
-“Private-travel tape is leaning into the summer leisure rotation...”
-“Nassau leads the way...” (when Nassau is only heating and is not the top GoTango Score)
+Good headline examples:
+- Hamptons holds the top spot, but Nassau is making the board more interesting
+- Hamptons and Nantucket stay out front while Nassau gains heat
+- Aspen and Jackson Hole are starting to wake up for July
+- 30A keeps its weekend glow while island names gain momentum
+- Charleston holds steady as the beach board gets louder
+- Nantucket stays near the top as the summer crowd spreads south
 
-The headline SHOULD sound more like:
-“Hamptons holds the top spot as Nassau heats up behind the leaders”
-“Hamptons and Nantucket stay out front while Nassau gains momentum”
-“Hamptons leads today’s GoTango read as Nassau, 30A, and Olbia heat up”
-“Hamptons owns the top score, but Nassau is making the day more interesting”
-“Beach weekends are winning today, but the mountain towns are starting to move”
+Bad headline examples:
+- Today’s movement is broad across several destinations
+- Private-travel tape is leaning into the summer leisure rotation
+- Nassau leads the way when Nassau is not the top GoTango Score destination
+- Several destinations are showing positive movement today
+- The market is building across multiple names
 
 Headline requirements:
 - Under 130 characters when possible.
 - Mention 1 to 4 destinations when supported by the data.
+- Must be accurate to GoTango Score ranking.
 - Only the destination with the highest GoTango Score may be called the leader, out front, top spot, or the one setting the pace.
 - A heating destination that is not the top GoTango Score should be framed as momentum (heating up, gaining momentum, keeping pace), never as the leader.
-- Make it feel current and human.
-- Make it sticky enough that a user wants to read more.
+- Should make the user want to keep reading.
 - Do not simply summarize numbers.
 - Do not overclaim.
-- Do not use “tape.”
-- Do not use “private travel.”
-- Do not use “private arrivals” or “private arrival.”
+- Do not start with “Today’s movement.”
 
-Article structure (4 paragraphs):
-- Paragraph 1: What is happening today. Lead with the top GoTango Score destination(s), then describe heating destinations as momentum.
-- Paragraph 2: What changed versus yesterday and the last few days.
-- Paragraph 3: Why it may be happening. Use destination news blurbs where available.
+Article structure (4 short paragraphs):
+- Paragraph 1: What is happening today. Name the true GoTango Score leader and the most interesting momentum names.
+- Paragraph 2: What changed versus yesterday and the last few days. Explain whether the signal is getting stronger, spreading, fading, or noisy.
+- Paragraph 3: Why it may be happening. Use destination news blurbs and source headlines where available.
 - Paragraph 4 (Looking Forward): Explain what to watch over the next few days or weeks.
 
 Looking Forward should:
-- Pull from current destination news articles and destination news blurbs when available.
-- Mention upcoming events, seasonal openings, festivals, hospitality programming, dining, nightlife, major weekends, or destination-specific momentum only when supported by available news.
-- If news is missing, fall back to GoTango score movement, heating/cooling status, arrivals today vs yesterday, 3-day trend, and 7-day trend.
-- Avoid inventing events.
-- Avoid unsupported predictions.
-- Use cautious but interesting language.
+- Use current destination news and upcoming events when available.
+- Mention festivals, openings, dining, nightlife, hospitality programming, major weekends, or seasonal context only when supported by the provided news.
+- If news is thin, fall back to GoTango Score, score trend, heating/cooling status, and arrival movement.
+- Do not invent events.
+- Do not invent dates.
+- Do not overclaim causality.
+
+Tone examples:
+Boring: Hamptons has the highest GoTango Score today, while Nassau is heating up and several other destinations have positive momentum.
+Better: Hamptons is still the name to beat, but Nassau is making today’s board more interesting. The score leader is holding rank, while the momentum story is starting to spread into islands, beach weekends, and mountain towns.
+
+Boring: There are 14 heating destinations and 51 total destinations.
+Better: The board has real breadth today: 14 of 51 destinations are heating, which makes the move feel less like a one-place spike and more like a wider summer build.
+
+Boring: Jackson Hole has festival events coming up.
+Better: Jackson Hole is starting to look less like a quiet mountain hold and more like a July watch-list name, with festival energy and summer programming giving it a reason to keep climbing.
 
 Additional rules:
 - Write 8-12 sentences total across the four paragraphs.
 - Always include a clear point of view.
+- The final article should feel natural, not like a report.
 - Mention uncertainty when the data looks noisy.
 - Do not overclaim.
 - Do not use “MATTERS” as a verdict label.
 - Use “HEATING” as the primary positive verdict label.
-- Avoid generic travel-writing clichés.
 
 Return strict JSON:
 {
@@ -294,11 +315,155 @@ export function findLeadershipMisattributions(text, input) {
   return hits;
 }
 
+const BORING_HEADLINE_OPENERS = /^today['’]s movement\b/i;
+const BORING_BODY_OPENERS = [
+  /^several destinations\b/i,
+  /^there are \d+/i,
+  /showing positive movement/i,
+  /is broad across several destinations/i,
+];
+const LOOKING_FORWARD_PATTERN = /\b(looking forward|what to watch|watch (whether|for|next)|over the next (few )?(days|weeks)|next few weeks)\b/i;
+const MECHANICAL_LIST_PATTERN = /(?:^|\n)\s*[-•]\s+.+(\n\s*[-•]\s+.+){2,}/m;
+
+/**
+ * Collects destination names from the article input for naturalness checks.
+ */
+export function collectDailyTapeDestinationNames(input) {
+  return [...new Set(
+    collectScoredDailyTapeDestinations(input).map((d) => d.name).filter(Boolean),
+  )];
+}
+
+function headlineIsMostlyNumbers(headline) {
+  const text = String(headline || '').trim();
+  if (!text) return false;
+  const digits = (text.match(/\d/g) || []).length;
+  return digits / text.length > 0.4;
+}
+
+function headlineMentionsDestination(headline, input) {
+  const haystack = String(headline || '').toLowerCase();
+  const names = collectDailyTapeDestinationNames(input);
+  return names.some((name) => haystack.includes(name.toLowerCase()));
+}
+
+function bodyHasLookingForward(paragraphs) {
+  const text = (Array.isArray(paragraphs) ? paragraphs : []).join(' ');
+  return LOOKING_FORWARD_PATTERN.test(text);
+}
+
+function bodyReadsMechanical(paragraphs) {
+  const text = (Array.isArray(paragraphs) ? paragraphs : []).join('\n');
+  if (MECHANICAL_LIST_PATTERN.test(text)) return true;
+  if (/\d+ destinations are heating/i.test(text) && /\d+ total destinations/i.test(text)) return true;
+  if (/\d+ of \d+ destinations are heating/i.test(text) && !/board has real breadth|wider summer build|less like a one-place spike/i.test(text)) {
+    return true;
+  }
+  return false;
+}
+
+function bodyLacksPointOfView(paragraphs) {
+  const lead = Array.isArray(paragraphs) && paragraphs.length ? String(paragraphs[0]) : '';
+  return BORING_BODY_OPENERS.some((pattern) => pattern.test(lead.trim()));
+}
+
+/**
+ * Flags generated copy that reads too mechanical or generic for GoTango voice.
+ * Used to trigger a single rewrite pass without changing cache mechanics.
+ */
+export function findBoringDailyTapeCopyIssues(draft, input = null) {
+  const issues = [];
+  const headline = String(draft?.headline || '').trim();
+  const paragraphs = Array.isArray(draft?.paragraphs) ? draft.paragraphs : [];
+
+  if (headline && BORING_HEADLINE_OPENERS.test(headline)) {
+    issues.push('boring_headline_opener');
+  }
+  if (headline && headlineIsMostlyNumbers(headline)) {
+    issues.push('boring_headline_mostly_numbers');
+  }
+  if (input && headline && !headlineMentionsDestination(headline, input)) {
+    issues.push('boring_headline_no_destinations');
+  }
+  if (paragraphs.length && bodyLacksPointOfView(paragraphs)) {
+    issues.push('boring_body_no_point_of_view');
+  }
+  if (paragraphs.length && !bodyHasLookingForward(paragraphs)) {
+    issues.push('boring_body_no_looking_forward');
+  }
+  if (paragraphs.length && bodyReadsMechanical(paragraphs)) {
+    issues.push('boring_body_mechanical_list');
+  }
+
+  const forbiddenCopy = collectForbiddenDailyTapeCopyFromDraft(draft);
+  if (forbiddenCopy.length) {
+    issues.push(`forbidden_copy:${forbiddenCopy.join(',')}`);
+  }
+
+  if (input && collectScoredDailyTapeDestinations(input).some((d) => d.goTangoScore != null)) {
+    const leadParagraph = paragraphs.length ? String(paragraphs[0]) : '';
+    const leadText = [headline, leadParagraph].filter(Boolean).join('  ');
+    const misattributed = findLeadershipMisattributions(leadText, input);
+    if (misattributed.length) {
+      issues.push(`leadership_misattribution:${misattributed.join(',')}`);
+    }
+  }
+
+  return issues;
+}
+
+export function isBoringDailyTapeDraft(draft, input = null) {
+  return findBoringDailyTapeCopyIssues(draft, input).length > 0;
+}
+
 export function getDailyTapeModel() {
   return process.env.DAILY_TAPE_MODEL
     || process.env.WEEKLY_BRIEF_MODEL
     || process.env.NEWS_CONTEXT_MODEL
     || 'gpt-5.4-mini';
+}
+
+function formatDestinationNewsHooks(destinations) {
+  const lines = [];
+  const withNews = (destinations || []).filter(
+    (d) => d && (d.aiNewsBlurb || (Array.isArray(d.sourceHeadlines) && d.sourceHeadlines.length)),
+  );
+  if (!withNews.length) return '';
+  lines.push('Destination news hooks (explain why movement may be happening):');
+  for (const d of withNews) {
+    const parts = [`- ${d.name}`];
+    if (d.aiNewsBlurb) parts.push(`blurb: ${String(d.aiNewsBlurb).trim()}`);
+    if (Array.isArray(d.sourceHeadlines) && d.sourceHeadlines.length) {
+      parts.push(`headlines: ${d.sourceHeadlines.slice(0, 3).join(' · ')}`);
+    }
+    lines.push(parts.join(' — '));
+  }
+  lines.push('');
+  return lines.join('\n');
+}
+
+const UPCOMING_HOOK_PATTERN = /\b(upcoming|festival|opening|programming|this weekend|next week|july|august|season|event)\b/i;
+
+function formatUpcomingHooks(destinations) {
+  const lines = [];
+  const hooks = [];
+  for (const d of destinations || []) {
+    if (!d) continue;
+    const candidates = [];
+    if (d.aiNewsBlurb) candidates.push(String(d.aiNewsBlurb));
+    if (Array.isArray(d.sourceHeadlines)) candidates.push(...d.sourceHeadlines.map(String));
+    for (const text of candidates) {
+      if (UPCOMING_HOOK_PATTERN.test(text)) {
+        hooks.push(`- ${d.name}: ${text.trim().slice(0, 200)}`);
+        break;
+      }
+    }
+  }
+  if (!hooks.length) return '';
+  lines.push('Upcoming / forward-looking hooks (inform Looking Forward — do not invent beyond these):');
+  lines.push(...hooks);
+  lines.push('');
+  return lines.join('\n');
 }
 
 function formatDailyTapeLeaderSections(input) {
@@ -312,9 +477,9 @@ function formatDailyTapeLeaderSections(input) {
     lines.push('');
   }
 
-  const heating = Array.isArray(input?.destinations)
-    ? input.destinations.filter((d) => d && d.status === 'heating')
-    : [];
+  const allDests = Array.isArray(input?.destinations) ? input.destinations : [];
+
+  const heating = allDests.filter((d) => d && d.status === 'heating');
   if (heating.length) {
     lines.push('Heating momentum (describe as gaining momentum / heating up, NOT as leading unless also the top score):');
     heating.forEach((d) => {
@@ -323,16 +488,44 @@ function formatDailyTapeLeaderSections(input) {
     lines.push('');
   }
 
-  const cooling = Array.isArray(input?.destinations)
-    ? input.destinations.filter((d) => d && d.status === 'cooling')
-    : [];
+  const cooling = allDests.filter((d) => d && d.status === 'cooling');
   if (cooling.length) {
-    lines.push('Cooling:');
+    lines.push('Cooling destinations:');
     cooling.forEach((d) => {
       lines.push(`- ${d.name}${d.goTangoScore != null ? ` — score ${d.goTangoScore}` : ''} — cooling`);
     });
     lines.push('');
   }
+
+  const gainers = allDests
+    .filter((d) => Number.isFinite(Number(d.scoreDelta3d)) && Number(d.scoreDelta3d) > 0)
+    .sort((a, b) => Number(b.scoreDelta3d) - Number(a.scoreDelta3d))
+    .slice(0, 5);
+  if (gainers.length) {
+    lines.push('Biggest score gainers:');
+    gainers.forEach((d) => {
+      lines.push(`- ${d.name} — score delta 3d: +${Number(d.scoreDelta3d)}`);
+    });
+    lines.push('');
+  }
+
+  const arrivalMovers = allDests
+    .filter((d) => Number.isFinite(Number(d.arrivalsToday)) && Number(d.arrivalsToday) > 0)
+    .sort((a, b) => Number(b.arrivalsToday) - Number(a.arrivalsToday))
+    .slice(0, 5);
+  if (arrivalMovers.length) {
+    lines.push('Arrival movement (supporting context):');
+    arrivalMovers.forEach((d) => {
+      lines.push(`- ${d.name} — arrivals today: ${Number(d.arrivalsToday)}`);
+    });
+    lines.push('');
+  }
+
+  const newsSection = formatDestinationNewsHooks(allDests);
+  if (newsSection) lines.push(newsSection);
+
+  const upcomingSection = formatUpcomingHooks(allDests);
+  if (upcomingSection) lines.push(upcomingSection);
 
   return lines.join('\n');
 }
@@ -341,10 +534,25 @@ export function buildDailyTapeUserMessage(input) {
   const leaderSections = formatDailyTapeLeaderSections(input);
   return `TODAY'S MOVEMENT INPUT:
 
+Evidence hierarchy (read in this order):
+1. GoTango Score leaders determine who leads.
+2. Heating names determine who is gaining momentum.
+3. Cooling destinations show where momentum is fading.
+4. Biggest score gainers show who is climbing fastest.
+5. Arrival movement adds supporting context.
+6. Destination news hooks explain why movement may be happening.
+7. Upcoming hooks inform Looking Forward.
+8. Full structured JSON below for any additional fields.
+
 ${leaderSections}Full structured input (JSON):
 ${JSON.stringify(input, null, 2)}
 
-Write today's Today’s Movement article from the input above. Use the GoTango Score leaders to decide who "leads"/"tops"/"sets the pace"; use heating status only to describe momentum. A heating destination that is not the top GoTango Score must not be described as leading. Return strict JSON only.`;
+---
+
+GoTango Voice guidance:
+${GOTANGO_VOICE_GUIDE}
+
+Write today's Today’s Movement article from the input above. Decide the most interesting destination story of the day — do not summarize mechanically. Use the GoTango Score leaders to decide who "leads"/"tops"/"sets the pace"; use heating status only to describe momentum. A heating destination that is not the top GoTango Score must not be described as leading. Include a clear Looking Forward paragraph (paragraph 4) on what to watch over the next few days or weeks. Return strict JSON only.`;
 }
 
 export function buildDailyTapePrompt(systemPrompt, input) {
@@ -651,9 +859,13 @@ export async function generateDailyTapeBrief({
   }
 
   let validation = validateDailyTapeDraft(result.draft, workingInput);
+  const boringIssues = findBoringDailyTapeCopyIssues(result.draft, workingInput);
   const forbiddenCopy = validation.errors.find((e) => String(e).startsWith('forbidden_copy:'));
   const leadershipIssue = validation.errors.find((e) => String(e).startsWith('leadership_misattribution:'));
-  if (!validation.ok && (forbiddenCopy || leadershipIssue)) {
+  const needsRetry = (!validation.ok && (forbiddenCopy || leadershipIssue))
+    || boringIssues.length > 0;
+
+  if (needsRetry) {
     const corrections = [];
     if (forbiddenCopy) {
       corrections.push(`Your previous draft used banned user-facing wording (${forbiddenCopy.replace(/^forbidden_copy:/, '')}). Rewrite without Daily Tape, tape, private travel, private-travel, private arrivals, private arrival, private-arrival phrasing, or private aviation. Prefer arrivals, arrival movement, destination movement, GoTango score, and GoTango signal.`);
@@ -664,6 +876,10 @@ export async function generateDailyTapeBrief({
         .map((d) => `${d.name}${d.goTangoScore != null ? ` (score ${d.goTangoScore})` : ''}`)
         .join(', ');
       corrections.push(`Your previous draft described ${leadershipIssue.replace(/^leadership_misattribution:/, '')} as leading, but that destination is not the top GoTango Score. Only the highest GoTango Score destination may be called the leader, out front, top spot, or the one setting the pace. Current GoTango Score leaders: ${topLeaders}. Describe heating non-leaders as gaining momentum or heating up behind the leaders.`);
+    }
+    if (boringIssues.length) {
+      corrections.push(DAILY_TAPE_GOTANGO_VOICE_REWRITE_INSTRUCTION);
+      corrections.push(`Issues to fix: ${boringIssues.join(', ')}.`);
     }
     const retryPrompt = `${systemPrompt}
 
