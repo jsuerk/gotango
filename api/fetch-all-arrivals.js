@@ -2,8 +2,14 @@ import { kv } from '@vercel/kv';
 import { DESTINATIONS, PEER_DESTINATIONS, EDITORIAL_BLURBS } from '../destinations.config.js';
 
 const TIMEOUT_MS = 25_000;
-const GA_MAX_PAGES_DEFAULT = 10;
-const GA_MAX_PAGES_HARD_MAX = 20;
+// Each AeroAPI page holds ~15 arrivals. The default ceiling gives every single
+// airport roughly the same headroom (~300 arrivals/day) that a two-airport
+// destination like the Hamptons enjoys, so dense single-airport hubs are not
+// artificially capped. max_pages is a ceiling, not a fixed fetch: AeroAPI only
+// returns pages that actually contain data, so this is self-limiting and adds
+// no cost for the many low-traffic destinations.
+const GA_MAX_PAGES_DEFAULT = 20;
+const GA_MAX_PAGES_HARD_MAX = 40;
 const AIRLINE_CONTEXT_MAX_PAGES = Number(process.env.AIRLINE_CONTEXT_MAX_PAGES || 1);
 
 function parseGaMaxPages() {
@@ -26,6 +32,24 @@ function parseGaMaxPages() {
 }
 
 const GA_MAX_PAGES = parseGaMaxPages();
+
+// Allow a destination to opt into a higher page ceiling via `gaMaxPages` in
+// destinations.config.js. Used for the densest single-airport hubs (e.g. Oahu,
+// Maldives) whose daily private-arrival volume exceeds the standard ceiling and
+// would otherwise be capped/truncated and excluded from the daily arrivals chart.
+function resolveGaMaxPages(dest) {
+  const override = dest && dest.gaMaxPages;
+  if (override == null) return GA_MAX_PAGES;
+  const n = Number(override);
+  if (!Number.isInteger(n) || n < 1) {
+    console.warn(
+      `[fetch-all-arrivals] Invalid gaMaxPages=${JSON.stringify(override)} for ${dest?.id}, using ${GA_MAX_PAGES}`,
+    );
+    return GA_MAX_PAGES;
+  }
+  return Math.min(Math.max(n, GA_MAX_PAGES), GA_MAX_PAGES_HARD_MAX);
+}
+
 const HISTORY_VERSION = 'ga_filtered_v2';
 
 const PREMIUM_PRIVATE_PREFIXES = [
@@ -611,8 +635,9 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls, fetch
   let anyGaOk = false;
   let anyAirlineOk = false;
   let airlineHasMore = false;
+  const destGaMaxPages = resolveGaMaxPages(dest);
   const gaPagination = {
-    pageLimit: GA_MAX_PAGES,
+    pageLimit: destGaMaxPages,
     pagesReturned: 0,
     rawRecordCount: 0,
     hasMoreRemaining: false,
@@ -626,7 +651,7 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls, fetch
       totalApiCalls.count += 1;
       const gaRes = await fetchArrivalsForAirport(icao, apiKey, start, end, {
         type: 'General_Aviation',
-        maxPages: GA_MAX_PAGES,
+        maxPages: destGaMaxPages,
       });
       if (gaRes.ok) {
         anyGaOk = true;
@@ -643,7 +668,7 @@ async function processDestination(dest, apiKey, start, end, totalApiCalls, fetch
           fetchStats.gaHasMore += 1;
         }
         console.log(
-          `[fetch-all-arrivals] GA ${icao} (${dest.id}): page_limit=${GA_MAX_PAGES} pages_returned=${gaRes.numPages ?? 'unknown'} raw_records=${gaRes.rawRecordCount} filtered_ga=${gaRes.filteredRecordCount} has_more=${gaRes.hasMore} truncated=${gaRes.hasMore}`,
+          `[fetch-all-arrivals] GA ${icao} (${dest.id}): page_limit=${destGaMaxPages} pages_returned=${gaRes.numPages ?? 'unknown'} raw_records=${gaRes.rawRecordCount} filtered_ga=${gaRes.filteredRecordCount} has_more=${gaRes.hasMore} truncated=${gaRes.hasMore}`,
         );
       } else {
         errors.push({ icao, type: 'General_Aviation', error: gaRes.error });
@@ -922,7 +947,10 @@ export default async function handler(req, res) {
     const totalDestinations = DESTINATIONS.length;
     const totalAirportIds = countAirportIcaos();
     const fetchesPerRun = totalAirportIds * 2;
-    const estimatedMaxResultSets = totalAirportIds * (GA_MAX_PAGES + AIRLINE_CONTEXT_MAX_PAGES);
+    const estimatedMaxResultSets = DESTINATIONS.reduce((sum, dest) => {
+      const airports = Array.isArray(dest.icao) ? dest.icao.length : 0;
+      return sum + airports * (resolveGaMaxPages(dest) + AIRLINE_CONTEXT_MAX_PAGES);
+    }, 0);
     const estimatedMonthlyResultSets = estimatedMaxResultSets * 30;
 
     console.log(
