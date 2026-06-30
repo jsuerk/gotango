@@ -23,7 +23,7 @@
 <meta name="twitter:image" content="https://gotango.co/og-gotango-v2.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,400;9..144,0,500;9..144,0,600;9..144,0,700;9..144,0,900;9..144,1,400;9..144,1,500;9..144,1,700&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,300..900;9..144,1,400;9..144,1,500;9..144,1,700&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0A0D11;
@@ -4153,6 +4153,9 @@
   .d-note {
     font-family: 'Fraunces', serif;
     font-size: var(--fs-editorial);
+    /* Lighter weight than the default 400 so the white editorial copy reads
+       softer and is easier on the eyes (still white, just less bold). */
+    font-weight: 350;
     line-height: 1.6;
     color: var(--text, #F5F1E8);
     margin: 0;
@@ -4669,6 +4672,9 @@
 .d-destination-news__blurb {
   font-family: 'Fraunces', serif;
   font-size: var(--fs-editorial);
+  /* Match the Editor's note: lighter weight keeps the white copy readable
+     without feeling overly bold. */
+  font-weight: 350;
   line-height: 1.6;
   color: var(--text, #F5F1E8);
   margin: 0;
@@ -13459,13 +13465,19 @@
     const metaHtml = _renderModalHeroMeta(dest);
     const scoreHtml = _renderModalHeroScore(dest, useV2);
     const imageEntry = getDestinationImageEntry(dest && dest.id);
+    // Only surface Heating / Cooling status in the modal hero. "In Season",
+    // "Steady" and "Quiet" are categories, not badges, so they are suppressed
+    // (matching the destination card behavior via _isHiddenCategoryBadge).
+    const vibeHtml = badge && !_isHiddenCategoryBadge(badge)
+      ? `<span class="d-vibe ${badge.vibeClass}">${_escapeHtml(badge.label)}</span>`
+      : '';
 
     if (!imageEntry) {
       const titleRow = _renderModalHeroTitleRow(dest, { shareInTitle: false });
       const shareButton = _renderModalShareButton(dest, 'dest-modal__share--hero-text');
       return `
       <div class="d-hero">
-        <span class="d-vibe ${badge.vibeClass}">${_escapeHtml(badge.label)}</span>
+        ${vibeHtml}
         ${titleRow}
         ${metaHtml}
         <div class="d-hero__foot">
@@ -13497,7 +13509,7 @@
           <div class="d-hero__shade" aria-hidden="true"></div>
         </div>
         <div class="d-hero__content">
-          <span class="d-vibe ${badge.vibeClass}">${_escapeHtml(badge.label)}</span>
+          ${vibeHtml}
           ${titleRow}
           ${metaHtml}
           ${scoreHtml}
