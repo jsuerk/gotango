@@ -27,6 +27,8 @@ import {
   readDailyTapeFromKvRecord,
   getDailyTapeFromKv,
   refreshDailyTapeCache,
+  maybeScheduleDailyTapeAfterNews,
+  scheduleDailyTapeRefresh,
 } from '../daily-tape.lib.js';
 
 const SAMPLE_INPUT = {
@@ -694,12 +696,46 @@ test('refreshDailyTapeCache force regenerates regardless of cache', async () => 
   assert.equal(kvClient.store.get(DAILY_TAPE_KV_KEYS.latest).brief.headline, 'Forced fresh article');
 });
 
-test('fetch-all-arrivals regenerates the Daily Take after saving the snapshot', () => {
+test('fetch-all-arrivals does not inline Daily Tape (waits for news refresh)', () => {
   const src = readFileSync(new URL('../api/fetch-all-arrivals.js', import.meta.url), 'utf8');
-  assert.match(src, /import \{ refreshDailyTapeCache \} from '\.\.\/daily-tape\.lib\.js'/);
-  assert.match(src, /regenerateDailyTapeInline/);
-  // Must only run after a successful KV save so it uses fresh data.
-  assert.match(src, /if \(responseBody\.kv_saved\)/);
+  assert.doesNotMatch(src, /regenerateDailyTapeInline/);
+  assert.doesNotMatch(src, /refreshDailyTapeCache/);
+});
+
+test('refresh-all-destination-news triggers Daily Tape when news completes', () => {
+  const src = readFileSync(new URL('../api/refresh-all-destination-news.js', import.meta.url), 'utf8');
+  assert.match(src, /maybeScheduleDailyTapeAfterNews/);
+});
+
+test('maybeScheduleDailyTapeAfterNews only schedules when completed', () => {
+  const calls = [];
+  const req = { headers: { host: 'www.gotango.co', 'x-forwarded-proto': 'https' } };
+  const originalFetch = globalThis.fetch;
+  const originalSecret = process.env.CRON_SECRET;
+  process.env.CRON_SECRET = 'test-cron-secret';
+
+  globalThis.fetch = (url, init) => {
+    calls.push({ url, init });
+    return Promise.resolve({ ok: true });
+  };
+
+  try {
+    maybeScheduleDailyTapeAfterNews(req, { completed: false });
+    assert.equal(calls.length, 0);
+
+    maybeScheduleDailyTapeAfterNews(req, { completed: true });
+    assert.equal(calls.length, 1);
+    assert.match(calls[0].url, /\/api\/refresh-daily-tape$/);
+    assert.match(calls[0].init.headers.Authorization, /Bearer test-cron-secret/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalSecret == null) delete process.env.CRON_SECRET;
+    else process.env.CRON_SECRET = originalSecret;
+  }
+});
+
+test('scheduleDailyTapeRefresh is exported for post-news automation', () => {
+  assert.equal(typeof scheduleDailyTapeRefresh, 'function');
 });
 
 test('refresh-daily-tape endpoint supports idempotent + forced refresh', () => {

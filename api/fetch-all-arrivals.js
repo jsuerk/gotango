@@ -1,12 +1,7 @@
 import { kv } from '@vercel/kv';
 import { DESTINATIONS, PEER_DESTINATIONS, EDITORIAL_BLURBS } from '../destinations.config.js';
-import { refreshDailyTapeCache } from '../daily-tape.lib.js';
 
 const TIMEOUT_MS = 25_000;
-// Cap the inline Daily Take regeneration so it can never push this function past
-// its serverless time budget. If it does not finish, the daily cron safety net
-// regenerates from the same freshly-saved snapshot.
-const DAILY_TAPE_INLINE_TIMEOUT_MS = 22_000;
 const GA_MAX_PAGES_DEFAULT = 10;
 const GA_MAX_PAGES_HARD_MAX = 20;
 const AIRLINE_CONTEXT_MAX_PAGES = Number(process.env.AIRLINE_CONTEXT_MAX_PAGES || 1);
@@ -898,20 +893,6 @@ function buildHomepage(destinations) {
   };
 }
 
-// Regenerate the Daily Take from the snapshot we just saved, so the Now page's
-// "Today's Movement" always reflects the latest FlightAware pull. Best-effort and
-// time-boxed: any failure leaves the prior brief in place for the cron to refresh.
-async function regenerateDailyTapeInline() {
-  const timeout = new Promise((resolve) =>
-    setTimeout(() => resolve({ ok: false, error: 'inline_timeout' }), DAILY_TAPE_INLINE_TIMEOUT_MS),
-  );
-  try {
-    return await Promise.race([refreshDailyTapeCache(kv, { force: true }), timeout]);
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
-  }
-}
-
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   const t0 = Date.now();
@@ -1077,22 +1058,6 @@ export default async function handler(req, res) {
         } catch (histErr) {
           const histMsg = histErr instanceof Error ? histErr.message : String(histErr);
           console.warn(`History append failed: ${histMsg}`);
-        }
-      }
-
-      if (responseBody.kv_saved) {
-        const tape = await regenerateDailyTapeInline();
-        responseBody.daily_tape = {
-          ok: Boolean(tape?.ok),
-          generator: tape?.generator || null,
-          error: tape?.ok ? null : tape?.llm_error || tape?.error || 'unknown',
-        };
-        if (tape?.ok) {
-          console.log(`[fetch-all-arrivals] Daily Take regenerated (generator=${tape.generator}).`);
-        } else {
-          console.warn(
-            `[fetch-all-arrivals] Daily Take regeneration deferred to cron: ${responseBody.daily_tape.error}`,
-          );
         }
       }
     }

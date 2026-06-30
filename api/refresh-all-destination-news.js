@@ -5,6 +5,7 @@ import {
   rejectUnknownQueryParams,
   scheduleNewsRefreshContinuation,
 } from '../news-context.lib.js';
+import { maybeScheduleDailyTapeAfterNews } from '../daily-tape.lib.js';
 
 function parseForce(req) {
   const raw = String(req.query?.force ?? '').toLowerCase();
@@ -42,6 +43,7 @@ export default async function handler(req, res) {
       console.log(
         `[refresh-all-destination-news] up to date reason=${result.reason} snapshot=${result.source_saved_at} source=${auth.source}`,
       );
+      maybeScheduleDailyTapeAfterNews(req, result);
       return res.status(200).json({
         ok: true,
         skipped: true,
@@ -81,6 +83,8 @@ export default async function handler(req, res) {
 
     if (!result.completed && result.pending_remaining > 0) {
       scheduleNewsRefreshContinuation(req);
+    } else if (result.completed) {
+      maybeScheduleDailyTapeAfterNews(req, result);
     }
 
     return res.status(200).json({

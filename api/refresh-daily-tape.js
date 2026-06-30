@@ -73,8 +73,9 @@ export default async function handler(req, res) {
   }
 
   // Default (cron) runs idempotently: it only regenerates when the arrivals
-  // snapshot changed since the cached brief, acting as a safety net for the
-  // inline regeneration in fetch-all-arrivals. `?force=1` always regenerates.
+  // snapshot changed since the cached brief. Normally triggered automatically
+  // when destination news finishes; the late cron is a safety net. `?force=1`
+  // always regenerates.
   const force = parseForce(req);
 
   try {

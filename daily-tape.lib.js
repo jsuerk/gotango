@@ -2,11 +2,12 @@
  * Daily Tape — LLM prompt, validation, normalization, OpenAI synthesis,
  * server-side input building, and KV cache.
  *
- * Architecture: the Daily Tape is generated once per day by the
- * /api/refresh-daily-tape cron and saved to KV. /api/get-daily-tape serves the
- * cached brief to every user instantly (a single KV read, no per-user AI call).
- * The client keeps a deterministic builder for the brief that renders before the
- * cached brief arrives.
+ * Architecture: after the daily FlightAware pull and destination-news refresh,
+ * /api/refresh-daily-tape generates the brief (triggered automatically when news
+ * completes, with a late cron safety net) and saves to KV. /api/get-daily-tape
+ * serves the cached brief to every user instantly (a single KV read, no per-user
+ * AI call). The client keeps a deterministic builder for the brief that renders
+ * before the cached brief arrives.
  */
 
 import { kv } from '@vercel/kv';
@@ -1325,7 +1326,7 @@ export async function buildDailyTapePackage(kvClient = kv, {
 }
 
 /**
- * Refresh orchestrator shared by the FlightAware pull and the daily cron.
+ * Refresh orchestrator shared by the post-news trigger and the late cron safety net.
  *
  * The brief is regenerated once per arrivals snapshot. Each saved record is
  * tagged with the arrivals `source_saved_at` and a `today_date`, and a non-forced
@@ -1441,4 +1442,60 @@ export function readDailyTapeFromKvRecord(record) {
 export async function getDailyTapeFromKv(kvClient = kv) {
   const record = await kvClient.get(DAILY_TAPE_KV_KEYS.latest);
   return readDailyTapeFromKvRecord(record);
+}
+
+export function getDailyTapeRefreshCronSecrets() {
+  return [
+    process.env.CRON_SECRET,
+    process.env.DAILY_TAPE_BUILD_SECRET,
+    process.env.WEEKLY_BRIEF_BUILD_SECRET,
+  ].filter((secret) => secret != null && String(secret).trim() !== '');
+}
+
+export function getDailyTapeRefreshApiBaseUrl(req) {
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  const host = req?.headers?.['x-forwarded-host'] || req?.headers?.host;
+  const proto = req?.headers?.['x-forwarded-proto'] || 'https';
+  if (host) return `${proto}://${host}`;
+  return null;
+}
+
+/**
+ * Fire-and-forget call to /api/refresh-daily-tape after destination news
+ * completes for the day's arrivals snapshot. Idempotent: skips if already
+ * generated for the current snapshot.
+ */
+export function scheduleDailyTapeRefresh(req) {
+  const secrets = getDailyTapeRefreshCronSecrets();
+  if (!secrets.length) {
+    console.warn('[refresh-daily-tape] post-news trigger skipped: no auth secret');
+    return;
+  }
+
+  const baseUrl = getDailyTapeRefreshApiBaseUrl(req);
+  if (!baseUrl) {
+    console.warn('[refresh-daily-tape] post-news trigger skipped: unknown base URL');
+    return;
+  }
+
+  const url = `${baseUrl}/api/refresh-daily-tape`;
+  fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${String(secrets[0]).trim()}`,
+    },
+  }).catch((err) => {
+    console.warn('[refresh-daily-tape] post-news trigger fetch failed:', err);
+  });
+}
+
+/**
+ * Schedules Daily Tape generation when a news refresh run has fully completed.
+ */
+export function maybeScheduleDailyTapeAfterNews(req, result) {
+  if (!result?.completed) return;
+  scheduleDailyTapeRefresh(req);
 }

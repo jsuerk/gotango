@@ -11,7 +11,7 @@
     },
     {
       "path": "/api/refresh-daily-tape",
-      "schedule": "30 14 * * *"
+      "schedule": "0 16 * * *"
     },
     {
       "path": "/api/refresh-all-destination-news",
