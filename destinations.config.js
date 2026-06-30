@@ -474,6 +474,9 @@ export const DESTINATIONS = [
     lng: 73.529,
     season: ['year-round'],
     priority: 'tier-1',
+    // Dense single-airport hub (~165+ private arrivals/day). Raise the page
+    // ceiling so daily volume is captured in full and not truncated/hidden.
+    gaMaxPages: 30,
   },
   {
     id: 'bali',
@@ -828,6 +831,9 @@ export const DESTINATIONS = [
     lng: -157.9224,
     season: ['year-round'],
     priority: 'tier-1',
+    // Dense single-airport hub (~200+ private arrivals/day). Raise the page
+    // ceiling so daily volume is captured in full and not truncated/hidden.
+    gaMaxPages: 30,
   },
   {
     id: 'lanai',
