@@ -596,20 +596,24 @@
   .world-strip {
     margin: 0 20px 4px;
     height: 156px;
-    /* Dark teal-grey "ocean" plate with a faint cool sheen up top */
+    /* Dimensional "ocean" plate: soft central bloom over a charcoal/teal
+       blue-black gradient with lighting falloff toward the lower edges. */
     background:
-      radial-gradient(120% 130% at 50% -10%, rgba(96, 150, 156, 0.12) 0%, rgba(96, 150, 156, 0) 55%),
-      linear-gradient(180deg, #17252E 0%, #0E1A22 100%);
-    border: 1px solid rgba(150, 180, 190, 0.10);
+      radial-gradient(95% 78% at 50% 18%, rgba(126, 178, 184, 0.11) 0%, rgba(126, 178, 184, 0) 58%),
+      radial-gradient(140% 120% at 50% -12%, rgba(70, 120, 132, 0.10) 0%, rgba(70, 120, 132, 0) 55%),
+      linear-gradient(180deg, #1C2B34 0%, #132129 46%, #0B161E 100%);
+    border: 1px solid rgba(150, 180, 190, 0.12);
     border-radius: 16px;
     position: relative;
     overflow: hidden;
+    /* Premium elevation: deep outer drop shadow + crisp containment ring. */
     box-shadow:
-      0 1px 0 rgba(180, 210, 215, 0.05) inset,
-      0 22px 46px -26px rgba(0, 0, 0, 0.85),
-      0 0 0 1px rgba(0, 0, 0, 0.3);
+      0 26px 52px -22px rgba(0, 0, 0, 0.92),
+      0 6px 16px -6px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(0, 0, 0, 0.4);
   }
-  /* Atmospheric depth vignette: paints above the map, below the labels */
+  /* Inset-panel lighting: paints above the map, below the labels.
+     Top glass rim highlight + radial vignette + bottom inner shadow. */
   .world-strip::before {
     content: "";
     position: absolute;
@@ -617,7 +621,9 @@
     pointer-events: none;
     z-index: 1;
     background:
-      radial-gradient(120% 120% at 50% 30%, rgba(0, 0, 0, 0) 50%, rgba(6, 10, 14, 0.55) 100%);
+      linear-gradient(180deg, rgba(200, 226, 230, 0.12) 0%, rgba(200, 226, 230, 0) 5%),
+      radial-gradient(118% 128% at 50% 26%, rgba(0, 0, 0, 0) 44%, rgba(4, 8, 12, 0.62) 100%),
+      linear-gradient(0deg, rgba(3, 7, 11, 0.55) 0%, rgba(3, 7, 11, 0) 24%);
   }
   #world-map {
     width: 100%; height: 100%;
@@ -625,10 +631,9 @@
     position: relative;
     z-index: 0;
   }
-  /* Luminous coastlines for the compact map only (expanded map unaffected) */
-  #world-map path {
-    filter: drop-shadow(0 0 1.4px rgba(124, 178, 184, 0.4));
-  }
+  /* Compact-map land + marker depth is handled by scoped SVG gradients and
+     blur filters in renderWorldMap() (a CSS `filter` here would override the
+     SVG `filter` attributes those layers rely on). */
   /* Hidden in the compact view to match the reference's clean framing.
      Elements remain in the DOM so their data bindings stay intact. */
   .world-expand-hint,
@@ -660,19 +665,15 @@
     transition: border-color 0.25s ease, box-shadow 0.25s ease;
   }
   .world-strip[role="button"]:hover {
-    border-color: rgba(124, 178, 184, 0.28);
+    border-color: rgba(124, 178, 184, 0.30);
     box-shadow:
-      0 1px 0 rgba(180, 210, 215, 0.06) inset,
-      0 24px 50px -24px rgba(0, 0, 0, 0.9),
-      0 0 0 1px rgba(124, 178, 184, 0.14);
+      0 28px 56px -20px rgba(0, 0, 0, 0.94),
+      0 6px 16px -6px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(124, 178, 184, 0.16);
   }
   .world-strip[role="button"]:focus-visible {
     outline: 2px solid var(--amber-bright);
     outline-offset: 2px;
-  }
-  /* Subtle luminous lift for compact-map markers only (expanded map unaffected) */
-  #world-map .map-dot {
-    filter: drop-shadow(0 0 0.8px rgba(245, 241, 232, 0.22));
   }
   .world-explore-hint {
     position: absolute;
@@ -11483,15 +11484,51 @@
         renderExpandedMapBaseLayers(mapRoot, world, projection, pathGen, width, height, isMobileExpandedMap);
       } else {
         const land = topojson.feature(world, world.objects.land);
-        mapRoot.append('g')
-          .selectAll('path')
-          .data([land])
-          .join('path')
+
+        // Scoped defs for the compact map: a dimensional land gradient plus
+        // soft blur filters for coastline + marker bloom. Re-added each render
+        // because svg.selectAll('*').remove() clears them above.
+        const compactDefs = mapRoot.append('defs');
+        const landGrad = compactDefs.append('linearGradient')
+          .attr('id', 'gt-compact-land')
+          .attr('x1', '0').attr('y1', '0')
+          .attr('x2', '0').attr('y2', '1');
+        landGrad.append('stop').attr('offset', '0%').attr('stop-color', '#3B4F5A');
+        landGrad.append('stop').attr('offset', '52%').attr('stop-color', '#283A44');
+        landGrad.append('stop').attr('offset', '100%').attr('stop-color', '#19272F');
+        const coastGlow = compactDefs.append('filter')
+          .attr('id', 'gt-compact-coast-glow')
+          .attr('x', '-30%').attr('y', '-30%')
+          .attr('width', '160%').attr('height', '160%');
+        coastGlow.append('feGaussianBlur').attr('stdDeviation', '1.35');
+        const markerGlow = compactDefs.append('filter')
+          .attr('id', 'gt-compact-marker-glow')
+          .attr('x', '-120%').attr('y', '-120%')
+          .attr('width', '340%').attr('height', '340%');
+        markerGlow.append('feGaussianBlur').attr('stdDeviation', '1.25');
+
+        const landGroup = mapRoot.append('g').attr('class', 'compact-land');
+        // 1) soft outer coastal glow (blurred, atmospheric)
+        landGroup.append('path').datum(land)
           .attr('d', pathGen)
-          .attr('fill', '#2A3C46')
-          .attr('stroke', '#73A2AA')
-          .attr('stroke-width', 0.5)
-          .attr('opacity', 0.98);
+          .attr('fill', 'none')
+          .attr('stroke', '#6FA7B0')
+          .attr('stroke-width', 2.4)
+          .attr('opacity', 0.22)
+          .attr('filter', 'url(#gt-compact-coast-glow)');
+        // 2) dimensional land body (top-lit gradient fill)
+        landGroup.append('path').datum(land)
+          .attr('d', pathGen)
+          .attr('fill', 'url(#gt-compact-land)')
+          .attr('stroke', 'none')
+          .attr('opacity', 0.97);
+        // 3) crisp illuminated coastline
+        landGroup.append('path').datum(land)
+          .attr('d', pathGen)
+          .attr('fill', 'none')
+          .attr('stroke', '#90C0C8')
+          .attr('stroke-width', 0.45)
+          .attr('opacity', 0.85);
       }
 
       const dotGroup = mapRoot.append('g').attr('class', 'map-dots');
@@ -11548,11 +11585,13 @@
             }
           });
         } else {
+          // soft outer halo (blurred bloom)
           dotGroup.append('circle')
             .attr('cx', baseX).attr('cy', y).attr('r', d.size)
             .attr('class', 'map-dot')
             .attr('fill', color).attr('opacity', 0)
-            .transition().duration(600).attr('opacity', opac * 0.3);
+            .attr('filter', 'url(#gt-compact-marker-glow)')
+            .transition().duration(600).attr('opacity', opac * 0.32);
 
           dotGroup.append('circle')
             .attr('cx', baseX).attr('cy', y).attr('r', d.size * 0.55)
@@ -11566,6 +11605,14 @@
             .attr('class', 'map-dot')
             .attr('fill', color).attr('opacity', 0)
             .transition().duration(600).attr('opacity', 1);
+
+          // bright "lit" core highlight for an elegant, polished pop
+          dotGroup.append('circle')
+            .attr('cx', baseX).attr('cy', y)
+            .attr('r', d.type === 'surge' ? 1.1 : 0.75)
+            .attr('class', 'map-dot')
+            .attr('fill', '#FBF6EC').attr('opacity', 0)
+            .transition().duration(600).attr('opacity', 0.85);
         }
 
         if (isExpanded && !isMobileExpandedMap) {
