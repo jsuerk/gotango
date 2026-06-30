@@ -6872,9 +6872,12 @@
 
     const sourceSavedAt = arrivalsPayload && arrivalsPayload.saved_at;
     if (sourceSavedAt && data.source_saved_at !== sourceSavedAt) fatal.push('source_saved_at_mismatch');
-    if (data.total_destinations !== 51) fatal.push('total_destinations_mismatch');
 
     const publicIds = _getPublicDestinationIdsFromPayload(arrivalsPayload);
+    if (publicIds.length > 0 && data.total_destinations !== publicIds.length) {
+      fatal.push('total_destinations_mismatch');
+    }
+
     const seen = new Set();
     for (const dest of data.destinations || []) {
       if (!dest || !dest.id) {
@@ -6908,7 +6911,9 @@
       (counts.in_season || 0) +
       (counts.steady || 0) +
       (counts.cooling || 0);
-    if (categoryTotal !== 51) fatal.push('category_total_mismatch');
+    if (publicIds.length > 0 && categoryTotal !== publicIds.length) {
+      fatal.push('category_total_mismatch');
+    }
 
     for (const warning of data.validation_warnings || []) {
       if (String(warning).startsWith('fatal:')) fatal.push(String(warning));

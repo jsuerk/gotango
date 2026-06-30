@@ -370,12 +370,17 @@ test('June 16 Now shortlist at minimum score 60', () => {
   assert.deepEqual(cooling, JUNE_16_NOW_COOLING);
 });
 
-test('all 51 public destinations scored once in golden replay', () => {
+test('every public destination with golden history scores once in replay', () => {
   const data = loadGoldenBacktest();
   const byDest = buildPanelFromBacktestRows(data.deduped_daily_panel);
   const { scoredByDest } = replayAllScored(byDest);
+  // One scored series is produced for every public destination, even ones with
+  // no backtest rows (newly added destinations have no rows in the fixed golden
+  // file until live history accrues).
   assert.equal(scoredByDest.size, DESTINATIONS.length);
   for (const dest of DESTINATIONS) {
+    const rows = byDest.get(dest.id) || [];
+    if (rows.length === 0) continue;
     const daily = scoredByDest.get(dest.id) || [];
     const latest = daily[daily.length - 1];
     assert.ok(latest?.go_tango_score_internal != null, dest.id);

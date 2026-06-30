@@ -1,2 +1,5 @@
 .vercel
 .env*
+scripts/backups/
+node_modules/
+.DS_Store

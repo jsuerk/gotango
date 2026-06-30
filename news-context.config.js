@@ -284,6 +284,27 @@ function deriveCountry(dest) {
     'United Arab Emirates': 'United Arab Emirates',
     'Dominican Republic': 'Dominican Republic',
     Bahamas: 'Bahamas',
+    // Expansion 2026 — region maps directly to a country/news market
+    'Cayman Islands': 'Cayman Islands',
+    'US Virgin Islands': 'United States Virgin Islands',
+    'St. Kitts & Nevis': 'Saint Kitts and Nevis',
+    Grenadines: 'Saint Vincent and the Grenadines',
+    'St. Lucia': 'Saint Lucia',
+    'British Virgin Islands': 'British Virgin Islands',
+    Bermuda: 'Bermuda',
+    Grenada: 'Grenada',
+    Jamaica: 'Jamaica',
+    'Turkish Riviera': 'Turkey',
+    Croatia: 'Croatia',
+    'Costa del Sol': 'Spain',
+    'Basque Coast': 'France',
+    Seychelles: 'Seychelles',
+    Mauritius: 'Mauritius',
+    Tanzania: 'Tanzania',
+    Botswana: 'Botswana',
+    Zambezi: 'Zimbabwe',
+    Hawaii: 'United States',
+    'French Polynesia': 'French Polynesia',
   };
   if (directCountryRegions[region]) return directCountryRegions[region];
   if (region.endsWith(', Italy')) return 'Italy';
@@ -295,6 +316,7 @@ function deriveCountry(dest) {
   if (region === 'Balearic Islands') return 'Spain';
   if (region === 'Greek Islands') return 'Greece';
   if (region === 'Sardinia') return 'Italy';
+  if (region === 'Corsica') return 'France';
   if (region === 'Baja California Sur' || region === 'Riviera Maya') return 'Mexico';
   if (id === 'turks-caicos') return 'Turks & Caicos';
   if (id === 'mustique') return 'Saint Vincent and the Grenadines';
