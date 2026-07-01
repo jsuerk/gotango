@@ -19,6 +19,9 @@ import {
 import { NEWS_KV_KEYS } from './news-context.lib.js';
 import { DESTINATIONS } from './destinations.config.js';
 import { NOW_MIN_PUBLIC_SCORE } from './gotango-score-v2.lib.js';
+
+/** Matches the Now page In Season band (getGoTangoMomentumCategory score >= 70). */
+export const NOW_IN_SEASON_MIN_SCORE = 70;
 import {
   buildBrowserSafeNewsPayload,
   findLatestEntryForId,
@@ -746,12 +749,47 @@ function formatDailyTapeLeaderSections(input) {
   return lines.join('\n');
 }
 
+function formatFeaturedDestinationSection(input) {
+  const id = input?.primaryDestinationId ? String(input.primaryDestinationId).trim() : '';
+  const name = input?.primaryDestinationName ? String(input.primaryDestinationName).trim() : '';
+  if (!id && !name) return '';
+  const score = Number.isFinite(Number(input?.primaryDestinationScore))
+    ? ` (GoTango Score ${Number(input.primaryDestinationScore)})`
+    : '';
+  return `Featured destination (top In Season on the Now board — Today's Movement hero image anchor):
+- ${name || id}${score}
+- destination id: ${id || 'n/a'}
+Open with this destination's role in today's board. The headline and opening tension should feel visually aligned with this place while still respecting GoTango Score leadership rules below.
+
+`;
+}
+
+export function getTopInSeasonLeader(destinations) {
+  const list = Array.isArray(destinations) ? destinations : [];
+  const inSeason = list
+    .filter((d) => d && Number.isFinite(Number(d.go_tango_score)) && Number(d.go_tango_score) >= NOW_IN_SEASON_MIN_SCORE)
+    .sort((a, b) => {
+      const scoreDiff = (Number(b.go_tango_score) || 0) - (Number(a.go_tango_score) || 0);
+      if (scoreDiff !== 0) return scoreDiff;
+      return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+    });
+  const top = inSeason[0];
+  if (!top) return null;
+  return {
+    id: String(top.id || ''),
+    name: String(top.name || top.id || ''),
+    goTangoScore: Number.isFinite(Number(top.go_tango_score)) ? Number(top.go_tango_score) : undefined,
+  };
+}
+
 export function buildDailyTapeUserMessage(input) {
+  const featuredSection = formatFeaturedDestinationSection(input);
   const leaderSections = formatDailyTapeLeaderSections(input);
   const rolesSection = formatDestinationRolesSection(input);
   return `TODAY'S MOVEMENT INPUT:
 
 Evidence hierarchy (read in this order):
+0. Featured destination (top In Season) anchors the hero image — make the read feel aligned with that place.
 1. GoTango Score leaders determine who leads.
 2. Heating names determine who is gaining momentum.
 3. Cooling destinations show where momentum is fading.
@@ -762,7 +800,7 @@ Evidence hierarchy (read in this order):
 8. Destination roles help you write with tension and cast logic.
 9. Full structured JSON below for any additional fields.
 
-${leaderSections}${rolesSection}Full structured input (JSON):
+${featuredSection}${leaderSections}${rolesSection}Full structured input (JSON):
 ${JSON.stringify(input, null, 2)}
 
 ---
@@ -983,6 +1021,7 @@ export function normalizeDailyTapeBrief(draft, input, meta = {}) {
     paragraphs,
     signalChips,
     drivers,
+    primaryDestinationId: input?.primaryDestinationId ? String(input.primaryDestinationId) : undefined,
     generator: meta.generator || 'daily-tape-llm',
   };
 }
@@ -1288,16 +1327,21 @@ export function buildTodayMovementInputFromSourceData({ arrivalsPayload, scoreRe
   }
 
   const savedAt = arrivalsPayload?.saved_at || scoreResponse?.source_saved_at || null;
+  const topInSeason = getTopInSeasonLeader(destinations);
 
   return {
     todayDate: (savedAt ? String(savedAt) : new Date().toISOString()).slice(0, 10),
     updatedAt: dailyTapeUpdatedLabel(savedAt),
+    sourceSavedAt: savedAt ? String(savedAt) : undefined,
     destinationCount: Number(scoreResponse?.total_destinations) || destinations.length,
     heatingCount: heating.length,
     coolingCount: cooling.length,
     privateArrivals24h,
     scoreLeaders,
     destinations: inputDestinations,
+    primaryDestinationId: topInSeason?.id || undefined,
+    primaryDestinationName: topInSeason?.name || undefined,
+    primaryDestinationScore: topInSeason?.goTangoScore,
   };
 }
 
@@ -1330,11 +1374,9 @@ export async function buildDailyTapePackage(kvClient = kv, {
  *
  * The brief is regenerated once per arrivals snapshot. Each saved record is
  * tagged with the arrivals `source_saved_at` and a `today_date`, and a non-forced
- * refresh is skipped when the cached brief already matches the current snapshot
- * OR is already for the same UTC day. The day-level check is a deliberate
- * belt-and-suspenders guard so the cron safety net never produces a second
- * article on a day the pull already generated one, even if the snapshot tag is
- * missing. `force` bypasses both checks.
+ * refresh is skipped when the cached brief already matches the current snapshot.
+ * When snapshot tags are missing on either side, a same-UTC-day guard prevents
+ * duplicate articles from the late cron safety net. `force` bypasses both checks.
  *
  * `loadSourceData` and `generate` are injectable for testing.
  */
@@ -1352,18 +1394,33 @@ export async function refreshDailyTapeCache(kvClient = kv, {
   if (!force) {
     const existing = await getDailyTapeFromKv(kvClient);
     if (existing.ok) {
-      const sameSnapshot = Boolean(sourceSavedAt) && existing.source_saved_at === sourceSavedAt;
-      const sameDay = Boolean(existing.today_date) && existing.today_date === todayDate;
-      if (sameSnapshot || sameDay) {
+      const snapshotComparable = Boolean(sourceSavedAt) && Boolean(existing.source_saved_at);
+      const sameSnapshot = snapshotComparable && existing.source_saved_at === sourceSavedAt;
+      if (sameSnapshot) {
         return {
           ok: true,
           skipped: true,
-          reason: sameSnapshot ? 'already_generated_for_snapshot' : 'already_generated_today',
+          reason: 'already_generated_for_snapshot',
           source_saved_at: sourceSavedAt,
           today_date: todayDate,
           generator: existing.generator,
           brief: existing.brief,
         };
+      }
+      // Day-level guard only when snapshot tags are missing on either side.
+      if (!snapshotComparable) {
+        const sameDay = Boolean(existing.today_date) && existing.today_date === todayDate;
+        if (sameDay) {
+          return {
+            ok: true,
+            skipped: true,
+            reason: 'already_generated_today',
+            source_saved_at: sourceSavedAt,
+            today_date: todayDate,
+            generator: existing.generator,
+            brief: existing.brief,
+          };
+        }
       }
     }
   }

@@ -28,6 +28,7 @@ export default async function handler(req, res) {
       cache_status: 'hit',
       saved_at: cached.saved_at,
       today_date: cached.today_date,
+      source_saved_at: cached.source_saved_at,
       generator: cached.generator,
       llm_error: cached.llm_error,
       brief: cached.brief,

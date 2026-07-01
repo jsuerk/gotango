@@ -18,6 +18,7 @@ import {
   findBoringDailyTapeCopyIssues,
   findLeadershipMisattributions,
   getDailyTapeScoreLeaders,
+  getTopInSeasonLeader,
   normalizeDailyTapeBrief,
   parseDailyTapeJsonFromModelText,
   validateDailyTapeDraft,
@@ -659,21 +660,102 @@ test('refreshDailyTapeCache generates, tags the snapshot, then stays idempotent'
 
 test('refreshDailyTapeCache skips a second article on the same day even without a snapshot tag', async () => {
   const kvClient = makeDailyTapeTestKv();
+  const todayDate = new Date().toISOString().slice(0, 10);
   // Seed a brief for today that predates snapshot tagging (source_saved_at null).
   await persistDailyTapeToKv(kvClient, {
     brief: { headline: 'Earlier today', verdict: 'HEATING', paragraphs: ['x'], collapsedText: 'x', signalChips: [], drivers: [] },
     generator: 'daily-tape-llm',
-    todayDate: '2026-06-28',
+    todayDate,
     sourceSavedAt: null,
   });
 
   const result = await refreshDailyTapeCache(kvClient, {
     apiKey: 'test-key',
-    loadSourceData: async () => FAKE_SOURCE,
+    loadSourceData: async () => ({
+      arrivalsPayload: { saved_at: null, total_arrivals_across_all: 1200 },
+      homepage: { totals: { total_private_arrivals_24h: 1200 } },
+      scoreResponse: {
+        total_destinations: 51,
+        now_minimum_public_score: 60,
+        source_saved_at: null,
+        destinations: [],
+      },
+    }),
     generate: async () => { throw new Error('should not regenerate twice in one day'); },
   });
   assert.equal(result.skipped, true);
   assert.equal(result.reason, 'already_generated_today');
+});
+
+test('refreshDailyTapeCache regenerates when a new arrivals snapshot lands the same UTC day', async () => {
+  const kvClient = makeDailyTapeTestKv();
+  await persistDailyTapeToKv(kvClient, {
+    brief: { headline: 'Morning pull', verdict: 'HEATING', paragraphs: ['x'], collapsedText: 'x', signalChips: [], drivers: [] },
+    generator: 'daily-tape-llm',
+    todayDate: '2026-06-28',
+    sourceSavedAt: '2026-06-28T06:00:00.000Z',
+  });
+
+  const result = await refreshDailyTapeCache(kvClient, {
+    apiKey: 'test-key',
+    loadSourceData: async () => FAKE_SOURCE,
+    generate: fakeGenerate('Afternoon pull'),
+  });
+  assert.equal(result.skipped, false);
+  assert.equal(result.brief.headline, 'Afternoon pull');
+  assert.equal(kvClient.store.get(DAILY_TAPE_KV_KEYS.latest).source_saved_at, '2026-06-28T14:00:00.000Z');
+});
+
+test('getTopInSeasonLeader returns the highest-score destination in the Now In Season band', () => {
+  const leader = getTopInSeasonLeader([
+    { id: 'steady-town', name: 'Steady Town', go_tango_score: 55 },
+    { id: 'hamptons', name: 'Hamptons', go_tango_score: 84 },
+    { id: 'nantucket', name: 'Nantucket', go_tango_score: 81 },
+  ]);
+  assert.equal(leader.id, 'hamptons');
+  assert.equal(leader.name, 'Hamptons');
+  assert.equal(leader.goTangoScore, 84);
+});
+
+test('buildTodayMovementInputFromSourceData tags the top In Season destination for hero alignment', () => {
+  const input = buildTodayMovementInputFromSourceData({
+    arrivalsPayload: { saved_at: '2026-06-28T14:00:00.000Z' },
+    scoreResponse: {
+      total_destinations: 3,
+      destinations: [
+        { id: 'hamptons', name: 'Hamptons', go_tango_score: 84, confirmed_category: 'in_season' },
+        { id: 'nantucket', name: 'Nantucket', go_tango_score: 81, confirmed_category: 'heating_up', now_heating_display_eligible: true },
+      ],
+    },
+  });
+  assert.equal(input.primaryDestinationId, 'hamptons');
+  assert.equal(input.primaryDestinationName, 'Hamptons');
+  assert.equal(input.sourceSavedAt, '2026-06-28T14:00:00.000Z');
+});
+
+test('normalizeDailyTapeBrief carries primaryDestinationId from input', () => {
+  const brief = normalizeDailyTapeBrief({
+    headline: 'Hamptons keeps the crown',
+    verdict: 'HEATING',
+    paragraphs: ['One.', 'Two.', 'Three.'],
+    signalChips: [],
+    drivers: [],
+  }, {
+    updatedAt: 'UPDATED 14:00Z',
+    primaryDestinationId: 'hamptons',
+  });
+  assert.equal(brief.primaryDestinationId, 'hamptons');
+});
+
+test('buildDailyTapeUserMessage surfaces the featured In Season destination', () => {
+  const prompt = buildDailyTapeUserMessage({
+    ...SAMPLE_INPUT,
+    primaryDestinationId: 'hamptons',
+    primaryDestinationName: 'Hamptons',
+    primaryDestinationScore: 84,
+  });
+  assert.match(prompt, /Featured destination \(top In Season on the Now board/);
+  assert.match(prompt, /Hamptons/);
 });
 
 test('refreshDailyTapeCache force regenerates regardless of cache', async () => {
