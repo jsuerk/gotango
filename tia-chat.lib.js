@@ -4,6 +4,12 @@ import {
   normalizeTiaDestinationInput,
   parseTiaJsonRequestBody,
 } from './tia-preview.lib.js';
+import {
+  getTiaResearchModel,
+  normalizeTiaRecommendations,
+  shouldUseTiaWebSearchForChat,
+  buildTiaWebSearchTools,
+} from './tia-research.lib.js';
 
 const MAX_MESSAGE_LEN = 800;
 const MAX_HISTORY_TURNS = 8;
@@ -78,12 +84,15 @@ export function validateTiaChatAnswer(answer, destination) {
     return { ok: false, error: 'required_fields_missing' };
   }
 
+  const recommendations = normalizeTiaRecommendations(answer.recommendations);
+
   return {
     ok: true,
     answer: {
       title,
       summary,
       bullets,
+      recommendations,
       followUps: followUps.length ? followUps : [
         'Create a 3-day itinerary',
         'What should I avoid?',
@@ -96,10 +105,13 @@ export function validateTiaChatAnswer(answer, destination) {
 
 const TIA_CHAT_SYSTEM_PROMPT = `You are Tia, GoTango's Pro travel intelligence agent.
 
-Answer as a concise, premium travel advisor using the provided GoTango destination context.
+Answer as a concise, premium travel advisor using GoTango destination context first.
 Use GoTango Score, category, arrivals, signal read, weekly movement, and destination news when available.
-Be helpful and specific without inventing exact venues, hotels, prices, schedules, or availability unless provided.
-Mention GoTango Pro only when naturally relevant (saving, daily updates, itineraries), not as a hard sell.
+When web research is available, use it for current hotels, restaurants, activities, neighborhoods, events, and timing.
+Give actual recommendations when you have source support. Include sourceUrl on researched facts.
+Explain why each recommendation fits the traveler. Avoid generic filler.
+Do not claim availability, pricing, reservations, or current openings unless sourced.
+Mention GoTango Pro only when naturally relevant, not as a hard sell.
 Keep answers mobile-friendly. Use bullets where useful.
 Return strict JSON only. No markdown. No HTML.`;
 
@@ -119,27 +131,49 @@ Return JSON with this shape:
   "title": string,
   "summary": string,
   "bullets": [string, string, string],
-  "followUps": [string, string, string]
+  "followUps": [string, string, string],
+  "recommendations": [
+    {
+      "type": "hotel_area" | "hotel" | "restaurant" | "activity" | "event" | "logistics",
+      "name": string,
+      "why": string,
+      "sourceUrl": string
+    }
+  ]
 }`;
 }
 
-export function buildTiaChatOpenAiRequest(destination, message, history) {
-  return {
-    model: getTiaOpenAiModel(),
+export function buildTiaChatOpenAiRequest(destination, message, history, requestOptions = {}) {
+  const useWebSearch = !!requestOptions.useWebSearch;
+  const model = useWebSearch
+    ? getTiaResearchModel(getTiaOpenAiModel())
+    : getTiaOpenAiModel();
+  const body = {
+    model,
     store: false,
-    reasoning: { effort: 'low' },
+    reasoning: { effort: useWebSearch ? 'medium' : 'low' },
     text: { verbosity: 'low' },
-    max_output_tokens: 900,
+    max_output_tokens: useWebSearch ? 1200 : 900,
     input: [
       { role: 'system', content: TIA_CHAT_SYSTEM_PROMPT },
       { role: 'user', content: buildTiaChatUserPrompt(destination, message, history) },
     ],
   };
+
+  if (useWebSearch) {
+    body.tools = buildTiaWebSearchTools();
+    body.tool_choice = 'auto';
+    body.max_tool_calls = 4;
+    body.include = ['web_search_call.action.sources'];
+  }
+
+  return body;
 }
 
 export async function generateTiaChatWithOpenAi({ destination, message, history, apiKey }) {
-  const requestBody = buildTiaChatOpenAiRequest(destination, message, history);
-  const ai = await callTiaOpenAi(apiKey, requestBody);
+  const useWebSearch = shouldUseTiaWebSearchForChat(message);
+  const requestBody = buildTiaChatOpenAiRequest(destination, message, history, { useWebSearch });
+  const ai = await callTiaOpenAi(apiKey, requestBody, undefined, useWebSearch);
   if (!ai.ok) return ai;
 
   const validated = validateTiaChatAnswer(ai.parsed, destination);
@@ -148,5 +182,5 @@ export async function generateTiaChatWithOpenAi({ destination, message, history,
     return { ok: false, error: validated.error, status: 502 };
   }
 
-  return { ok: true, answer: validated.answer };
+  return { ok: true, answer: validated.answer, researchUsed: useWebSearch };
 }

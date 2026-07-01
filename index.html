@@ -3083,6 +3083,251 @@
     line-height: 1.5;
   }
 
+  /* ===== TIA · FLOATING BAR + COMMAND SHEET ===== */
+  .dest-modal.has-tia-floating-bar .dest-modal__body {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+  .tia-floating-bar {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 25;
+    pointer-events: none;
+  }
+  .tia-floating-bar:not([hidden]) {
+    pointer-events: auto;
+  }
+  .tia-floating-bar__btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 52px;
+    padding: 10px 14px 10px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(94, 170, 168, 0.45);
+    background: rgba(10, 13, 17, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(232, 163, 23, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    touch-action: manipulation;
+  }
+  .tia-floating-bar__btn:hover {
+    border-color: rgba(232, 163, 23, 0.55);
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.5), 0 0 18px rgba(232, 163, 23, 0.12);
+    transform: translateY(-1px);
+  }
+  .tia-floating-bar__btn:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  .tia-floating-bar__mark {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--amber);
+    border: 1px solid rgba(232, 163, 23, 0.45);
+    background: rgba(232, 163, 23, 0.12);
+  }
+  .tia-floating-bar__copy {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    line-height: 1.35;
+    color: rgba(245, 241, 232, 0.92);
+  }
+  .tia-floating-bar__icon {
+    flex-shrink: 0;
+    font-size: 14px;
+    color: var(--amber);
+    opacity: 0.9;
+  }
+  .tia-command-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 10055;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+    font-family: inherit;
+  }
+  .tia-command-sheet.is-open {
+    display: flex;
+  }
+  .tia-command-sheet__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 8, 12, 0.72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    cursor: pointer;
+  }
+  .tia-command-sheet__panel {
+    position: relative;
+    width: min(560px, 100%);
+    max-height: min(92vh, 820px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #12151c 0%, #0c0e13 100%);
+    border: 1px solid rgba(244, 181, 42, 0.18);
+    border-bottom: none;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.55);
+    padding: 12px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+    animation: tia-pro-sheet-slide-up 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .tia-command-sheet__handle {
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    margin: 2px auto 12px;
+  }
+  .tia-command-sheet__close {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .tia-command-sheet__head {
+    padding-right: 36px;
+    margin-bottom: 14px;
+  }
+  .tia-command-sheet__title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .tia-command-sheet__title {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    letter-spacing: -0.02em;
+  }
+  .tia-command-sheet__badge {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    border: 1px solid rgba(232, 163, 23, 0.35);
+    border-radius: 999px;
+    padding: 3px 8px;
+  }
+  .tia-command-sheet__subtitle {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-dim);
+  }
+  .tia-command-sheet__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .tia-command-sheet__action {
+    min-height: 44px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(244, 181, 42, 0.24);
+    background: rgba(232, 163, 23, 0.07);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .tia-command-sheet__action:hover {
+    background: rgba(232, 163, 23, 0.12);
+    border-color: rgba(244, 181, 42, 0.38);
+  }
+  .tia-command-sheet__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .tia-command-sheet__messages {
+    flex: 1 1 auto;
+    min-height: 80px;
+    max-height: min(34vh, 280px);
+    overflow-y: auto;
+    margin-bottom: 10px;
+    padding-right: 2px;
+  }
+  .tia-command-sheet__footer-note {
+    margin-top: 10px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+    line-height: 1.45;
+  }
+  .tia-rec-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .tia-rec-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    padding: 10px 12px;
+  }
+  .tia-rec-card__type {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 4px;
+  }
+  .tia-rec-card__name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .tia-rec-card__why {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .tia-rec-card__source {
+    font-size: 11px;
+  }
+  .tia-rec-card__source a {
+    color: var(--amber);
+    text-decoration: none;
+  }
+  .tia-rec-card__source a:hover {
+    text-decoration: underline;
+  }
+
   /* ===== TIA · PRO TEASER SHEET (PR 1) ===== */
   .tia-pro-sheet {
     position: fixed;
@@ -7942,6 +8187,13 @@
       <h2 id="dest-modal-title" class="dest-modal__placeholder-title">Loading...</h2>
       <p class="dest-modal__placeholder-text">Loading destination details...</p>
     </div>
+    <div id="tia-floating-bar" class="tia-floating-bar" hidden aria-hidden="true">
+      <button type="button" class="tia-floating-bar__btn" data-tia-floating-bar-open aria-label="Open Tia">
+        <span class="tia-floating-bar__mark" aria-hidden="true">T</span>
+        <span class="tia-floating-bar__copy" id="tia-floating-bar-copy">Ask your travel intelligence agent anything about this destination.</span>
+        <span class="tia-floating-bar__icon" aria-hidden="true">✦</span>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -7988,6 +8240,17 @@
       <span aria-hidden="true">×</span>
     </button>
     <div id="tia-chat-sheet-content"></div>
+  </div>
+</div>
+
+<div id="tia-command-sheet" class="tia-command-sheet" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="tia-command-sheet-title" style="display: none;">
+  <div class="tia-command-sheet__backdrop" data-tia-command-dismiss></div>
+  <div class="tia-command-sheet__panel" role="document">
+    <div class="tia-command-sheet__handle" aria-hidden="true"></div>
+    <button type="button" class="tia-command-sheet__close" data-tia-command-dismiss aria-label="Close Tia">
+      <span aria-hidden="true">×</span>
+    </button>
+    <div id="tia-command-sheet-content"></div>
   </div>
 </div>
 
@@ -8099,6 +8362,9 @@
   let _tiaPreviewMeta = { source: 'deterministic' };
   let _tiaSavedDetailOpen = false;
   let _tiaSavedDetailItemId = null;
+  let _tiaCommandSheetOpen = false;
+  let _tiaCommandDest = null;
+  let _tiaFloatingBarViewTracked = false;
   let _goTangoScoreV2Data = null;
   let _goTangoScoreV2Active = false;
 
@@ -11144,27 +11410,232 @@
   }
 
   function renderTiaDestinationPanel(dest) {
-    if (!IS_TIA_ENABLED || !dest || !dest.id) return '';
-    const destId = _escapeHtml(dest.id);
+    return '';
+  }
+
+  const TIA_COMMAND_CHIPS = [
+    'Best places to stay',
+    'Best restaurants right now',
+    'Build a better first day',
+    'What should I avoid?',
+    'How should I time this trip?',
+  ];
+
+  function _tiaGetChatUi() {
+    if (_tiaCommandSheetOpen) {
+      return {
+        messagesId: 'tia-command-messages',
+        inputId: 'tia-command-input',
+        sendId: 'tia-command-send',
+        micId: 'tia-command-mic',
+        voiceStatusId: 'tia-command-voice-status',
+        proGateId: 'tia-command-pro-gate',
+        saveProId: 'tia-command-save-pro',
+        chipAttr: 'data-tia-command-chip',
+      };
+    }
+    return {
+      messagesId: 'tia-chat-messages',
+      inputId: 'tia-chat-input',
+      sendId: 'tia-chat-send',
+      micId: 'tia-chat-mic',
+      voiceStatusId: 'tia-chat-voice-status',
+      proGateId: 'tia-chat-pro-gate',
+      saveProId: 'tia-chat-save-pro',
+      chipAttr: 'data-tia-chat-chip',
+    };
+  }
+
+  function updateTiaFloatingBarVisibility() {
+    const bar = document.getElementById('tia-floating-bar');
+    const modal = document.getElementById('destination-modal');
+    if (!bar || !modal) return;
+    const modalOpen = modal.style.display !== 'none' && modal.getAttribute('aria-hidden') !== 'true';
+    const show = IS_TIA_ENABLED
+      && modalOpen
+      && _modalCurrentDestId
+      && !_tiaProSheetOpen
+      && !_tiaPreviewSheetOpen
+      && !_tiaChatSheetOpen
+      && !_tiaCommandSheetOpen;
+    bar.hidden = !show;
+    bar.setAttribute('aria-hidden', show ? 'false' : 'true');
+    modal.classList.toggle('has-tia-floating-bar', show);
+    if (show && !_tiaFloatingBarViewTracked) {
+      _tiaFloatingBarViewTracked = true;
+      trackTiaEvent('tia_floating_bar_viewed');
+    }
+  }
+
+  function refreshTiaFloatingBarCopy(dest) {
+    const copy = document.getElementById('tia-floating-bar-copy');
+    if (!copy || !dest) return;
+    const name = String(dest.name || '').trim();
+    if (name && name.length <= 22) {
+      copy.textContent = `Ask Tia anything about ${name}.`;
+    } else {
+      copy.textContent = 'Ask your travel intelligence agent anything about this destination.';
+    }
+  }
+
+  function showTiaFloatingBar(dest) {
+    if (!IS_TIA_ENABLED || !dest) return;
+    refreshTiaFloatingBarCopy(dest);
+    updateTiaFloatingBarVisibility();
+  }
+
+  function hideTiaFloatingBar() {
+    const bar = document.getElementById('tia-floating-bar');
+    const modal = document.getElementById('destination-modal');
+    if (bar) {
+      bar.hidden = true;
+      bar.setAttribute('aria-hidden', 'true');
+    }
+    if (modal) modal.classList.remove('has-tia-floating-bar');
+  }
+
+  function renderTiaCommandSheetShell(dest) {
+    const intel = _getTiaDestinationIntel(dest);
+    const destName = _escapeHtml(intel.name);
+    const chips = TIA_COMMAND_CHIPS
+      .map((chip) => `<button type="button" class="tia-chat-chip" data-tia-command-chip>${_escapeHtml(chip)}</button>`)
+      .join('');
+    const micBtn = isTiaVoiceSupported()
+      ? '<button type="button" class="tia-chat-compose__mic" id="tia-command-mic" aria-label="Dictate question to Tia" aria-pressed="false">🎙</button>'
+      : '';
+
     return `
-      <section class="d-section tia-destination-panel" data-modal-section="tia-panel" data-destination-id="${destId}">
-        <div class="tia-destination-panel__head">
-          <h3 class="tia-destination-panel__title">Tia · Travel Intelligence Agent</h3>
-          <span class="tia-destination-panel__badge" aria-label="GoTango Pro feature">PRO</span>
+      <div class="tia-command-sheet__head">
+        <div class="tia-command-sheet__title-row">
+          <h2 id="tia-command-sheet-title" class="tia-command-sheet__title">Tia</h2>
+          <span class="tia-command-sheet__badge" aria-label="GoTango Pro feature">PRO</span>
         </div>
-        <p class="tia-destination-panel__body">Create itineraries, build trips, or save this destination to Watch. Preview with Tia, then save and receive daily updates with GoTango Pro.</p>
-        <div class="tia-destination-panel__actions">
-          <button type="button" class="tia-destination-panel__btn" data-tia-action="create-itinerary">Create an Itinerary</button>
-          <button type="button" class="tia-destination-panel__btn" data-tia-action="create-trip">Create a Trip</button>
-          <button type="button" class="tia-destination-panel__btn" data-tia-action="save-destination">Save Destination</button>
+        <p class="tia-command-sheet__subtitle">Your travel intelligence agent for ${destName}.</p>
+      </div>
+      <div class="tia-command-sheet__actions">
+        <button type="button" class="tia-command-sheet__action" data-tia-action="create-itinerary">Create an Itinerary</button>
+        <button type="button" class="tia-command-sheet__action" data-tia-action="create-trip">Create a Trip</button>
+        <button type="button" class="tia-command-sheet__action" data-tia-action="save-destination">Save Destination</button>
+      </div>
+      <div class="tia-command-sheet__chips" aria-label="Suggested questions">${chips}</div>
+      <div class="tia-command-sheet__messages tia-chat-sheet__messages" id="tia-command-messages" aria-live="polite" aria-relevant="additions"></div>
+      <div class="tia-chat-pro-gate" id="tia-command-pro-gate" hidden>
+        Continue the conversation, save this plan, and get daily updates with GoTango Pro.
+      </div>
+      <div class="tia-chat-compose">
+        <div class="tia-chat-voice-status" id="tia-command-voice-status" aria-live="polite"></div>
+        <div class="tia-chat-compose__row">
+          ${micBtn}
+          <div class="tia-chat-compose__input-wrap">
+            <label for="tia-command-input">Ask Tia anything about ${destName}</label>
+            <textarea id="tia-command-input" class="tia-chat-compose__input" rows="2" placeholder="Ask Tia anything about ${destName}…"></textarea>
+          </div>
+          <button type="button" class="tia-chat-compose__send" id="tia-command-send">Send</button>
         </div>
-        <div class="tia-destination-panel__ask">
-          <p class="tia-destination-panel__ask-label">Ask Tia about this destination…</p>
-          <button type="button" class="tia-destination-panel__ask-btn" data-tia-action="open-chat">Ask Tia</button>
-        </div>
-        <p class="tia-destination-panel__footer">Free preview available. Save + daily updates require GoTango Pro.</p>
-      </section>
+        <button type="button" class="tia-preview-btn tia-preview-btn--gold tia-chat-footer-cta" id="tia-command-save-pro" data-tia-command-save-pro hidden>Save with GoTango Pro</button>
+      </div>
+      <p class="tia-command-sheet__footer-note">Preview with Tia. Save + daily updates require GoTango Pro.</p>
     `;
+  }
+
+  function openTiaCommandSheet(dest) {
+    if (!IS_TIA_ENABLED || !dest) return;
+    const sheet = document.getElementById('tia-command-sheet');
+    if (!sheet) return;
+
+    stopTiaSpeechRecognition();
+    _tiaCommandDest = dest;
+    _tiaChatDest = dest;
+    _tiaChatHistory = [];
+    _tiaChatAnswerCount = 0;
+    _tiaChatProGateTracked = false;
+    _tiaCommandSheetOpen = true;
+
+    const content = document.getElementById('tia-command-sheet-content');
+    if (content) content.innerHTML = renderTiaCommandSheetShell(dest);
+
+    sheet.style.display = 'flex';
+    sheet.classList.add('is-open');
+    sheet.setAttribute('aria-hidden', 'false');
+    trackTiaEvent('tia_command_sheet_opened');
+    updateTiaFloatingBarVisibility();
+
+    const input = document.getElementById('tia-command-input');
+    if (input) setTimeout(() => input.focus(), 50);
+  }
+
+  function closeTiaCommandSheet(options = {}) {
+    const sheet = document.getElementById('tia-command-sheet');
+    if (!sheet || !_tiaCommandSheetOpen) return;
+    stopTiaSpeechRecognition();
+    _tiaCommandSheetOpen = false;
+    _tiaCommandDest = null;
+    sheet.style.display = 'none';
+    sheet.classList.remove('is-open');
+    sheet.setAttribute('aria-hidden', 'true');
+    const content = document.getElementById('tia-command-sheet-content');
+    if (content) content.innerHTML = '';
+    updateTiaFloatingBarVisibility();
+    if (!options.skipTrack) {
+      trackTiaEvent('tia_command_sheet_dismissed');
+    }
+  }
+
+  function _tiaRecTypeLabel(type) {
+    const labels = {
+      hotel_area: 'Area',
+      hotel: 'Hotel',
+      restaurant: 'Restaurant',
+      activity: 'Activity',
+      event: 'Event',
+      logistics: 'Logistics',
+    };
+    return labels[type] || 'Tip';
+  }
+
+  function _tiaSourceDomain(url) {
+    const value = String(url || '').trim();
+    if (!value) return '';
+    try {
+      return new URL(value).hostname.replace(/^www\./, '');
+    } catch (_) {
+      return value.slice(0, 40);
+    }
+  }
+
+  function _normalizeTiaRecommendationsClient(raw) {
+    if (!Array.isArray(raw)) return [];
+    const allowed = new Set(['hotel_area', 'hotel', 'restaurant', 'activity', 'event', 'logistics']);
+    return raw.map((entry) => {
+      if (!entry || typeof entry !== 'object') return null;
+      const typeRaw = String(entry.type || 'activity').trim().toLowerCase();
+      const type = allowed.has(typeRaw) ? typeRaw : 'activity';
+      const name = String(entry.name || '').trim();
+      const why = String(entry.why || '').trim();
+      const sourceUrl = String(entry.sourceUrl || '').trim();
+      if (!name || !why) return null;
+      return { type, name, why, sourceUrl: sourceUrl || undefined };
+    }).filter(Boolean).slice(0, 8);
+  }
+
+  function renderTiaRecommendationCards(recommendations, limit = 3) {
+    const items = (recommendations || []).slice(0, limit);
+    if (!items.length) return '';
+    const cards = items.map((item) => {
+      trackTiaEvent('tia_recommendation_rendered');
+      const source = item.sourceUrl
+        ? `<div class="tia-rec-card__source"><a href="${_escapeHtml(item.sourceUrl)}" target="_blank" rel="noopener noreferrer">${_escapeHtml(_tiaSourceDomain(item.sourceUrl))}</a></div>`
+        : '';
+      return `
+        <div class="tia-rec-card">
+          <div class="tia-rec-card__type">${_escapeHtml(_tiaRecTypeLabel(item.type))}</div>
+          <div class="tia-rec-card__name">${_escapeHtml(item.name)}</div>
+          <div class="tia-rec-card__why">${_escapeHtml(item.why)}</div>
+          ${source}
+        </div>
+      `;
+    }).join('');
+    return `<div class="tia-rec-cards">${cards}</div>`;
   }
 
   function openTiaProTeaserSheet() {
@@ -11174,6 +11645,7 @@
     sheet.style.display = 'flex';
     sheet.classList.add('is-open');
     sheet.setAttribute('aria-hidden', 'false');
+    updateTiaFloatingBarVisibility();
     trackTiaEvent('tia_paywall_viewed');
     const primaryBtn = sheet.querySelector('[data-tia-pro-start]');
     if (primaryBtn) {
@@ -11188,6 +11660,7 @@
     sheet.style.display = 'none';
     sheet.classList.remove('is-open');
     sheet.setAttribute('aria-hidden', 'true');
+    updateTiaFloatingBarVisibility();
     if (!options.skipTrack) {
       trackTiaEvent('tia_paywall_dismissed');
     }
@@ -11475,6 +11948,7 @@
           time: String(item?.time || '').trim(),
           title: String(item?.title || '').trim(),
           note: String(item?.note || '').trim(),
+          sourceUrl: String(item?.sourceUrl || '').trim() || undefined,
         })).filter((item) => item.title || item.note).slice(0, 4)
         : [];
       return { day: dayNum, title, summary, items };
@@ -11490,6 +11964,7 @@
       bestFor: String(preview.bestFor).trim(),
       pace: String(preview.pace).trim(),
       days,
+      recommendations: _normalizeTiaRecommendationsClient(preview.recommendations),
     };
   }
 
@@ -11513,20 +11988,24 @@
       vibe: String(preview.vibe).trim(),
       dontMiss: dontMiss.slice(0, 5),
       suggestedPlan: String(preview.suggestedPlan).trim(),
+      recommendations: _normalizeTiaRecommendationsClient(preview.recommendations),
     };
   }
 
   function _validateTiaPreviewApiResponse(data, mode) {
     if (!data || data.ok !== true || !data.preview) return null;
-    return mode === 'trip'
+    const preview = mode === 'trip'
       ? _validateTiaTripPreviewClient(data.preview)
       : _validateTiaItineraryPreviewClient(data.preview);
+    if (!preview) return null;
+    return { preview, researchUsed: !!data.researchUsed };
   }
 
   async function fetchTiaAiPreview(mode, dest, options) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIA_PREVIEW_API_TIMEOUT_MS);
     try {
+      if (IS_TIA_AI_ENABLED) trackTiaEvent('tia_research_requested');
       const response = await fetch('/api/tia-preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -11543,9 +12022,19 @@
       } catch (_) {
         data = null;
       }
-      if (!response.ok) return null;
-      return _validateTiaPreviewApiResponse(data, mode);
+      if (!response.ok) {
+        trackTiaEvent('tia_research_failed');
+        return null;
+      }
+      const result = _validateTiaPreviewApiResponse(data, mode);
+      if (!result) {
+        trackTiaEvent('tia_research_failed');
+        return null;
+      }
+      if (result.researchUsed) trackTiaEvent('tia_research_succeeded');
+      return result;
     } catch (_) {
+      trackTiaEvent('tia_research_failed');
       return null;
     } finally {
       clearTimeout(timer);
@@ -11590,6 +12079,7 @@
             ${item.time ? `<div class="tia-preview-day-item__time">${_escapeHtml(item.time)}</div>` : ''}
             ${item.title ? `<div class="tia-preview-day-item__title">${_escapeHtml(item.title)}</div>` : ''}
             ${item.note ? `<div class="tia-preview-day-item__note">${_escapeHtml(item.note)}</div>` : ''}
+            ${item.sourceUrl ? `<div class="tia-rec-card__source"><a href="${_escapeHtml(item.sourceUrl)}" target="_blank" rel="noopener noreferrer">${_escapeHtml(_tiaSourceDomain(item.sourceUrl))}</a></div>` : ''}
           </div>
         `).join('')
         : '';
@@ -11619,6 +12109,7 @@
         </div>
         ${metaRows}
         ${dayCards}
+        ${renderTiaRecommendationCards(preview.recommendations)}
       </div>
     `;
   }
@@ -11657,6 +12148,7 @@
           <div class="tia-preview-card__label">Suggested itinerary summary</div>
           <div class="tia-preview-card__body">${_escapeHtml(preview.suggestedPlan)}</div>
         </div>
+        ${renderTiaRecommendationCards(preview.recommendations)}
       </div>
     `;
   }
@@ -11823,6 +12315,8 @@
     const sheet = document.getElementById('tia-preview-sheet');
     if (!sheet) return;
 
+    closeTiaCommandSheet({ skipTrack: true });
+
     _tiaPreviewMode = mode;
     _tiaPreviewDest = dest;
     _tiaPreviewSheetOpen = true;
@@ -11837,6 +12331,7 @@
     sheet.style.display = 'flex';
     sheet.classList.add('is-open');
     sheet.setAttribute('aria-hidden', 'false');
+    updateTiaFloatingBarVisibility();
 
     if (mode === 'trip') trackTiaEvent('tia_trip_preview_opened');
     else trackTiaEvent('tia_itinerary_preview_opened');
@@ -11855,6 +12350,7 @@
     sheet.classList.remove('is-open');
     sheet.setAttribute('aria-hidden', 'true');
     _setTiaPreviewSheetContent('');
+    updateTiaFloatingBarVisibility();
     if (!options.skipTrack) {
       trackTiaEvent('tia_preview_dismissed');
     }
@@ -11877,12 +12373,12 @@
 
     if (IS_TIA_AI_ENABLED) {
       trackTiaEvent('tia_ai_preview_requested');
-      const aiPreview = await fetchTiaAiPreview(mode, dest, options);
+      const aiResult = await fetchTiaAiPreview(mode, dest, options);
       if (requestToken !== _tiaPreviewCreateToken) return;
 
-      if (aiPreview) {
-        preview = aiPreview;
-        meta = { source: 'openai' };
+      if (aiResult?.preview) {
+        preview = aiResult.preview;
+        meta = { source: 'openai', researchUsed: !!aiResult.researchUsed };
         trackTiaEvent('tia_ai_preview_succeeded');
       } else {
         trackTiaEvent('tia_ai_preview_failed');
@@ -11964,19 +12460,23 @@
       title,
       summary,
       bullets: bullets.slice(0, 5),
+      recommendations: _normalizeTiaRecommendationsClient(answer.recommendations),
       followUps: followUps.length ? followUps.slice(0, 4) : TIA_CHAT_SUGGESTED_CHIPS.slice(0, 3),
     };
   }
 
   function validateTiaChatApiResponse(data) {
     if (!data || data.ok !== true || !data.answer) return null;
-    return _validateTiaChatAnswerClient(data.answer);
+    const answer = _validateTiaChatAnswerClient(data.answer);
+    if (!answer) return null;
+    return { answer, researchUsed: !!data.researchUsed };
   }
 
   async function fetchTiaChatAnswer(dest, message, history) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIA_CHAT_API_TIMEOUT_MS);
     try {
+      if (IS_TIA_AI_ENABLED) trackTiaEvent('tia_research_requested');
       const response = await fetch('/api/tia-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -11993,9 +12493,19 @@
       } catch (_) {
         data = null;
       }
-      if (!response.ok) return null;
-      return validateTiaChatApiResponse(data);
+      if (!response.ok) {
+        trackTiaEvent('tia_research_failed');
+        return null;
+      }
+      const result = validateTiaChatApiResponse(data);
+      if (!result) {
+        trackTiaEvent('tia_research_failed');
+        return null;
+      }
+      if (result.researchUsed) trackTiaEvent('tia_research_succeeded');
+      return result;
     } catch (_) {
+      trackTiaEvent('tia_research_failed');
       return null;
     } finally {
       clearTimeout(timer);
@@ -12007,7 +12517,7 @@
       .map((item) => `<li>${_escapeHtml(item)}</li>`)
       .join('');
     const followUps = (answer.followUps || [])
-      .map((chip) => `<button type="button" class="tia-chat-chip" data-tia-chat-chip>${_escapeHtml(chip)}</button>`)
+      .map((chip) => `<button type="button" class="tia-chat-chip" data-tia-chat-chip data-tia-command-chip>${_escapeHtml(chip)}</button>`)
       .join('');
     const generatedBy = meta.source === 'openai'
       ? '<div class="tia-preview-generated">Generated by Tia</div>'
@@ -12019,13 +12529,15 @@
         <div class="tia-chat-answer-card__title">${_escapeHtml(answer.title)}</div>
         <div class="tia-chat-answer-card__summary">${_escapeHtml(answer.summary)}</div>
         <ul class="tia-chat-answer-card__list">${bullets}</ul>
+        ${renderTiaRecommendationCards(answer.recommendations)}
         ${followUps ? `<div class="tia-chat-answer-card__followups">${followUps}</div>` : ''}
       </div>
     `;
   }
 
   function _appendTiaChatUserMessage(message) {
-    const root = document.getElementById('tia-chat-messages');
+    const ui = _tiaGetChatUi();
+    const root = document.getElementById(ui.messagesId);
     if (!root) return;
     const el = document.createElement('div');
     el.className = 'tia-chat-user-bubble';
@@ -12036,7 +12548,8 @@
   }
 
   function _appendTiaChatAnswer(answer, meta = {}) {
-    const root = document.getElementById('tia-chat-messages');
+    const ui = _tiaGetChatUi();
+    const root = document.getElementById(ui.messagesId);
     if (!root) return;
     const wrap = document.createElement('div');
     wrap.setAttribute('data-tia-chat-message', 'assistant');
@@ -12046,7 +12559,8 @@
   }
 
   function _setTiaChatLoading(isLoading) {
-    const root = document.getElementById('tia-chat-messages');
+    const ui = _tiaGetChatUi();
+    const root = document.getElementById(ui.messagesId);
     if (!root) return;
     const existing = root.querySelector('[data-tia-chat-loading]');
     if (!isLoading) {
@@ -12064,8 +12578,9 @@
   }
 
   function _updateTiaChatProGate() {
-    const gate = document.getElementById('tia-chat-pro-gate');
-    const saveBtn = document.getElementById('tia-chat-save-pro');
+    const ui = _tiaGetChatUi();
+    const gate = document.getElementById(ui.proGateId);
+    const saveBtn = document.getElementById(ui.saveProId);
     if (!gate) return;
     if (_tiaChatAnswerCount >= 1) {
       gate.hidden = false;
@@ -12082,14 +12597,16 @@
 
   function _updateTiaVoiceStatus(message, isError) {
     _tiaVoiceStatusMessage = message || '';
-    const el = document.getElementById('tia-chat-voice-status');
+    const ui = _tiaGetChatUi();
+    const el = document.getElementById(ui.voiceStatusId);
     if (!el) return;
     el.textContent = message || '';
     el.classList.toggle('is-error', !!isError);
   }
 
   function _updateTiaMicButtonState() {
-    const micBtn = document.getElementById('tia-chat-mic');
+    const ui = _tiaGetChatUi();
+    const micBtn = document.getElementById(ui.micId);
     if (!micBtn) return;
     micBtn.classList.toggle('is-listening', _tiaSpeechListening);
     micBtn.setAttribute('aria-pressed', _tiaSpeechListening ? 'true' : 'false');
@@ -12132,7 +12649,8 @@
 
     recognition.onresult = (event) => {
       const transcript = event?.results?.[0]?.[0]?.transcript;
-      const input = document.getElementById('tia-chat-input');
+      const ui = _tiaGetChatUi();
+      const input = document.getElementById(ui.inputId);
       if (input && transcript) {
         input.value = String(transcript).trim();
       }
@@ -12214,6 +12732,7 @@
     sheet.style.display = 'flex';
     sheet.classList.add('is-open');
     sheet.setAttribute('aria-hidden', 'false');
+    updateTiaFloatingBarVisibility();
     trackTiaEvent('tia_chat_opened');
 
     const input = document.getElementById('tia-chat-input');
@@ -12234,13 +12753,15 @@
     sheet.setAttribute('aria-hidden', 'true');
     const content = document.getElementById('tia-chat-sheet-content');
     if (content) content.innerHTML = '';
+    updateTiaFloatingBarVisibility();
     if (!options.skipTrack) {
       trackTiaEvent('tia_chat_dismissed');
     }
   }
 
   function _setTiaChatInputValue(value) {
-    const input = document.getElementById('tia-chat-input');
+    const ui = _tiaGetChatUi();
+    const input = document.getElementById(ui.inputId);
     if (input) {
       input.value = value;
       input.focus();
@@ -12248,7 +12769,7 @@
   }
 
   async function handleTiaChatSend(messageOverride) {
-    if (!_tiaChatDest || !_tiaChatSheetOpen) return;
+    if (!_tiaChatDest || (!_tiaCommandSheetOpen && !_tiaChatSheetOpen)) return;
 
     if (_tiaChatAnswerCount >= 1) {
       trackTiaEvent('tia_chat_pro_gate_viewed');
@@ -12256,7 +12777,8 @@
       return;
     }
 
-    const input = document.getElementById('tia-chat-input');
+    const ui = _tiaGetChatUi();
+    const input = document.getElementById(ui.inputId);
     const message = String(messageOverride != null ? messageOverride : (input?.value || '')).trim();
     if (!message) return;
 
@@ -12270,11 +12792,11 @@
     let meta = { source: 'deterministic' };
 
     if (IS_TIA_AI_ENABLED) {
-      const aiAnswer = await fetchTiaChatAnswer(_tiaChatDest, message, _tiaChatHistory);
+      const aiResult = await fetchTiaChatAnswer(_tiaChatDest, message, _tiaChatHistory);
       if (requestToken !== _tiaChatSendToken) return;
-      if (aiAnswer) {
-        answer = aiAnswer;
-        meta = { source: 'openai' };
+      if (aiResult?.answer) {
+        answer = aiResult.answer;
+        meta = { source: 'openai', researchUsed: !!aiResult.researchUsed };
         trackTiaEvent('tia_chat_answer_succeeded');
       } else {
         trackTiaEvent('tia_chat_answer_failed');
@@ -12305,13 +12827,47 @@
   function attachTiaHandlers() {
     if (!IS_TIA_ENABLED) return;
 
-    const modal = document.getElementById('destination-modal');
-    if (modal) {
-      modal.addEventListener('click', (e) => {
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('[data-tia-floating-bar-open]')) {
+        const dest = _lookupModalDest();
+        if (dest) {
+          trackTiaEvent('tia_floating_bar_tapped');
+          openTiaCommandSheet(dest);
+        }
+      }
+    });
+
+    const commandSheet = document.getElementById('tia-command-sheet');
+    if (commandSheet) {
+      commandSheet.addEventListener('click', (e) => {
+        if (e.target.closest('[data-tia-command-dismiss]')) {
+          closeTiaCommandSheet();
+          return;
+        }
+        const chip = e.target.closest('[data-tia-command-chip]');
+        if (chip) {
+          const text = chip.textContent?.trim();
+          if (text) handleTiaChatSend(text);
+          return;
+        }
+        if (e.target.closest('#tia-command-send')) {
+          handleTiaChatSend();
+          return;
+        }
+        if (e.target.closest('#tia-command-mic')) {
+          trackTiaEvent('tia_voice_mic_tapped');
+          startTiaSpeechRecognition();
+          return;
+        }
+        if (e.target.closest('[data-tia-command-save-pro]')) {
+          trackTiaEvent('tia_preview_save_pro_tapped');
+          openTiaSavePaywall();
+          return;
+        }
         const btn = e.target.closest('[data-tia-action]');
         if (!btn) return;
         const action = btn.getAttribute('data-tia-action');
-        const dest = _lookupModalDest();
+        const dest = _tiaCommandDest || _lookupModalDest();
         if (!dest) return;
 
         if (action === 'create-itinerary') {
@@ -12327,10 +12883,13 @@
         if (action === 'save-destination') {
           trackTiaEvent('tia_save_destination_tapped');
           handleTiaSaveDestination(dest);
-          return;
         }
-        if (action === 'open-chat') {
-          openTiaChatSheet(dest);
+      });
+
+      commandSheet.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey && e.target && e.target.id === 'tia-command-input') {
+          e.preventDefault();
+          handleTiaChatSend();
         }
       });
     }
@@ -15194,6 +15753,8 @@
       initModalEditorNoteState(modal);
     }
 
+    showTiaFloatingBar(dest);
+
     // Lock body scroll
     document.body.classList.add('dest-modal-open');
 
@@ -16250,6 +16811,9 @@
     closeTiaProTeaserSheet({ skipTrack: true });
     closeTiaPreviewSheet({ skipTrack: true });
     closeTiaChatSheet({ skipTrack: true });
+    closeTiaCommandSheet({ skipTrack: true });
+    hideTiaFloatingBar();
+    _tiaFloatingBarViewTracked = false;
 
     const modal = document.getElementById('destination-modal');
     if (modal) {
@@ -16288,6 +16852,10 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && _tiaProSheetOpen) {
         closeTiaProTeaserSheet();
+        return;
+      }
+      if (e.key === 'Escape' && _tiaCommandSheetOpen) {
+        closeTiaCommandSheet();
         return;
       }
       if (e.key === 'Escape' && _tiaSavedDetailOpen) {

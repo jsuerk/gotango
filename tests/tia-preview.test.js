@@ -77,6 +77,29 @@ test('validateItineraryPreview normalizes required fields and days', () => {
   assert.equal(validated.preview.days[0].items.length, 1);
 });
 
+test('validateItineraryPreview accepts optional recommendations', () => {
+  const validated = validateItineraryPreview({
+    type: 'itinerary',
+    status: 'preview',
+    title: '3-Day Nantucket Itinerary',
+    destinationName: 'Nantucket',
+    airportCode: 'KACK',
+    summary: 'A relaxed preview plan.',
+    bestFor: 'Long weekend',
+    pace: 'Relaxed',
+    days: [{ day: 1, title: 'Arrival', summary: 'Easy first day.' }],
+    recommendations: [{
+      type: 'hotel',
+      name: 'White Elephant',
+      why: 'Walkable harbor base.',
+      sourceUrl: 'https://example.com/hotel',
+    }],
+  }, baseDestination, { dates: 'Upcoming trip', travelStyle: 'Relaxed', interests: 'Beaches' });
+
+  assert.equal(validated.ok, true);
+  assert.equal(validated.preview.recommendations.length, 1);
+});
+
 test('validateTripPreview requires dontMiss list and core fields', () => {
   const validated = validateTripPreview({
     type: 'trip',

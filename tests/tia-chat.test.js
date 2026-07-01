@@ -57,11 +57,17 @@ test('validateTiaChatAnswer normalizes answer shape', () => {
       'Use day one for an easy arrival rhythm.',
     ],
     followUps: ['Create a 3-day itinerary', 'Best area to stay?'],
+    recommendations: [{
+      type: 'restaurant',
+      name: 'The Company',
+      why: 'Strong seasonal seafood.',
+      sourceUrl: 'https://example.com/restaurant',
+    }],
   }, baseDestination);
 
   assert.equal(validated.ok, true);
   assert.equal(validated.answer.bullets.length, 2);
-  assert.equal(validated.answer.followUps.length, 2);
+  assert.equal(validated.answer.recommendations.length, 1);
 });
 
 test('validateTiaChatAnswer rejects incomplete answer', () => {

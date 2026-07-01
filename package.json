@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "node --test tests/gotango-score-v2.test.js tests/gotango-score-v2-preview-client.test.js tests/weekly-brief.test.js tests/daily-tape.test.js tests/destination-news-refresh.test.js tests/tia-preview.test.js tests/tia-chat.test.js tests/tia-watch.test.js",
+    "test": "node --test tests/gotango-score-v2.test.js tests/gotango-score-v2-preview-client.test.js tests/weekly-brief.test.js tests/daily-tape.test.js tests/destination-news-refresh.test.js tests/tia-preview.test.js tests/tia-chat.test.js tests/tia-watch.test.js tests/tia-research.test.js",
     "build:weekly-brief": "node scripts/build-weekly-brief.mjs",
     "publish:daily-tape": "node scripts/publish-daily-tape.mjs"
   },

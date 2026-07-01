@@ -1,5 +1,11 @@
 import { DESTINATIONS } from './destinations.config.js';
 import { extractResponsesOutputText, parseBriefJsonFromModelText } from './weekly-brief.lib.js';
+import {
+  buildTiaWebSearchTools,
+  getTiaResearchModel,
+  normalizeTiaRecommendations,
+  shouldUseTiaWebSearchForPreview,
+} from './tia-research.lib.js';
 
 const MAX_BODY_BYTES = 24_000;
 const OPENAI_TIMEOUT_MS = 25_000;
@@ -130,16 +136,19 @@ export function parseTiaPreviewRequest(rawBody) {
 
 const TIA_SYSTEM_PROMPT = `You are Tia, GoTango's Pro travel intelligence agent.
 
-Write premium, useful, concise preview travel plans for GoTango core destinations.
-Use the provided GoTango destination context when available: GoTango Score, category, arrivals, signal read, weekly movement, and destination news.
+Write premium, useful, concise travel plans for GoTango core destinations.
+Use GoTango destination context first: GoTango Score, category, arrivals, signal read, weekly movement, and destination news.
+When web research is available, use it for current hotels, restaurant areas, activities, neighborhoods, events, and timing notes.
+Give actual recommendations when you have source support. Include sourceUrl on researched facts.
 Sound native to GoTango: smart, stylish, destination-led, and mobile-friendly.
 
 Rules:
 - Return strict JSON only. No markdown. No HTML.
 - status must be "preview".
-- Do not invent exact restaurants, hotels, events, prices, addresses, or opening hours unless explicitly provided in the input.
-- Use tasteful general categories when specifics are unavailable (for example: waterfront dinner, central walkable base, signature beach morning, local cultural stop).
-- Avoid generic filler and overpromising availability.
+- Distinguish hotel areas, example hotels, restaurants, activities, events, and logistics.
+- Explain why each recommendation fits the traveler and destination signal.
+- Do not claim availability, pricing, reservations, or current openings unless sourced.
+- Avoid generic filler like "local dining" without useful detail.
 - Keep copy concise enough for mobile cards.
 - Make the preview valuable enough that saving with GoTango Pro feels worthwhile.`;
 
@@ -168,13 +177,22 @@ Return JSON with this shape:
       "title": string,
       "summary": string,
       "items": [
-        { "time": string, "title": string, "note": string }
+        { "time": string, "title": string, "note": string, "sourceUrl": string }
       ]
+    }
+  ],
+  "recommendations": [
+    {
+      "type": "hotel_area" | "hotel" | "restaurant" | "activity" | "event" | "logistics",
+      "name": string,
+      "why": string,
+      "sourceUrl": string
     }
   ]
 }
 
-Match the number of days to trip length when possible. items are optional but encouraged (1-3 per day).`;
+Match the number of days to trip length when possible. items are optional but encouraged (1-3 per day).
+Use web research for specific neighborhoods, activities, and dining when enabled.`;
 }
 
 function buildTripUserPrompt(destination, options) {
@@ -197,7 +215,15 @@ Return JSON with this shape:
   "recommendedBase": string,
   "vibe": string,
   "dontMiss": [string, string, string],
-  "suggestedPlan": string
+  "suggestedPlan": string,
+  "recommendations": [
+    {
+      "type": "hotel_area" | "hotel" | "restaurant" | "activity" | "event" | "logistics",
+      "name": string,
+      "why": string,
+      "sourceUrl": string
+    }
+  ]
 }`;
 }
 
@@ -207,6 +233,7 @@ function normalizeDayItems(items) {
     time: trimString(item?.time, 40),
     title: trimString(item?.title, 120),
     note: trimString(item?.note, 220),
+    sourceUrl: trimString(item?.sourceUrl, 500) || undefined,
   })).filter((item) => item.title || item.note);
 }
 
@@ -238,6 +265,8 @@ export function validateItineraryPreview(preview, destination, options) {
 
   if (!normalizedDays.length) return { ok: false, error: 'days_invalid' };
 
+  const recommendations = normalizeTiaRecommendations(preview.recommendations);
+
   return {
     ok: true,
     preview: {
@@ -250,6 +279,7 @@ export function validateItineraryPreview(preview, destination, options) {
       bestFor,
       pace,
       days: normalizedDays,
+      recommendations,
       dates: trimString(options.dates, 80),
       travelStyle: trimString(options.travelStyle, 80),
       interests: trimString(options.interests, 160),
@@ -271,6 +301,8 @@ export function validateTripPreview(preview, destination, options) {
     return { ok: false, error: 'required_fields_missing' };
   }
 
+  const recommendations = normalizeTiaRecommendations(preview.recommendations);
+
   return {
     ok: true,
     preview: {
@@ -284,6 +316,7 @@ export function validateTripPreview(preview, destination, options) {
       vibe,
       dontMiss,
       suggestedPlan,
+      recommendations,
       dates: trimString(options.dates, 80),
       tripPurpose: trimString(options.tripPurpose, 80),
       travelers: trimString(options.travelers, 80),
@@ -297,25 +330,38 @@ export function validateTiaPreviewModelJson(mode, preview, destination, options)
   return validateItineraryPreview(preview, destination, options);
 }
 
-export function buildTiaOpenAiRequest(mode, destination, options) {
+export function buildTiaOpenAiRequest(mode, destination, options, requestOptions = {}) {
+  const useWebSearch = !!requestOptions.useWebSearch;
+  const model = useWebSearch
+    ? getTiaResearchModel(getTiaOpenAiModel())
+    : getTiaOpenAiModel();
   const userPrompt = mode === 'trip'
     ? buildTripUserPrompt(destination, options)
     : buildItineraryUserPrompt(destination, options);
 
-  return {
-    model: getTiaOpenAiModel(),
+  const body = {
+    model,
     store: false,
-    reasoning: { effort: 'low' },
+    reasoning: { effort: useWebSearch ? 'medium' : 'low' },
     text: { verbosity: 'low' },
-    max_output_tokens: mode === 'trip' ? 1100 : 1400,
+    max_output_tokens: mode === 'trip' ? 1400 : 1800,
     input: [
       { role: 'system', content: TIA_SYSTEM_PROMPT },
       { role: 'user', content: userPrompt },
     ],
   };
+
+  if (useWebSearch) {
+    body.tools = buildTiaWebSearchTools();
+    body.tool_choice = 'auto';
+    body.max_tool_calls = 4;
+    body.include = ['web_search_call.action.sources'];
+  }
+
+  return body;
 }
 
-export async function callTiaOpenAi(apiKey, requestBody, timeoutMs = OPENAI_TIMEOUT_MS) {
+export async function callTiaOpenAi(apiKey, requestBody, timeoutMs = OPENAI_TIMEOUT_MS, useWebSearch = false) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -363,8 +409,9 @@ export async function callTiaOpenAi(apiKey, requestBody, timeoutMs = OPENAI_TIME
 }
 
 export async function generateTiaPreviewWithOpenAi({ mode, destination, options, apiKey }) {
-  const requestBody = buildTiaOpenAiRequest(mode, destination, options);
-  const ai = await callTiaOpenAi(apiKey, requestBody);
+  const useWebSearch = shouldUseTiaWebSearchForPreview(mode);
+  const requestBody = buildTiaOpenAiRequest(mode, destination, options, { useWebSearch });
+  const ai = await callTiaOpenAi(apiKey, requestBody, OPENAI_TIMEOUT_MS, useWebSearch);
   if (!ai.ok) return ai;
 
   const validated = validateTiaPreviewModelJson(mode, ai.parsed, destination, options);
@@ -373,5 +420,9 @@ export async function generateTiaPreviewWithOpenAi({ mode, destination, options,
     return { ok: false, error: validated.error, status: 502 };
   }
 
-  return { ok: true, preview: validated.preview };
+  return {
+    ok: true,
+    preview: validated.preview,
+    researchUsed: useWebSearch,
+  };
 }
