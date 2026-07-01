@@ -2910,7 +2910,7 @@
   .tia-pro-sheet {
     position: fixed;
     inset: 0;
-    z-index: 10050;
+    z-index: 10060;
     display: none;
     align-items: flex-end;
     justify-content: center;
@@ -3072,6 +3072,265 @@
   .tia-pro-sheet__cta-secondary:focus-visible {
     outline: 2px solid var(--amber);
     outline-offset: 2px;
+  }
+
+  /* ===== TIA · PREVIEW SHEET (PR 2) ===== */
+  .tia-preview-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+    font-family: inherit;
+  }
+  .tia-preview-sheet.is-open {
+    display: flex;
+  }
+  .tia-preview-sheet__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 8, 12, 0.68);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    cursor: pointer;
+  }
+  .tia-preview-sheet__panel {
+    position: relative;
+    width: min(560px, 100%);
+    max-height: min(92vh, 820px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: linear-gradient(180deg, #12151c 0%, #0c0e13 100%);
+    border: 1px solid rgba(244, 181, 42, 0.16);
+    border-bottom: none;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -10px 44px rgba(0, 0, 0, 0.58), 0 0 0 1px rgba(244, 181, 42, 0.05);
+    padding: 12px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+    animation: tia-pro-sheet-slide-up 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .tia-preview-sheet__handle {
+    width: 42px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-light);
+    margin: 4px auto 14px;
+  }
+  .tia-preview-sheet__close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border-light);
+    background: rgba(10, 13, 17, 0.88);
+    color: var(--text);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tia-preview-sheet__close:hover {
+    border-color: rgba(244, 181, 42, 0.35);
+    background: rgba(16, 20, 26, 0.95);
+  }
+  .tia-preview-sheet__close:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  .tia-preview-sheet__title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(1.45rem, 1.15rem + 1.1vw, 1.8rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin: 0 36px 8px 0;
+    line-height: 1.15;
+  }
+  .tia-preview-sheet__subtitle {
+    font-size: var(--fs-body);
+    line-height: 1.55;
+    color: var(--text-dim);
+    margin-bottom: 18px;
+  }
+  .tia-preview-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .tia-preview-field label {
+    display: block;
+    font-family: 'Geist Mono', monospace;
+    font-size: var(--fs-micro);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+  }
+  .tia-preview-field__static {
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border-light);
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text);
+    font-size: var(--fs-body);
+    line-height: 1.45;
+  }
+  .tia-preview-field__static-code {
+    font-family: 'Geist Mono', monospace;
+    font-size: var(--fs-micro);
+    color: var(--teal);
+    margin-top: 4px;
+    letter-spacing: 0.06em;
+  }
+  .tia-preview-field input,
+  .tia-preview-field select {
+    width: 100%;
+    min-height: 44px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border-light);
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'Geist', sans-serif;
+    font-size: var(--fs-body);
+    outline: none;
+  }
+  .tia-preview-field input:focus,
+  .tia-preview-field select:focus {
+    border-color: rgba(244, 181, 42, 0.45);
+    box-shadow: 0 0 0 1px rgba(244, 181, 42, 0.12);
+  }
+  .tia-preview-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .tia-preview-btn {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 10px;
+    font-family: 'Geist', sans-serif;
+    font-size: var(--fs-body);
+    font-weight: 500;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .tia-preview-btn--primary {
+    border: none;
+    background: var(--amber);
+    color: var(--bg);
+    font-weight: 600;
+  }
+  .tia-preview-btn--primary:hover {
+    background: var(--amber-bright);
+  }
+  .tia-preview-btn--gold {
+    border: 1px solid rgba(244, 181, 42, 0.42);
+    background: rgba(232, 163, 23, 0.12);
+    color: var(--text);
+  }
+  .tia-preview-btn--gold:hover {
+    background: rgba(232, 163, 23, 0.18);
+    border-color: rgba(244, 181, 42, 0.55);
+  }
+  .tia-preview-btn--ghost {
+    border: 1px solid var(--border-light);
+    background: transparent;
+    color: var(--text-dim);
+  }
+  .tia-preview-btn--ghost:hover {
+    color: var(--text);
+    border-color: rgba(244, 181, 42, 0.28);
+  }
+  .tia-preview-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .tia-preview-btn:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  .tia-preview-kicker {
+    font-family: 'Geist Mono', monospace;
+    font-size: var(--fs-micro);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 8px;
+  }
+  .tia-preview-disclaimer {
+    font-family: 'Geist Mono', monospace;
+    font-size: var(--fs-micro);
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+    line-height: 1.5;
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px dashed rgba(107, 101, 87, 0.45);
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .tia-preview-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .tia-preview-card {
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-light);
+    background: linear-gradient(160deg, rgba(244, 181, 42, 0.05), rgba(255, 255, 255, 0.01));
+  }
+  .tia-preview-card--hero {
+    border-color: rgba(244, 181, 42, 0.28);
+    background: linear-gradient(160deg, rgba(232, 163, 23, 0.1), rgba(94, 170, 168, 0.04));
+  }
+  .tia-preview-card__label {
+    font-family: 'Geist Mono', monospace;
+    font-size: var(--fs-micro);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+  }
+  .tia-preview-card__title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(1.15rem, 1rem + 0.6vw, 1.35rem);
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.25;
+    margin-bottom: 6px;
+  }
+  .tia-preview-card__body {
+    font-size: var(--fs-body);
+    line-height: 1.55;
+    color: var(--text-dim);
+  }
+  .tia-preview-card__list {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--text-dim);
+    font-size: var(--fs-body);
+    line-height: 1.5;
+  }
+  .tia-preview-card__list li + li {
+    margin-top: 6px;
+  }
+  .tia-preview-day-num {
+    color: var(--amber);
+    font-family: 'Geist Mono', monospace;
+    font-size: var(--fs-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
   }
 
   /* ===== BRIEF ARTICLE ===== */
@@ -7137,6 +7396,17 @@
   </div>
 </div>
 
+<div id="tia-preview-sheet" class="tia-preview-sheet" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="tia-preview-sheet-title" style="display: none;">
+  <div class="tia-preview-sheet__backdrop" data-tia-preview-dismiss></div>
+  <div class="tia-preview-sheet__panel" role="document">
+    <div class="tia-preview-sheet__handle" aria-hidden="true"></div>
+    <button type="button" class="tia-preview-sheet__close" data-tia-preview-dismiss aria-label="Close Tia preview">
+      <span aria-hidden="true">×</span>
+    </button>
+    <div id="tia-preview-sheet-content"></div>
+  </div>
+</div>
+
 <div id="live-map-modal" class="live-map-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="live-map-modal-title" style="display: none;">
   <div class="live-map-modal__backdrop" data-live-map-modal-close></div>
   <div class="live-map-modal__panel" role="document">
@@ -7177,6 +7447,9 @@
     return false;
   })();
   let _tiaProSheetOpen = false;
+  let _tiaPreviewSheetOpen = false;
+  let _tiaPreviewMode = null;
+  let _tiaPreviewDest = null;
   let _goTangoScoreV2Data = null;
   let _goTangoScoreV2Active = false;
 
@@ -9910,6 +10183,481 @@
     console.info('[Tia] Start GoTango Pro tapped — billing not connected in PR 1.');
   }
 
+  const TIA_CATEGORY_LABELS = {
+    heating_up: 'heating up',
+    in_season: 'in season',
+    steady: 'steady',
+    cooling: 'cooling',
+    heating: 'heating up',
+    surge: 'heating up',
+    rising: 'heating up',
+    warming: 'heating up',
+    cool: 'cooling',
+    softening: 'cooling',
+  };
+
+  function _getTiaDestinationNewsBlurb() {
+    const section = document.querySelector('[data-modal-section="destination-news"]');
+    if (!section) return '';
+    const paragraphs = section.querySelectorAll('.d-destination-news__blurb-p');
+    return Array.from(paragraphs)
+      .map((p) => String(p.textContent || '').trim())
+      .filter(Boolean)
+      .join(' ');
+  }
+
+  function _getTiaDestinationIntel(dest) {
+    const name = dest.name || dest.id || 'this destination';
+    const airportCode = _destIcao(dest);
+    const scoreRaw = dest.go_tango_score ?? dest.signal_score ?? dest.latest_signal_score;
+    const score = Number.isFinite(Number(scoreRaw)) ? Number(scoreRaw) : null;
+    const category = dest.confirmed_category || dest.status || '';
+    const categoryLabel = TIA_CATEGORY_LABELS[category]
+      || (category ? String(category).replace(/_/g, ' ') : 'active');
+    const arrivals = _safeNum(dest.raw_ga_arrivals_24h ?? dest.arrivals_count ?? dest.private_arrivals_24h);
+    const region = dest.region || '';
+    const newsBlurb = _getTiaDestinationNewsBlurb();
+    let signalRead = '';
+    if (dest._gotango_v2) {
+      const read = buildGoTangoSignalRead(dest._gotango_v2);
+      if (read) signalRead = String(read);
+    }
+    return {
+      name,
+      airportCode,
+      score,
+      category,
+      categoryLabel,
+      arrivals,
+      region,
+      newsBlurb,
+      signalRead,
+    };
+  }
+
+  function _tiaRecommendedBase(region) {
+    const r = String(region || '').toLowerCase();
+    if (r.includes('island') || r.includes('caribbean') || r.includes('coast') || r.includes('riviera')) {
+      return 'Waterfront or central resort area';
+    }
+    if (r.includes('alps') || r.includes('mountain') || r.includes('rockies') || r.includes('aspen')) {
+      return 'Base village or slope-side area';
+    }
+    if (r.includes('hamptons') || r.includes('city') || r.includes('beach') || r.includes('florida')) {
+      return 'Central / walkable district';
+    }
+    return 'Central / walkable area';
+  }
+
+  function _tiaDontMissList(intel, options = {}) {
+    const region = String(intel.region || '').toLowerCase();
+    const items = [];
+    if (/island|coast|caribbean|beach|riviera|cyclades|balearic/i.test(region)) {
+      items.push('Waterfront time');
+    }
+    items.push('Local dining');
+    if (intel.newsBlurb) {
+      items.push('What’s happening locally right now');
+    } else {
+      items.push('Signature neighborhood or cultural stop');
+    }
+    if (intel.arrivals > 0) {
+      items.push('The destination rhythm on peak arrival days');
+    }
+    if (options.travelStyle && String(options.travelStyle).toLowerCase().includes('luxury')) {
+      items.push('Unhurried evenings and polished service pockets');
+    }
+    return items.slice(0, 4);
+  }
+
+  function _tiaFirstSentence(text, maxLen) {
+    if (!text) return '';
+    let s = String(text).trim().replace(/\s+/g, ' ');
+    const m = s.match(/^.*?[.!?](?=\s|$)/);
+    if (m && m[0]) s = m[0].trim();
+    if (maxLen && s.length > maxLen) s = s.slice(0, maxLen - 1).trim() + '…';
+    return s;
+  }
+
+  function buildTiaItineraryPreview(dest, options = {}) {
+    const intel = _getTiaDestinationIntel(dest);
+    const tripLength = Math.max(1, Math.min(14, Number(options.tripLength) || 3));
+    const dates = String(options.dates || '').trim() || 'Upcoming trip';
+    const travelStyle = String(options.travelStyle || 'Relaxed').trim() || 'Relaxed';
+    const interests = String(options.interests || 'Beaches, Food, Culture').trim() || 'Beaches, Food, Culture';
+
+    const scoreNote = intel.score != null ? `GoTango Score ${intel.score}` : 'current GoTango signal';
+    const newsNote = _tiaFirstSentence(intel.newsBlurb, 140);
+    const signalNote = _tiaFirstSentence(intel.signalRead, 120);
+
+    let summary = `A ${travelStyle.toLowerCase()} ${tripLength}-day plan built around ${intel.name}'s ${scoreNote}`;
+    if (intel.categoryLabel) summary += ` while ${intel.name} is ${intel.categoryLabel}`;
+    if (newsNote) summary += `. ${newsNote}`;
+    else if (signalNote) summary += `. ${signalNote}`;
+    else summary += ', local rhythm, and traveler-friendly highlights.';
+    if (!summary.endsWith('.')) summary += '.';
+
+    const interestPhrase = interests.toLowerCase();
+    const days = [];
+    for (let i = 1; i <= tripLength; i += 1) {
+      if (i === 1) {
+        days.push({
+          day: 1,
+          title: 'Arrival & Orientation',
+          summary: intel.airportCode
+            ? `Arrive into ${intel.airportCode}, settle in, and keep the first day easy with a light neighborhood walk and an unhurried dinner.`
+            : `Arrive, settle in, and keep the first day easy with a light neighborhood walk and an unhurried dinner.`,
+        });
+      } else if (i === tripLength && tripLength > 1) {
+        days.push({
+          day: i,
+          title: 'Slow Morning & Departure',
+          summary: 'Keep the final day flexible with a lighter morning plan before heading out.',
+        });
+      } else if (i === 2) {
+        days.push({
+          day: 2,
+          title: 'Signature Day',
+          summary: `Use the main day for ${intel.name}'s strongest mix of ${interestPhrase} — the highlight block of the trip.`,
+        });
+      } else {
+        days.push({
+          day: i,
+          title: `Explore Day ${i}`,
+          summary: `Move at a ${travelStyle.toLowerCase()} pace with time for ${interestPhrase.split(',')[0].trim()} and open space in the schedule.`,
+        });
+      }
+    }
+
+    return {
+      type: 'itinerary',
+      status: 'preview',
+      title: `${tripLength}-Day ${intel.name} Itinerary`,
+      destinationName: intel.name,
+      airportCode: intel.airportCode,
+      dates,
+      travelStyle,
+      interests,
+      summary,
+      bestFor: dates === 'Upcoming trip' ? 'Long weekend' : dates,
+      pace: travelStyle,
+      days,
+    };
+  }
+
+  function buildTiaTripPreview(dest, options = {}) {
+    const intel = _getTiaDestinationIntel(dest);
+    const dates = String(options.dates || '').trim() || 'Upcoming trip';
+    const tripPurpose = String(options.tripPurpose || 'Long weekend').trim() || 'Long weekend';
+    const travelers = String(options.travelers || 'Couples').trim() || 'Couples';
+    const travelStyle = String(options.travelStyle || 'Relaxed luxury').trim() || 'Relaxed luxury';
+
+    let vibe = travelStyle;
+    if (intel.categoryLabel === 'heating up') vibe += ' — momentum is building';
+    else if (intel.categoryLabel === 'in season') vibe += ' — strong seasonal energy';
+    else if (intel.categoryLabel === 'cooling') vibe += ' — a softer pace right now';
+    else vibe += ', easy to navigate';
+
+    const overviewParts = [
+      `A ${tripPurpose.toLowerCase()} trip brief for ${travelers.toLowerCase()} visiting ${intel.name}`,
+    ];
+    if (intel.score != null) overviewParts.push(`(GoTango Score ${intel.score})`);
+    overviewParts.push('based on current GoTango destination intelligence.');
+    const newsNote = _tiaFirstSentence(intel.newsBlurb, 160);
+    if (newsNote) overviewParts.push(newsNote);
+
+    return {
+      type: 'trip',
+      status: 'preview',
+      title: `${intel.name} Trip`,
+      destinationName: intel.name,
+      airportCode: intel.airportCode,
+      dates,
+      tripPurpose,
+      travelers,
+      travelStyle,
+      overview: overviewParts.join(' '),
+      recommendedBase: _tiaRecommendedBase(intel.region),
+      vibe,
+      dontMiss: _tiaDontMissList(intel, { travelStyle }),
+      suggestedPlan: 'Use the first day to settle in, the middle of the trip for the strongest experience, and the final day for a flexible departure.',
+    };
+  }
+
+  function renderTiaItineraryPreviewCards(preview) {
+    const metaRows = [
+      { label: 'Best for', value: preview.bestFor },
+      { label: 'Pace', value: preview.pace },
+    ].map((row) => `
+      <div class="tia-preview-card">
+        <div class="tia-preview-card__label">${_escapeHtml(row.label)}</div>
+        <div class="tia-preview-card__body">${_escapeHtml(row.value)}</div>
+      </div>
+    `).join('');
+
+    const dayCards = (preview.days || []).map((day) => `
+      <div class="tia-preview-card">
+        <div class="tia-preview-day-num">Day ${day.day}</div>
+        <div class="tia-preview-card__title">${_escapeHtml(day.title)}</div>
+        <div class="tia-preview-card__body">${_escapeHtml(day.summary)}</div>
+      </div>
+    `).join('');
+
+    return `
+      <div class="tia-preview-kicker">Tia Preview</div>
+      <div class="tia-preview-disclaimer">Preview only. Save + daily updates require GoTango Pro.</div>
+      <div class="tia-preview-cards">
+        <div class="tia-preview-card tia-preview-card--hero">
+          <div class="tia-preview-card__title">${_escapeHtml(preview.title)}</div>
+          <div class="tia-preview-card__body">${_escapeHtml(preview.summary)}</div>
+        </div>
+        ${metaRows}
+        ${dayCards}
+      </div>
+    `;
+  }
+
+  function renderTiaTripPreviewCards(preview) {
+    const dontMissItems = (preview.dontMiss || [])
+      .map((item) => `<li>${_escapeHtml(item)}</li>`)
+      .join('');
+
+    return `
+      <div class="tia-preview-kicker">Tia Preview</div>
+      <div class="tia-preview-disclaimer">Preview only. Save + daily updates require GoTango Pro.</div>
+      <div class="tia-preview-cards">
+        <div class="tia-preview-card tia-preview-card--hero">
+          <div class="tia-preview-card__title">${_escapeHtml(preview.title)}</div>
+          <div class="tia-preview-card__body">${_escapeHtml(preview.overview)}</div>
+        </div>
+        <div class="tia-preview-card">
+          <div class="tia-preview-card__label">Recommended base</div>
+          <div class="tia-preview-card__body">${_escapeHtml(preview.recommendedBase)}</div>
+        </div>
+        <div class="tia-preview-card">
+          <div class="tia-preview-card__label">Vibe</div>
+          <div class="tia-preview-card__body">${_escapeHtml(preview.vibe)}</div>
+        </div>
+        <div class="tia-preview-card">
+          <div class="tia-preview-card__label">Don’t miss</div>
+          <ul class="tia-preview-card__list">${dontMissItems}</ul>
+        </div>
+        <div class="tia-preview-card">
+          <div class="tia-preview-card__label">Suggested itinerary summary</div>
+          <div class="tia-preview-card__body">${_escapeHtml(preview.suggestedPlan)}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function _readTiaItineraryFormValues() {
+    const root = document.getElementById('tia-preview-sheet-content');
+    if (!root) return {};
+    return {
+      tripLength: root.querySelector('[name="tia-itinerary-length"]')?.value,
+      dates: root.querySelector('[name="tia-itinerary-dates"]')?.value,
+      travelStyle: root.querySelector('[name="tia-itinerary-style"]')?.value,
+      interests: root.querySelector('[name="tia-itinerary-interests"]')?.value,
+    };
+  }
+
+  function _readTiaTripFormValues() {
+    const root = document.getElementById('tia-preview-sheet-content');
+    if (!root) return {};
+    return {
+      dates: root.querySelector('[name="tia-trip-dates"]')?.value,
+      tripPurpose: root.querySelector('[name="tia-trip-purpose"]')?.value,
+      travelers: root.querySelector('[name="tia-trip-travelers"]')?.value,
+      travelStyle: root.querySelector('[name="tia-trip-style"]')?.value,
+    };
+  }
+
+  function renderTiaItineraryPreviewForm(dest) {
+    const intel = _getTiaDestinationIntel(dest);
+    const destLine = _escapeHtml(intel.name);
+    const codeLine = intel.airportCode
+      ? `<div class="tia-preview-field__static-code">${_escapeHtml(intel.airportCode)}</div>`
+      : '';
+
+    return `
+      <h2 id="tia-preview-sheet-title" class="tia-preview-sheet__title">Create an Itinerary</h2>
+      <p class="tia-preview-sheet__subtitle">Preview a Tia-built plan for this destination. Save and update it with GoTango Pro.</p>
+      <form class="tia-preview-form" data-tia-preview-form="itinerary" novalidate>
+        <div class="tia-preview-field">
+          <label>Destination</label>
+          <div class="tia-preview-field__static">${destLine}${codeLine}</div>
+        </div>
+        <div class="tia-preview-field">
+          <label for="tia-itinerary-length">Trip length</label>
+          <select id="tia-itinerary-length" name="tia-itinerary-length">
+            <option value="3" selected>3 days</option>
+            <option value="4">4 days</option>
+            <option value="5">5 days</option>
+            <option value="7">7 days</option>
+          </select>
+        </div>
+        <div class="tia-preview-field">
+          <label for="tia-itinerary-dates">Dates</label>
+          <input id="tia-itinerary-dates" name="tia-itinerary-dates" type="text" value="Upcoming trip" placeholder="Upcoming trip" autocomplete="off">
+        </div>
+        <div class="tia-preview-field">
+          <label for="tia-itinerary-style">Travel style</label>
+          <select id="tia-itinerary-style" name="tia-itinerary-style">
+            <option value="Relaxed" selected>Relaxed</option>
+            <option value="Balanced">Balanced</option>
+            <option value="Active">Active</option>
+          </select>
+        </div>
+        <div class="tia-preview-field">
+          <label for="tia-itinerary-interests">Interests</label>
+          <input id="tia-itinerary-interests" name="tia-itinerary-interests" type="text" value="Beaches, Food, Culture" autocomplete="off">
+        </div>
+        <div class="tia-preview-actions">
+          <button type="button" class="tia-preview-btn tia-preview-btn--primary" data-tia-preview-create>Create Preview</button>
+          <button type="button" class="tia-preview-btn tia-preview-btn--ghost" data-tia-preview-dismiss>Keep exploring</button>
+        </div>
+      </form>
+    `;
+  }
+
+  function renderTiaTripPreviewForm(dest) {
+    const intel = _getTiaDestinationIntel(dest);
+    const destLine = _escapeHtml(intel.name);
+    const codeLine = intel.airportCode
+      ? `<div class="tia-preview-field__static-code">${_escapeHtml(intel.airportCode)}</div>`
+      : '';
+
+    return `
+      <h2 id="tia-preview-sheet-title" class="tia-preview-sheet__title">Create a Trip</h2>
+      <p class="tia-preview-sheet__subtitle">Turn this destination into a trip workspace. Save it to Watch with GoTango Pro.</p>
+      <form class="tia-preview-form" data-tia-preview-form="trip" novalidate>
+        <div class="tia-preview-field">
+          <label>Destination</label>
+          <div class="tia-preview-field__static">${destLine}${codeLine}</div>
+        </div>
+        <div class="tia-preview-field">
+          <label for="tia-trip-dates">Dates</label>
+          <input id="tia-trip-dates" name="tia-trip-dates" type="text" value="Upcoming trip" placeholder="Upcoming trip" autocomplete="off">
+        </div>
+        <div class="tia-preview-field">
+          <label for="tia-trip-purpose">Trip purpose</label>
+          <select id="tia-trip-purpose" name="tia-trip-purpose">
+            <option value="Long weekend" selected>Long weekend</option>
+            <option value="Week-long escape">Week-long escape</option>
+            <option value="Special occasion">Special occasion</option>
+            <option value="Work + leisure">Work + leisure</option>
+          </select>
+        </div>
+        <div class="tia-preview-field">
+          <label for="tia-trip-travelers">Travelers</label>
+          <select id="tia-trip-travelers" name="tia-trip-travelers">
+            <option value="Couples" selected>Couples</option>
+            <option value="Solo">Solo</option>
+            <option value="Friends">Friends</option>
+            <option value="Family">Family</option>
+          </select>
+        </div>
+        <div class="tia-preview-field">
+          <label for="tia-trip-style">Travel style</label>
+          <select id="tia-trip-style" name="tia-trip-style">
+            <option value="Relaxed luxury" selected>Relaxed luxury</option>
+            <option value="Active adventure">Active adventure</option>
+            <option value="Balanced">Balanced</option>
+            <option value="Celebration">Celebration</option>
+          </select>
+        </div>
+        <div class="tia-preview-actions">
+          <button type="button" class="tia-preview-btn tia-preview-btn--primary" data-tia-preview-create>Create Preview</button>
+          <button type="button" class="tia-preview-btn tia-preview-btn--ghost" data-tia-preview-dismiss>Keep exploring</button>
+        </div>
+      </form>
+    `;
+  }
+
+  function renderTiaPreviewResult(mode, preview) {
+    const cards = mode === 'trip'
+      ? renderTiaTripPreviewCards(preview)
+      : renderTiaItineraryPreviewCards(preview);
+    const refineBtn = mode === 'itinerary'
+      ? '<button type="button" class="tia-preview-btn tia-preview-btn--ghost" disabled title="Coming soon with GoTango Pro">Refine with Tia</button>'
+      : '';
+
+    return `
+      ${cards}
+      <div class="tia-preview-actions">
+        <button type="button" class="tia-preview-btn tia-preview-btn--gold" data-tia-preview-save-pro>Save with GoTango Pro</button>
+        ${refineBtn}
+        <button type="button" class="tia-preview-btn tia-preview-btn--ghost" data-tia-preview-dismiss>Keep exploring</button>
+      </div>
+    `;
+  }
+
+  function _setTiaPreviewSheetContent(html) {
+    const root = document.getElementById('tia-preview-sheet-content');
+    if (root) root.innerHTML = html;
+  }
+
+  function openTiaPreviewSheet(mode, dest) {
+    if (!IS_TIA_ENABLED || !dest) return;
+    const sheet = document.getElementById('tia-preview-sheet');
+    if (!sheet) return;
+
+    _tiaPreviewMode = mode;
+    _tiaPreviewDest = dest;
+    _tiaPreviewSheetOpen = true;
+
+    const formHtml = mode === 'trip'
+      ? renderTiaTripPreviewForm(dest)
+      : renderTiaItineraryPreviewForm(dest);
+    _setTiaPreviewSheetContent(formHtml);
+
+    sheet.style.display = 'flex';
+    sheet.classList.add('is-open');
+    sheet.setAttribute('aria-hidden', 'false');
+
+    if (mode === 'trip') trackTiaEvent('tia_trip_preview_opened');
+    else trackTiaEvent('tia_itinerary_preview_opened');
+
+    const createBtn = sheet.querySelector('[data-tia-preview-create]');
+    if (createBtn) setTimeout(() => createBtn.focus(), 50);
+  }
+
+  function closeTiaPreviewSheet(options = {}) {
+    const sheet = document.getElementById('tia-preview-sheet');
+    if (!sheet || !_tiaPreviewSheetOpen) return;
+    _tiaPreviewSheetOpen = false;
+    _tiaPreviewMode = null;
+    _tiaPreviewDest = null;
+    sheet.style.display = 'none';
+    sheet.classList.remove('is-open');
+    sheet.setAttribute('aria-hidden', 'true');
+    _setTiaPreviewSheetContent('');
+    if (!options.skipTrack) {
+      trackTiaEvent('tia_preview_dismissed');
+    }
+  }
+
+  function handleTiaPreviewCreate() {
+    if (!_tiaPreviewDest || !_tiaPreviewMode) return;
+    const dest = _tiaPreviewDest;
+    const mode = _tiaPreviewMode;
+
+    if (mode === 'trip') {
+      const options = _readTiaTripFormValues();
+      const preview = buildTiaTripPreview(dest, options);
+      _setTiaPreviewSheetContent(renderTiaPreviewResult('trip', preview));
+      trackTiaEvent('tia_trip_preview_created');
+    } else {
+      const options = _readTiaItineraryFormValues();
+      const preview = buildTiaItineraryPreview(dest, options);
+      _setTiaPreviewSheetContent(renderTiaPreviewResult('itinerary', preview));
+      trackTiaEvent('tia_itinerary_preview_created');
+    }
+
+    const saveBtn = document.querySelector('[data-tia-preview-save-pro]');
+    if (saveBtn) setTimeout(() => saveBtn.focus(), 50);
+  }
+
   function attachTiaHandlers() {
     if (!IS_TIA_ENABLED) return;
 
@@ -9919,16 +10667,47 @@
         const btn = e.target.closest('[data-tia-action]');
         if (!btn) return;
         const action = btn.getAttribute('data-tia-action');
-        if (action === 'create-itinerary') trackTiaEvent('tia_create_itinerary_tapped');
-        else if (action === 'create-trip') trackTiaEvent('tia_create_trip_tapped');
-        else if (action === 'save-destination') trackTiaEvent('tia_save_destination_tapped');
-        openTiaProTeaserSheet();
+        const dest = _lookupModalDest();
+        if (!dest) return;
+
+        if (action === 'create-itinerary') {
+          trackTiaEvent('tia_create_itinerary_tapped');
+          openTiaPreviewSheet('itinerary', dest);
+          return;
+        }
+        if (action === 'create-trip') {
+          trackTiaEvent('tia_create_trip_tapped');
+          openTiaPreviewSheet('trip', dest);
+          return;
+        }
+        if (action === 'save-destination') {
+          trackTiaEvent('tia_save_destination_tapped');
+          openTiaProTeaserSheet();
+        }
       });
     }
 
-    const sheet = document.getElementById('tia-pro-sheet');
-    if (sheet) {
-      sheet.addEventListener('click', (e) => {
+    const previewSheet = document.getElementById('tia-preview-sheet');
+    if (previewSheet) {
+      previewSheet.addEventListener('click', (e) => {
+        if (e.target.closest('[data-tia-preview-dismiss]')) {
+          closeTiaPreviewSheet();
+          return;
+        }
+        if (e.target.closest('[data-tia-preview-create]')) {
+          handleTiaPreviewCreate();
+          return;
+        }
+        if (e.target.closest('[data-tia-preview-save-pro]')) {
+          trackTiaEvent('tia_preview_save_pro_tapped');
+          openTiaProTeaserSheet();
+        }
+      });
+    }
+
+    const proSheet = document.getElementById('tia-pro-sheet');
+    if (proSheet) {
+      proSheet.addEventListener('click', (e) => {
         if (e.target.closest('[data-tia-pro-dismiss]')) {
           closeTiaProTeaserSheet();
           return;
@@ -13729,6 +14508,7 @@
 
   function closeDestinationModal() {
     closeTiaProTeaserSheet({ skipTrack: true });
+    closeTiaPreviewSheet({ skipTrack: true });
 
     const modal = document.getElementById('destination-modal');
     if (modal) {
@@ -13767,6 +14547,10 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && _tiaProSheetOpen) {
         closeTiaProTeaserSheet();
+        return;
+      }
+      if (e.key === 'Escape' && _tiaPreviewSheetOpen) {
+        closeTiaPreviewSheet();
         return;
       }
       if (e.key === 'Escape' && _modalCurrentDestId) {
