@@ -22,6 +22,7 @@
 <meta name="twitter:description" content="Travel intelligence on destinations heating up, cooling down, or quietly coming into view.">
 <meta name="twitter:image" content="https://gotango.co/og-gotango-v2.png">
 <meta name="next-public-tia-enabled" content="">
+<meta name="next-public-tia-ai-enabled" content="">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,300..900;9..144,1,400;9..144,1,500;9..144,1,700&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -3331,6 +3332,75 @@
     letter-spacing: 0.1em;
     text-transform: uppercase;
     margin-bottom: 4px;
+  }
+  .tia-preview-generated {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    font-family: 'Geist Mono', monospace;
+    font-size: var(--fs-micro);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+  .tia-preview-generated::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 8px rgba(232, 163, 23, 0.45);
+  }
+  .tia-preview-loading {
+    padding: 28px 4px 12px;
+    text-align: center;
+  }
+  .tia-preview-loading__spinner {
+    width: 28px;
+    height: 28px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(244, 181, 42, 0.18);
+    border-top-color: var(--amber);
+    animation: tia-preview-spin 0.8s linear infinite;
+  }
+  @keyframes tia-preview-spin {
+    to { transform: rotate(360deg); }
+  }
+  .tia-preview-loading__title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.25rem;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .tia-preview-loading__sub {
+    font-size: var(--fs-body);
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .tia-preview-day-item {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(49, 57, 69, 0.7);
+  }
+  .tia-preview-day-item__time {
+    font-family: 'Geist Mono', monospace;
+    font-size: var(--fs-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 4px;
+  }
+  .tia-preview-day-item__title {
+    font-size: var(--fs-body);
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+  .tia-preview-day-item__note {
+    font-size: var(--fs-body);
+    color: var(--text-dim);
+    line-height: 1.45;
   }
 
   /* ===== BRIEF ARTICLE ===== */
@@ -7446,6 +7516,20 @@
     } catch (_) { /* noop */ }
     return false;
   })();
+
+  // ============ TIA AI FEATURE SWITCH (PR 3) ============
+  const IS_TIA_AI_ENABLED = IS_TIA_ENABLED && (function resolveTiaAiEnabledFlag() {
+    if (typeof window !== 'undefined' && window.NEXT_PUBLIC_TIA_AI_ENABLED === 'true') return true;
+    if (typeof window !== 'undefined' && window.NEXT_PUBLIC_TIA_AI_ENABLED === 'false') return false;
+    try {
+      const meta = document.querySelector('meta[name="next-public-tia-ai-enabled"]');
+      if (meta && meta.getAttribute('content') === 'true') return true;
+    } catch (_) { /* noop */ }
+    return false;
+  })();
+
+  const TIA_PREVIEW_API_TIMEOUT_MS = 28000;
+  let _tiaPreviewCreateToken = 0;
   let _tiaProSheetOpen = false;
   let _tiaPreviewSheetOpen = false;
   let _tiaPreviewMode = null;
@@ -10384,7 +10468,179 @@
     };
   }
 
-  function renderTiaItineraryPreviewCards(preview) {
+  function _getTiaWeeklyMovement(dest) {
+    const wow = dest?.wow_change_pct;
+    const dod = dest?.dod_change_pct;
+    if (Number.isFinite(Number(wow))) {
+      const n = Number(wow);
+      return `${n > 0 ? '+' : ''}${Math.round(n)}%`;
+    }
+    if (typeof wow === 'string' && wow.trim()) return wow.trim();
+    if (Number.isFinite(Number(dod))) {
+      const n = Number(dod);
+      return `${n > 0 ? '+' : ''}${Math.round(n)}%`;
+    }
+    const pulseValue = document.querySelector('.d-pulse-metric-value.up, .d-pulse-metric-value.down');
+    return pulseValue ? String(pulseValue.textContent || '').trim() : '';
+  }
+
+  function _getTiaDestinationNewsSources() {
+    const links = document.querySelectorAll('[data-modal-section="destination-news"] .d-destination-news__source');
+    return Array.from(links).slice(0, 5).map((link) => ({
+      title: String(link.querySelector('.d-destination-news__source-title')?.textContent || '').trim(),
+      domain: String(link.querySelector('.d-destination-news__source-domain')?.textContent || '').trim(),
+    })).filter((source) => source.title || source.domain);
+  }
+
+  function buildTiaPreviewApiDestination(dest) {
+    const intel = _getTiaDestinationIntel(dest);
+    return {
+      id: dest.id || '',
+      name: intel.name,
+      airportCode: intel.airportCode,
+      state: dest.state || '',
+      country: dest.country || intel.region || '',
+      goTangoScore: intel.score,
+      category: intel.categoryLabel,
+      signalRead: intel.signalRead,
+      arrivals24h: intel.arrivals,
+      weeklyMovement: _getTiaWeeklyMovement(dest),
+      newsSummary: intel.newsBlurb,
+      sources: _getTiaDestinationNewsSources(),
+    };
+  }
+
+  function buildTiaPreviewApiOptions(mode, options) {
+    if (mode === 'trip') {
+      return {
+        dates: options.dates || 'Upcoming trip',
+        tripPurpose: options.tripPurpose || 'Long weekend',
+        travelers: options.travelers || 'Couples',
+        travelStyle: options.travelStyle || 'Relaxed luxury',
+      };
+    }
+    const tripLengthNum = Math.max(1, Math.min(14, Number(options.tripLength) || 3));
+    return {
+      tripLength: `${tripLengthNum} days`,
+      dates: options.dates || 'Upcoming trip',
+      travelStyle: options.travelStyle || 'Relaxed',
+      interests: options.interests || 'Beaches, Food, Culture',
+    };
+  }
+
+  function _validateTiaItineraryPreviewClient(preview) {
+    if (!preview || preview.type !== 'itinerary' || !Array.isArray(preview.days) || !preview.days.length) {
+      return null;
+    }
+    if (!preview.title || !preview.summary || !preview.bestFor || !preview.pace) return null;
+    const days = preview.days.map((day, index) => {
+      const dayNum = Number.isFinite(Number(day?.day)) ? Number(day.day) : index + 1;
+      const title = String(day?.title || '').trim();
+      const summary = String(day?.summary || '').trim();
+      if (!title || !summary) return null;
+      const items = Array.isArray(day?.items)
+        ? day.items.map((item) => ({
+          time: String(item?.time || '').trim(),
+          title: String(item?.title || '').trim(),
+          note: String(item?.note || '').trim(),
+        })).filter((item) => item.title || item.note).slice(0, 4)
+        : [];
+      return { day: dayNum, title, summary, items };
+    }).filter(Boolean);
+    if (!days.length) return null;
+    return {
+      type: 'itinerary',
+      status: 'preview',
+      title: String(preview.title).trim(),
+      destinationName: String(preview.destinationName || '').trim(),
+      airportCode: String(preview.airportCode || '').trim(),
+      summary: String(preview.summary).trim(),
+      bestFor: String(preview.bestFor).trim(),
+      pace: String(preview.pace).trim(),
+      days,
+    };
+  }
+
+  function _validateTiaTripPreviewClient(preview) {
+    if (!preview || preview.type !== 'trip') return null;
+    const dontMiss = Array.isArray(preview.dontMiss)
+      ? preview.dontMiss.map((item) => String(item || '').trim()).filter(Boolean)
+      : [];
+    if (!preview.title || !preview.overview || !preview.recommendedBase || !preview.vibe || !preview.suggestedPlan) {
+      return null;
+    }
+    if (dontMiss.length < 2) return null;
+    return {
+      type: 'trip',
+      status: 'preview',
+      title: String(preview.title).trim(),
+      destinationName: String(preview.destinationName || '').trim(),
+      airportCode: String(preview.airportCode || '').trim(),
+      overview: String(preview.overview).trim(),
+      recommendedBase: String(preview.recommendedBase).trim(),
+      vibe: String(preview.vibe).trim(),
+      dontMiss: dontMiss.slice(0, 5),
+      suggestedPlan: String(preview.suggestedPlan).trim(),
+    };
+  }
+
+  function _validateTiaPreviewApiResponse(data, mode) {
+    if (!data || data.ok !== true || !data.preview) return null;
+    return mode === 'trip'
+      ? _validateTiaTripPreviewClient(data.preview)
+      : _validateTiaItineraryPreviewClient(data.preview);
+  }
+
+  async function fetchTiaAiPreview(mode, dest, options) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIA_PREVIEW_API_TIMEOUT_MS);
+    try {
+      const response = await fetch('/api/tia-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode,
+          destination: buildTiaPreviewApiDestination(dest),
+          options: buildTiaPreviewApiOptions(mode, options),
+        }),
+        signal: controller.signal,
+      });
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (_) {
+        data = null;
+      }
+      if (!response.ok) return null;
+      return _validateTiaPreviewApiResponse(data, mode);
+    } catch (_) {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function _tiaPreviewDisclaimer(meta = {}) {
+    if (meta.source === 'openai') {
+      return 'Preview only. Save + daily updates require GoTango Pro.';
+    }
+    if (IS_TIA_AI_ENABLED && meta.source === 'deterministic') {
+      return 'Preview generated instantly. Save + daily updates require GoTango Pro.';
+    }
+    return 'Preview only. Save + daily updates require GoTango Pro.';
+  }
+
+  function renderTiaPreviewLoading() {
+    return `
+      <div class="tia-preview-loading" role="status" aria-live="polite">
+        <div class="tia-preview-loading__spinner" aria-hidden="true"></div>
+        <div class="tia-preview-loading__title">Tia is building your preview…</div>
+        <div class="tia-preview-loading__sub">Using GoTango destination intelligence for this plan.</div>
+      </div>
+    `;
+  }
+
+  function renderTiaItineraryPreviewCards(preview, meta = {}) {
     const metaRows = [
       { label: 'Best for', value: preview.bestFor },
       { label: 'Pace', value: preview.pace },
@@ -10395,17 +10651,35 @@
       </div>
     `).join('');
 
-    const dayCards = (preview.days || []).map((day) => `
+    const dayCards = (preview.days || []).map((day) => {
+      const itemBlocks = Array.isArray(day.items) && day.items.length
+        ? day.items.map((item) => `
+          <div class="tia-preview-day-item">
+            ${item.time ? `<div class="tia-preview-day-item__time">${_escapeHtml(item.time)}</div>` : ''}
+            ${item.title ? `<div class="tia-preview-day-item__title">${_escapeHtml(item.title)}</div>` : ''}
+            ${item.note ? `<div class="tia-preview-day-item__note">${_escapeHtml(item.note)}</div>` : ''}
+          </div>
+        `).join('')
+        : '';
+
+      return `
       <div class="tia-preview-card">
         <div class="tia-preview-day-num">Day ${day.day}</div>
         <div class="tia-preview-card__title">${_escapeHtml(day.title)}</div>
         <div class="tia-preview-card__body">${_escapeHtml(day.summary)}</div>
+        ${itemBlocks}
       </div>
-    `).join('');
+    `;
+    }).join('');
+
+    const generatedBy = meta.source === 'openai'
+      ? '<div class="tia-preview-generated">Generated by Tia</div>'
+      : '';
 
     return `
       <div class="tia-preview-kicker">Tia Preview</div>
-      <div class="tia-preview-disclaimer">Preview only. Save + daily updates require GoTango Pro.</div>
+      ${generatedBy}
+      <div class="tia-preview-disclaimer">${_escapeHtml(_tiaPreviewDisclaimer(meta))}</div>
       <div class="tia-preview-cards">
         <div class="tia-preview-card tia-preview-card--hero">
           <div class="tia-preview-card__title">${_escapeHtml(preview.title)}</div>
@@ -10417,14 +10691,19 @@
     `;
   }
 
-  function renderTiaTripPreviewCards(preview) {
+  function renderTiaTripPreviewCards(preview, meta = {}) {
     const dontMissItems = (preview.dontMiss || [])
       .map((item) => `<li>${_escapeHtml(item)}</li>`)
       .join('');
 
+    const generatedBy = meta.source === 'openai'
+      ? '<div class="tia-preview-generated">Generated by Tia</div>'
+      : '';
+
     return `
       <div class="tia-preview-kicker">Tia Preview</div>
-      <div class="tia-preview-disclaimer">Preview only. Save + daily updates require GoTango Pro.</div>
+      ${generatedBy}
+      <div class="tia-preview-disclaimer">${_escapeHtml(_tiaPreviewDisclaimer(meta))}</div>
       <div class="tia-preview-cards">
         <div class="tia-preview-card tia-preview-card--hero">
           <div class="tia-preview-card__title">${_escapeHtml(preview.title)}</div>
@@ -10574,10 +10853,10 @@
     `;
   }
 
-  function renderTiaPreviewResult(mode, preview) {
+  function renderTiaPreviewResult(mode, preview, meta = {}) {
     const cards = mode === 'trip'
-      ? renderTiaTripPreviewCards(preview)
-      : renderTiaItineraryPreviewCards(preview);
+      ? renderTiaTripPreviewCards(preview, meta)
+      : renderTiaItineraryPreviewCards(preview, meta);
     const refineBtn = mode === 'itinerary'
       ? '<button type="button" class="tia-preview-btn tia-preview-btn--ghost" disabled title="Coming soon with GoTango Pro">Refine with Tia</button>'
       : '';
@@ -10637,22 +10916,48 @@
     }
   }
 
-  function handleTiaPreviewCreate() {
+  async function handleTiaPreviewCreate() {
     if (!_tiaPreviewDest || !_tiaPreviewMode) return;
     const dest = _tiaPreviewDest;
     const mode = _tiaPreviewMode;
+    const requestToken = ++_tiaPreviewCreateToken;
 
-    if (mode === 'trip') {
-      const options = _readTiaTripFormValues();
-      const preview = buildTiaTripPreview(dest, options);
-      _setTiaPreviewSheetContent(renderTiaPreviewResult('trip', preview));
-      trackTiaEvent('tia_trip_preview_created');
-    } else {
-      const options = _readTiaItineraryFormValues();
-      const preview = buildTiaItineraryPreview(dest, options);
-      _setTiaPreviewSheetContent(renderTiaPreviewResult('itinerary', preview));
-      trackTiaEvent('tia_itinerary_preview_created');
+    const options = mode === 'trip'
+      ? _readTiaTripFormValues()
+      : _readTiaItineraryFormValues();
+
+    _setTiaPreviewSheetContent(renderTiaPreviewLoading());
+
+    let preview = null;
+    let meta = { source: 'deterministic' };
+
+    if (IS_TIA_AI_ENABLED) {
+      trackTiaEvent('tia_ai_preview_requested');
+      const aiPreview = await fetchTiaAiPreview(mode, dest, options);
+      if (requestToken !== _tiaPreviewCreateToken) return;
+
+      if (aiPreview) {
+        preview = aiPreview;
+        meta = { source: 'openai' };
+        trackTiaEvent('tia_ai_preview_succeeded');
+      } else {
+        trackTiaEvent('tia_ai_preview_failed');
+        trackTiaEvent('tia_ai_preview_fallback_used');
+      }
     }
+
+    if (!preview) {
+      preview = mode === 'trip'
+        ? buildTiaTripPreview(dest, options)
+        : buildTiaItineraryPreview(dest, options);
+    }
+
+    if (requestToken !== _tiaPreviewCreateToken) return;
+
+    _setTiaPreviewSheetContent(renderTiaPreviewResult(mode, preview, meta));
+
+    if (mode === 'trip') trackTiaEvent('tia_trip_preview_created');
+    else trackTiaEvent('tia_itinerary_preview_created');
 
     const saveBtn = document.querySelector('[data-tia-preview-save-pro]');
     if (saveBtn) setTimeout(() => saveBtn.focus(), 50);
