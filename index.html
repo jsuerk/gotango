@@ -21,6 +21,7 @@
 <meta name="twitter:title" content="Go Tango — Where the world's going">
 <meta name="twitter:description" content="Travel intelligence on destinations heating up, cooling down, or quietly coming into view.">
 <meta name="twitter:image" content="https://gotango.co/og-gotango-v2.png">
+<meta name="next-public-tia-enabled" content="">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,300..900;9..144,1,400;9..144,1,500;9..144,1,700&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -2823,6 +2824,252 @@
     background: rgba(232, 163, 23, 0.08);
   }
   .watch-modal-control__manage:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+
+  /* ===== TIA · DESTINATION MODAL PANEL (PR 1) ===== */
+  .tia-destination-panel {
+    margin: 0;
+    padding: 22px 20px 24px;
+    border-top: 1px solid rgba(244, 181, 42, 0.12);
+    background: linear-gradient(180deg, rgba(232, 163, 23, 0.04) 0%, rgba(10, 13, 17, 0) 100%);
+  }
+  .tia-destination-panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .tia-destination-panel__title {
+    font-family: 'Geist Mono', monospace;
+    font-size: var(--fs-label);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    line-height: 1.35;
+  }
+  .tia-destination-panel__badge {
+    flex-shrink: 0;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--amber);
+    border: 1px solid rgba(232, 163, 23, 0.45);
+    background: rgba(232, 163, 23, 0.1);
+    border-radius: 4px;
+    padding: 4px 8px;
+  }
+  .tia-destination-panel__body {
+    font-size: var(--fs-body);
+    line-height: 1.55;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+  .tia-destination-panel__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .tia-destination-panel__btn {
+    width: 100%;
+    min-height: 48px;
+    padding: 13px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(244, 181, 42, 0.28);
+    background: rgba(232, 163, 23, 0.08);
+    color: var(--text);
+    font-family: 'Geist', sans-serif;
+    font-size: var(--fs-body);
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    touch-action: manipulation;
+  }
+  .tia-destination-panel__btn:hover {
+    background: rgba(232, 163, 23, 0.14);
+    border-color: rgba(244, 181, 42, 0.42);
+  }
+  .tia-destination-panel__btn:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  .tia-destination-panel__footer {
+    margin-top: 14px;
+    font-family: 'Geist Mono', monospace;
+    font-size: var(--fs-micro);
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+    line-height: 1.5;
+  }
+
+  /* ===== TIA · PRO TEASER SHEET (PR 1) ===== */
+  .tia-pro-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+    font-family: inherit;
+  }
+  .tia-pro-sheet.is-open {
+    display: flex;
+  }
+  .tia-pro-sheet__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 8, 12, 0.72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    cursor: pointer;
+  }
+  .tia-pro-sheet__panel {
+    position: relative;
+    width: min(520px, 100%);
+    max-height: min(88vh, 720px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: linear-gradient(180deg, #12151c 0%, #0c0e13 100%);
+    border: 1px solid rgba(244, 181, 42, 0.18);
+    border-bottom: none;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(244, 181, 42, 0.05);
+    padding: 12px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+    animation: tia-pro-sheet-slide-up 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @keyframes tia-pro-sheet-slide-up {
+    from { transform: translateY(100%); opacity: 0.6; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .tia-pro-sheet__handle {
+    width: 42px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-light);
+    margin: 4px auto 16px;
+  }
+  .tia-pro-sheet__close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border-light);
+    background: rgba(10, 13, 17, 0.88);
+    color: var(--text);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tia-pro-sheet__close:hover {
+    border-color: rgba(244, 181, 42, 0.35);
+    background: rgba(16, 20, 26, 0.95);
+  }
+  .tia-pro-sheet__close:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  .tia-pro-sheet__title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(1.5rem, 1.2rem + 1.2vw, 1.85rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin: 0 36px 8px 0;
+    line-height: 1.15;
+  }
+  .tia-pro-sheet__subtitle {
+    font-size: var(--fs-body);
+    line-height: 1.55;
+    color: var(--text-dim);
+    margin-bottom: 18px;
+  }
+  .tia-pro-sheet__benefits {
+    list-style: none;
+    margin: 0 0 18px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .tia-pro-sheet__benefits li {
+    position: relative;
+    padding-left: 18px;
+    font-size: var(--fs-body);
+    line-height: 1.45;
+    color: var(--text);
+  }
+  .tia-pro-sheet__benefits li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 8px rgba(232, 163, 23, 0.45);
+  }
+  .tia-pro-sheet__price {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(1.35rem, 1.1rem + 0.8vw, 1.6rem);
+    font-weight: 500;
+    color: var(--amber);
+    margin-bottom: 16px;
+    letter-spacing: -0.02em;
+  }
+  .tia-pro-sheet__cta-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .tia-pro-sheet__cta-primary {
+    width: 100%;
+    min-height: 48px;
+    border: none;
+    border-radius: 10px;
+    background: var(--amber);
+    color: var(--bg);
+    font-family: 'Geist', sans-serif;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .tia-pro-sheet__cta-primary:hover {
+    background: var(--amber-bright);
+  }
+  .tia-pro-sheet__cta-primary:focus-visible {
+    outline: 2px solid var(--amber-bright);
+    outline-offset: 2px;
+  }
+  .tia-pro-sheet__cta-secondary {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: 'Geist', sans-serif;
+    font-size: var(--fs-body);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .tia-pro-sheet__cta-secondary:hover {
+    color: var(--text);
+    border-color: rgba(244, 181, 42, 0.28);
+    background: rgba(232, 163, 23, 0.05);
+  }
+  .tia-pro-sheet__cta-secondary:focus-visible {
     outline: 2px solid var(--amber);
     outline-offset: 2px;
   }
@@ -6866,6 +7113,30 @@
   </div>
 </div>
 
+<div id="tia-pro-sheet" class="tia-pro-sheet" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="tia-pro-sheet-title" style="display: none;">
+  <div class="tia-pro-sheet__backdrop" data-tia-pro-dismiss></div>
+  <div class="tia-pro-sheet__panel" role="document">
+    <div class="tia-pro-sheet__handle" aria-hidden="true"></div>
+    <button type="button" class="tia-pro-sheet__close" data-tia-pro-dismiss aria-label="Close GoTango Pro preview">
+      <span aria-hidden="true">×</span>
+    </button>
+    <h2 id="tia-pro-sheet-title" class="tia-pro-sheet__title">Unlock GoTango Pro</h2>
+    <p class="tia-pro-sheet__subtitle">Save destinations, itineraries, and trips to Watch. Get daily updates powered by GoTango intelligence + Tia.</p>
+    <ul class="tia-pro-sheet__benefits">
+      <li>Save destinations to Watch</li>
+      <li>Save trips and itineraries</li>
+      <li>Daily updates with GoTango intelligence + Tia</li>
+      <li>Ask Tia follow-up questions</li>
+      <li>Plan faster with destination-specific intelligence</li>
+    </ul>
+    <div class="tia-pro-sheet__price">$14.99 / month</div>
+    <div class="tia-pro-sheet__cta-row">
+      <button type="button" class="tia-pro-sheet__cta-primary" data-tia-pro-start>Start GoTango Pro</button>
+      <button type="button" class="tia-pro-sheet__cta-secondary" data-tia-pro-dismiss>Not now</button>
+    </div>
+  </div>
+</div>
+
 <div id="live-map-modal" class="live-map-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="live-map-modal-title" style="display: none;">
   <div class="live-map-modal__backdrop" data-live-map-modal-close></div>
   <div class="live-map-modal__panel" role="document">
@@ -6893,6 +7164,19 @@
 <script>
   // ============ GOTANGO SCORE V2 FEATURE SWITCH ============
   const USE_GOTANGO_SCORE_V2 = typeof window !== 'undefined' && window.USE_GOTANGO_SCORE_V2 !== false;
+
+  // ============ TIA FEATURE SWITCH (PR 1) ============
+  // Env: NEXT_PUBLIC_TIA_ENABLED=true (set window.NEXT_PUBLIC_TIA_ENABLED or meta[name="next-public-tia-enabled"]).
+  const IS_TIA_ENABLED = (function resolveTiaEnabledFlag() {
+    if (typeof window !== 'undefined' && window.NEXT_PUBLIC_TIA_ENABLED === 'true') return true;
+    if (typeof window !== 'undefined' && window.NEXT_PUBLIC_TIA_ENABLED === 'false') return false;
+    try {
+      const meta = document.querySelector('meta[name="next-public-tia-enabled"]');
+      if (meta && meta.getAttribute('content') === 'true') return true;
+    } catch (_) { /* noop */ }
+    return false;
+  })();
+  let _tiaProSheetOpen = false;
   let _goTangoScoreV2Data = null;
   let _goTangoScoreV2Active = false;
 
@@ -9564,6 +9848,96 @@
         </button>
       </div>
     `;
+  }
+
+  function trackTiaEvent(name) {
+    if (typeof window.va === 'function') {
+      try {
+        window.va('event', { name });
+      } catch (_) { /* analytics optional */ }
+    }
+  }
+
+  function renderTiaDestinationPanel(dest) {
+    if (!IS_TIA_ENABLED || !dest || !dest.id) return '';
+    const destId = _escapeHtml(dest.id);
+    return `
+      <section class="d-section tia-destination-panel" data-modal-section="tia-panel" data-destination-id="${destId}">
+        <div class="tia-destination-panel__head">
+          <h3 class="tia-destination-panel__title">Tia · Travel Intelligence Agent</h3>
+          <span class="tia-destination-panel__badge" aria-label="GoTango Pro feature">PRO</span>
+        </div>
+        <p class="tia-destination-panel__body">Create itineraries, build trips, or save this destination to Watch. Preview with Tia, then save and receive daily updates with GoTango Pro.</p>
+        <div class="tia-destination-panel__actions">
+          <button type="button" class="tia-destination-panel__btn" data-tia-action="create-itinerary">Create an Itinerary</button>
+          <button type="button" class="tia-destination-panel__btn" data-tia-action="create-trip">Create a Trip</button>
+          <button type="button" class="tia-destination-panel__btn" data-tia-action="save-destination">Save Destination</button>
+        </div>
+        <p class="tia-destination-panel__footer">Free preview available. Save + daily updates require GoTango Pro.</p>
+      </section>
+    `;
+  }
+
+  function openTiaProTeaserSheet() {
+    const sheet = document.getElementById('tia-pro-sheet');
+    if (!sheet) return;
+    _tiaProSheetOpen = true;
+    sheet.style.display = 'flex';
+    sheet.classList.add('is-open');
+    sheet.setAttribute('aria-hidden', 'false');
+    trackTiaEvent('tia_paywall_viewed');
+    const primaryBtn = sheet.querySelector('[data-tia-pro-start]');
+    if (primaryBtn) {
+      setTimeout(() => primaryBtn.focus(), 50);
+    }
+  }
+
+  function closeTiaProTeaserSheet(options = {}) {
+    const sheet = document.getElementById('tia-pro-sheet');
+    if (!sheet || !_tiaProSheetOpen) return;
+    _tiaProSheetOpen = false;
+    sheet.style.display = 'none';
+    sheet.classList.remove('is-open');
+    sheet.setAttribute('aria-hidden', 'true');
+    if (!options.skipTrack) {
+      trackTiaEvent('tia_paywall_dismissed');
+    }
+  }
+
+  function handleTiaProStart() {
+    trackTiaEvent('tia_paywall_start_tapped');
+    // TODO: Wire GoTango Pro billing / subscription checkout.
+    console.info('[Tia] Start GoTango Pro tapped — billing not connected in PR 1.');
+  }
+
+  function attachTiaHandlers() {
+    if (!IS_TIA_ENABLED) return;
+
+    const modal = document.getElementById('destination-modal');
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-tia-action]');
+        if (!btn) return;
+        const action = btn.getAttribute('data-tia-action');
+        if (action === 'create-itinerary') trackTiaEvent('tia_create_itinerary_tapped');
+        else if (action === 'create-trip') trackTiaEvent('tia_create_trip_tapped');
+        else if (action === 'save-destination') trackTiaEvent('tia_save_destination_tapped');
+        openTiaProTeaserSheet();
+      });
+    }
+
+    const sheet = document.getElementById('tia-pro-sheet');
+    if (sheet) {
+      sheet.addEventListener('click', (e) => {
+        if (e.target.closest('[data-tia-pro-dismiss]')) {
+          closeTiaProTeaserSheet();
+          return;
+        }
+        if (e.target.closest('[data-tia-pro-start]')) {
+          handleTiaProStart();
+        }
+      });
+    }
   }
 
   function refreshModalWatchControl() {
@@ -12321,6 +12695,10 @@
 
     loadDestinationHistoryIntoModal(destinationId, dest);
     loadDestinationNews(destinationId);
+
+    if (IS_TIA_ENABLED) {
+      trackTiaEvent('tia_panel_viewed');
+    }
   }
 
   async function loadDestinationHistoryIntoModal(destinationId, dest) {
@@ -13350,6 +13728,8 @@
   }
 
   function closeDestinationModal() {
+    closeTiaProTeaserSheet({ skipTrack: true });
+
     const modal = document.getElementById('destination-modal');
     if (modal) {
       modal.style.display = 'none';
@@ -13385,6 +13765,10 @@
 
     // Close on Escape key
     document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && _tiaProSheetOpen) {
+        closeTiaProTeaserSheet();
+        return;
+      }
       if (e.key === 'Escape' && _modalCurrentDestId) {
         closeDestinationModal();
       }
@@ -14673,6 +15057,7 @@
       renderModalRecentFlights(dest),
       renderPulsePlaceholder(),
       renderModalWatchControl(dest),
+      renderTiaDestinationPanel(dest),
     ].join('');
   }
 
@@ -15721,6 +16106,7 @@ Return strict JSON:
     attachModalCloseHandlers();
     attachModalExpandHandlers();
     attachModalShareHandler();
+    attachTiaHandlers();
     attachDestinationCardClickHandlers();
     maybeOpenModalFromUrl();
 
