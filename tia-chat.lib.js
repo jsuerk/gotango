@@ -1,14 +1,16 @@
 import {
-  callTiaOpenAi,
   getTiaOpenAiModel,
   normalizeTiaDestinationInput,
   parseTiaJsonRequestBody,
 } from './tia-preview.lib.js';
 import {
+  buildTiaJsonSchemaFormat,
+  buildTiaWebSearchTools,
   getTiaResearchModel,
   normalizeTiaRecommendations,
+  runTiaTwoPassGeneration,
   shouldUseTiaWebSearchForChat,
-  buildTiaWebSearchTools,
+  TIA_CHAT_JSON_SCHEMA,
 } from './tia-research.lib.js';
 
 const MAX_MESSAGE_LEN = 800;
@@ -103,84 +105,130 @@ export function validateTiaChatAnswer(answer, destination) {
   };
 }
 
-const TIA_CHAT_SYSTEM_PROMPT = `You are Tia, GoTango's Pro travel intelligence agent.
+const TIA_CHAT_RESEARCH_SYSTEM_PROMPT = `You are Tia, GoTango's Pro travel intelligence research assistant.
 
-Answer as a concise, premium travel advisor using GoTango destination context first.
+Use web search to gather current, destination-specific travel intelligence for the user's question.
+Return concise plain-text research notes only. Do not return JSON.
+Include source URLs inline when citing specific hotels, restaurants, neighborhoods, events, or activities.
+Use GoTango destination context to prioritize timing and seasonality.
+Do not invent sources or claim live availability unless sourced.`;
+
+const TIA_CHAT_STRUCTURE_SYSTEM_PROMPT = `You are Tia, GoTango's Pro travel intelligence agent.
+
+Answer as a concise, premium travel advisor using GoTango destination context and research notes.
 Use GoTango Score, category, arrivals, signal read, weekly movement, and destination news when available.
-When web research is available, use it for current hotels, restaurants, activities, neighborhoods, events, and timing.
-Give actual recommendations when you have source support. Include sourceUrl on researched facts.
-Explain why each recommendation fits the traveler. Avoid generic filler.
+Give actual recommendations when research notes support them. Include sourceUrl only when a relevant URL appears in the research notes.
+Do not invent URLs. Leave sourceUrl empty when no relevant source is available.
 Do not claim availability, pricing, reservations, or current openings unless sourced.
-Mention GoTango Pro only when naturally relevant, not as a hard sell.
 Keep answers mobile-friendly. Use bullets where useful.
-Return strict JSON only. No markdown. No HTML.`;
+Return JSON matching the provided schema exactly.`;
 
-function buildTiaChatUserPrompt(destination, message, history) {
+function isStayQuestion(message) {
+  return /\b(stay|hotel|lodging|where should i stay|base|neighborhood|area)\b/i.test(message);
+}
+
+function isRestaurantQuestion(message) {
+  return /\b(restaurant|restaurants|dining|eat|food|reservation)\b/i.test(message);
+}
+
+function buildChatResearchUserPrompt(destination, message, history) {
   const historyBlock = history.length
     ? `\n\nRecent conversation:\n${JSON.stringify(history, null, 2)}`
     : '';
+
+  return `Research ${destination.name} (${destination.airportCode}) to help answer this traveler question:
+
+"${message}"${historyBlock}
+
+GoTango destination context:
+${JSON.stringify(destination, null, 2)}
+
+Return plain-text research notes with source URLs inline when citing specific hotels, restaurants, neighborhoods, events, or activities.
+Do not return JSON.`;
+}
+
+function buildChatStructureUserPrompt(destination, message, history, researchNotes) {
+  const historyBlock = history.length
+    ? `\n\nRecent conversation:\n${JSON.stringify(history, null, 2)}`
+    : '';
+
+  const researchBlock = researchNotes
+    ? `\n\nResearch notes (use when supported; do not invent URLs):\n${researchNotes}`
+    : '\n\nNo web research notes available. Use GoTango context only.';
+
+  let questionGuidance = '';
+  if (isStayQuestion(message)) {
+    questionGuidance = `
+For this lodging question:
+- Return specific areas/zones and who each fits.
+- Include 2-4 researched lodging candidates only if supported by research notes.
+- Mention seasonality or booking pressure when appropriate.`;
+  } else if (isRestaurantQuestion(message)) {
+    questionGuidance = `
+For this dining question:
+- Return 3-5 actual restaurant candidates only if supported by research notes.
+- Explain why each fits.
+- Avoid claiming live reservation status unless sourced.`;
+  }
 
   return `Destination context:
 ${JSON.stringify(destination, null, 2)}
 
 User question:
-${message}${historyBlock}
+${message}${historyBlock}${researchBlock}${questionGuidance}
 
-Return JSON with this shape:
-{
-  "title": string,
-  "summary": string,
-  "bullets": [string, string, string],
-  "followUps": [string, string, string],
-  "recommendations": [
-    {
-      "type": "hotel_area" | "hotel" | "restaurant" | "activity" | "event" | "logistics",
-      "name": string,
-      "why": string,
-      "sourceUrl": string
-    }
-  ]
-}`;
+Return a concise, useful answer with recommendations[] when research notes support specific hotels, restaurants, areas, or activities.`;
 }
 
-export function buildTiaChatOpenAiRequest(destination, message, history, requestOptions = {}) {
-  const useWebSearch = !!requestOptions.useWebSearch;
-  const model = useWebSearch
-    ? getTiaResearchModel(getTiaOpenAiModel())
-    : getTiaOpenAiModel();
-  const body = {
-    model,
+function buildChatResearchRequest(destination, message, history) {
+  return {
+    model: getTiaResearchModel(getTiaOpenAiModel()),
     store: false,
-    reasoning: { effort: useWebSearch ? 'medium' : 'low' },
-    text: { verbosity: 'low' },
-    max_output_tokens: useWebSearch ? 1200 : 900,
+    reasoning: { effort: 'medium' },
+    text: { verbosity: 'medium' },
+    max_output_tokens: 1200,
+    tools: buildTiaWebSearchTools(),
+    tool_choice: 'auto',
+    max_tool_calls: 4,
+    include: ['web_search_call.action.sources'],
     input: [
-      { role: 'system', content: TIA_CHAT_SYSTEM_PROMPT },
-      { role: 'user', content: buildTiaChatUserPrompt(destination, message, history) },
+      { role: 'system', content: TIA_CHAT_RESEARCH_SYSTEM_PROMPT },
+      { role: 'user', content: buildChatResearchUserPrompt(destination, message, history) },
     ],
   };
+}
 
-  if (useWebSearch) {
-    body.tools = buildTiaWebSearchTools();
-    body.tool_choice = 'auto';
-    body.max_tool_calls = 4;
-    body.include = ['web_search_call.action.sources'];
-  }
-
-  return body;
+function buildChatStructureRequest(destination, message, history, researchNotes) {
+  return {
+    model: getTiaOpenAiModel(),
+    store: false,
+    reasoning: { effort: 'low' },
+    text: {
+      verbosity: 'low',
+      ...buildTiaJsonSchemaFormat('tia_chat_answer', TIA_CHAT_JSON_SCHEMA),
+    },
+    max_output_tokens: 900,
+    input: [
+      { role: 'system', content: TIA_CHAT_STRUCTURE_SYSTEM_PROMPT },
+      { role: 'user', content: buildChatStructureUserPrompt(destination, message, history, researchNotes) },
+    ],
+  };
 }
 
 export async function generateTiaChatWithOpenAi({ destination, message, history, apiKey }) {
   const useWebSearch = shouldUseTiaWebSearchForChat(message);
-  const requestBody = buildTiaChatOpenAiRequest(destination, message, history, { useWebSearch });
-  const ai = await callTiaOpenAi(apiKey, requestBody, undefined, useWebSearch);
-  if (!ai.ok) return ai;
 
-  const validated = validateTiaChatAnswer(ai.parsed, destination);
-  if (!validated.ok) {
-    console.warn('[tia-chat] model JSON failed validation:', validated.error);
-    return { ok: false, error: validated.error, status: 502 };
-  }
-
-  return { ok: true, answer: validated.answer, researchUsed: useWebSearch };
+  return runTiaTwoPassGeneration({
+    apiKey,
+    useWebSearch,
+    logPrefix: 'tia-chat',
+    buildResearchRequest: () => buildChatResearchRequest(destination, message, history),
+    buildStructureRequest: (researchNotes) => buildChatStructureRequest(
+      destination,
+      message,
+      history,
+      researchNotes,
+    ),
+    validateStructured: (parsed) => validateTiaChatAnswer(parsed, destination),
+  });
 }
