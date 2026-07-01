@@ -24,6 +24,7 @@
 <meta name="next-public-tia-enabled" content="">
 <meta name="next-public-tia-ai-enabled" content="">
 <meta name="next-public-tia-voice-enabled" content="">
+<meta name="gotango-pro-unlocked" content="">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,300..900;9..144,1,400;9..144,1,500;9..144,1,700&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -2681,6 +2682,180 @@
     background: transparent;
     color: var(--text-dim);
   }
+
+  /* ===== TIA WATCH SAVED PLANS ===== */
+  #tab-watch .tia-watch-section {
+    margin-top: 8px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  #tab-watch .tia-watch-section__title {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+  #tab-watch .tia-watch-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  #tab-watch .tia-watch-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    padding: 14px 14px 12px;
+  }
+  #tab-watch .tia-watch-card__top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  #tab-watch .tia-watch-card__badge {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    border: 1px solid rgba(232, 163, 23, 0.35);
+    border-radius: 999px;
+    padding: 3px 8px;
+  }
+  #tab-watch .tia-watch-card__dest {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  #tab-watch .tia-watch-card__title {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    line-height: 1.25;
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+  }
+  #tab-watch .tia-watch-card__summary {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  #tab-watch .tia-watch-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  #tab-watch .watch-empty--compact {
+    padding: 28px 0 8px;
+    text-align: left;
+  }
+  #tab-watch .watch-empty--compact .watch-empty-desc {
+    margin-left: 0;
+    max-width: none;
+  }
+
+  .tia-saved-detail-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 10045;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .tia-saved-detail-sheet.is-open {
+    pointer-events: auto;
+  }
+  .tia-saved-detail-sheet__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(6, 8, 11, 0.72);
+    backdrop-filter: blur(2px);
+  }
+  .tia-saved-detail-sheet__panel {
+    position: relative;
+    width: min(100%, 520px);
+    max-height: min(88vh, 760px);
+    overflow: auto;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 18px 18px 0 0;
+    padding: 10px 20px 24px;
+    animation: tia-pro-sheet-slide-up 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .tia-saved-detail-sheet__handle {
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--border-light);
+    margin: 4px auto 14px;
+  }
+  .tia-saved-detail-sheet__close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-dim);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .tia-saved-detail-sheet__title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+    padding-right: 36px;
+  }
+  .tia-saved-detail-sheet__meta {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+  .tia-saved-detail-sheet__body {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text);
+  }
+  .tia-saved-detail-sheet__body p {
+    margin-bottom: 12px;
+  }
+  .tia-saved-detail-sheet__body h4 {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin: 16px 0 8px;
+  }
+  .tia-saved-detail-sheet__list {
+    margin: 0 0 12px 18px;
+    color: var(--text-dim);
+  }
+  .tia-saved-detail-sheet__day {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: var(--surface);
+  }
+  .tia-saved-detail-sheet__day-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .tia-saved-detail-sheet__footer {
+    margin-top: 18px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
   #tab-watch .watch-btn--danger {
     color: var(--text-faint);
     background: transparent;
@@ -7816,6 +7991,17 @@
   </div>
 </div>
 
+<div id="tia-saved-detail-sheet" class="tia-saved-detail-sheet" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="tia-saved-detail-title" style="display: none;">
+  <div class="tia-saved-detail-sheet__backdrop" data-tia-saved-dismiss></div>
+  <div class="tia-saved-detail-sheet__panel" role="document">
+    <div class="tia-saved-detail-sheet__handle" aria-hidden="true"></div>
+    <button type="button" class="tia-saved-detail-sheet__close" data-tia-saved-dismiss aria-label="Close saved plan">
+      <span aria-hidden="true">×</span>
+    </button>
+    <div id="tia-saved-detail-content"></div>
+  </div>
+</div>
+
 <div id="live-map-modal" class="live-map-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="live-map-modal-title" style="display: none;">
   <div class="live-map-modal__backdrop" data-live-map-modal-close></div>
   <div class="live-map-modal__panel" role="document">
@@ -7878,6 +8064,21 @@
     return false;
   })();
 
+  // ============ GOTANGO PRO ENTITLEMENT (PR 5 — temporary dev flag) ============
+  const IS_TIA_PRO_UNLOCKED = (function resolveGoTangoProUnlockedFlag() {
+    if (typeof window !== 'undefined' && window.GOTANGO_PRO_UNLOCKED === 'true') return true;
+    if (typeof window !== 'undefined' && window.GOTANGO_PRO_UNLOCKED === 'false') return false;
+    try {
+      const meta = document.querySelector('meta[name="gotango-pro-unlocked"]');
+      if (meta && meta.getAttribute('content') === 'true') return true;
+    } catch (_) { /* noop */ }
+    return false;
+  })();
+
+  function isTiaProUnlocked() {
+    return IS_TIA_PRO_UNLOCKED;
+  }
+
   const TIA_PREVIEW_API_TIMEOUT_MS = 28000;
   const TIA_CHAT_API_TIMEOUT_MS = 28000;
   let _tiaPreviewCreateToken = 0;
@@ -7894,6 +8095,10 @@
   let _tiaSpeechListening = false;
   let _tiaVoiceStatusMessage = '';
   let _tiaChatProGateTracked = false;
+  let _tiaCurrentPreview = null;
+  let _tiaPreviewMeta = { source: 'deterministic' };
+  let _tiaSavedDetailOpen = false;
+  let _tiaSavedDetailItemId = null;
   let _goTangoScoreV2Data = null;
   let _goTangoScoreV2Active = false;
 
@@ -10377,6 +10582,369 @@
     _watchClearConfirmVisible = false;
   }
 
+  function clearWatchlist() {
+    writeWatchlistIds([]);
+    _watchManageMode = false;
+    _watchClearConfirmVisible = false;
+  }
+
+  // ============ TIA WATCH SAVED PLANS (PR 5) ============
+  const TIA_WATCH_ITEMS_STORAGE_KEY = 'gotango_tia_watch_items';
+  const TIA_WATCH_ITEMS_MAX = 20;
+
+  function _validateTiaWatchItemClient(item) {
+    if (!item || typeof item !== 'object') return false;
+    if (item.type !== 'itinerary' && item.type !== 'trip') return false;
+    const id = String(item.id || '').trim();
+    const destinationId = String(item.destinationId || '').trim();
+    const title = String(item.title || '').trim();
+    if (!id || !destinationId || !title) return false;
+    if (item.type === 'itinerary') return !!String(item.summary || '').trim();
+    return !!String(item.overview || '').trim();
+  }
+
+  function _normalizeTiaWatchItems(raw) {
+    if (!Array.isArray(raw)) return [];
+    const seen = new Set();
+    const items = [];
+    for (const entry of raw) {
+      if (!_validateTiaWatchItemClient(entry)) continue;
+      const id = String(entry.id).trim();
+      if (seen.has(id)) continue;
+      seen.add(id);
+      items.push(entry);
+      if (items.length >= TIA_WATCH_ITEMS_MAX) break;
+    }
+    return items;
+  }
+
+  function getTiaWatchItems() {
+    if (!_watchCanUseStorage()) return [];
+    try {
+      const raw = localStorage.getItem(TIA_WATCH_ITEMS_STORAGE_KEY);
+      if (!raw) return [];
+      return _normalizeTiaWatchItems(JSON.parse(raw));
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function writeTiaWatchItems(items) {
+    if (!_watchCanUseStorage()) return false;
+    try {
+      const normalized = _normalizeTiaWatchItems(items);
+      localStorage.setItem(TIA_WATCH_ITEMS_STORAGE_KEY, JSON.stringify(normalized));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function _findTiaWatchDuplicate(items, candidate) {
+    if (!candidate || !Array.isArray(items)) return null;
+    const type = candidate.type;
+    const destinationId = String(candidate.destinationId || '').trim();
+    const title = String(candidate.title || '').trim().toLowerCase();
+    if (!type || !destinationId || !title) return null;
+    return items.find((item) => (
+      item.type === type
+      && String(item.destinationId || '').trim() === destinationId
+      && String(item.title || '').trim().toLowerCase() === title
+    )) || null;
+  }
+
+  function _sanitizeTiaWatchDays(days) {
+    if (!Array.isArray(days)) return [];
+    return days.slice(0, 14).map((day, index) => {
+      const dayNum = Number.isFinite(Number(day?.day)) ? Number(day.day) : index + 1;
+      const title = String(day?.title || '').trim().slice(0, 120);
+      const summary = String(day?.summary || '').trim().slice(0, 500);
+      if (!title || !summary) return null;
+      const items = Array.isArray(day?.items)
+        ? day.items.slice(0, 4).map((item) => ({
+          time: String(item?.time || '').trim().slice(0, 40),
+          title: String(item?.title || '').trim().slice(0, 120),
+          note: String(item?.note || '').trim().slice(0, 220),
+        })).filter((item) => item.title || item.note)
+        : [];
+      return { day: dayNum, title, summary, items };
+    }).filter(Boolean);
+  }
+
+  function _buildTiaWatchItineraryItem(preview, destinationId) {
+    if (!preview || preview.type !== 'itinerary') return null;
+    const destId = String(destinationId || '').trim();
+    const title = String(preview.title || '').trim().slice(0, 160);
+    const summary = String(preview.summary || '').trim().slice(0, 900);
+    if (!destId || !title || !summary) return null;
+    const nowIso = new Date().toISOString();
+    return {
+      id: `tia_itinerary_${destId}_${Date.now()}`,
+      type: 'itinerary',
+      destinationId: destId,
+      destinationName: String(preview.destinationName || '').trim().slice(0, 120),
+      airportCode: String(preview.airportCode || '').trim().slice(0, 24),
+      title,
+      summary,
+      bestFor: String(preview.bestFor || '').trim().slice(0, 160),
+      pace: String(preview.pace || '').trim().slice(0, 80),
+      days: _sanitizeTiaWatchDays(preview.days),
+      source: 'tia',
+      status: 'saved',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+  }
+
+  function _buildTiaWatchTripItem(preview, destinationId) {
+    if (!preview || preview.type !== 'trip') return null;
+    const destId = String(destinationId || '').trim();
+    const title = String(preview.title || '').trim().slice(0, 160);
+    const overview = String(preview.overview || '').trim().slice(0, 900);
+    if (!destId || !title || !overview) return null;
+    const dontMiss = Array.isArray(preview.dontMiss)
+      ? preview.dontMiss.map((item) => String(item || '').trim().slice(0, 180)).filter(Boolean).slice(0, 5)
+      : [];
+    const nowIso = new Date().toISOString();
+    return {
+      id: `tia_trip_${destId}_${Date.now()}`,
+      type: 'trip',
+      destinationId: destId,
+      destinationName: String(preview.destinationName || '').trim().slice(0, 120),
+      airportCode: String(preview.airportCode || '').trim().slice(0, 24),
+      title,
+      overview,
+      recommendedBase: String(preview.recommendedBase || '').trim().slice(0, 220),
+      vibe: String(preview.vibe || '').trim().slice(0, 220),
+      dontMiss,
+      suggestedPlan: String(preview.suggestedPlan || '').trim().slice(0, 700),
+      source: 'tia',
+      status: 'saved',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+  }
+
+  function _isTiaPreviewSavedInWatch(mode, dest, preview) {
+    if (!preview || !dest?.id) return false;
+    const type = mode === 'trip' ? 'trip' : 'itinerary';
+    return !!_findTiaWatchDuplicate(getTiaWatchItems(), {
+      type,
+      destinationId: dest.id,
+      title: preview.title,
+    });
+  }
+
+  function _getTiaWatchPreviewSaveOptions(mode, dest, preview) {
+    const proUnlocked = isTiaProUnlocked();
+    const saved = _isTiaPreviewSavedInWatch(mode, dest, preview);
+    return { proUnlocked, saved };
+  }
+
+  function addTiaWatchItem(item) {
+    const items = getTiaWatchItems();
+    if (items.length >= TIA_WATCH_ITEMS_MAX) return false;
+    if (_findTiaWatchDuplicate(items, item)) return null;
+    writeTiaWatchItems([item, ...items]);
+    return true;
+  }
+
+  function removeTiaWatchItem(itemId) {
+    if (!itemId) return;
+    const items = getTiaWatchItems().filter((item) => item.id !== itemId);
+    writeTiaWatchItems(items);
+  }
+
+  function getTiaWatchItemById(itemId) {
+    if (!itemId) return null;
+    return getTiaWatchItems().find((item) => item.id === itemId) || null;
+  }
+
+  function openTiaSavePaywall() {
+    trackTiaEvent('tia_save_blocked_paywall_opened');
+    openTiaProTeaserSheet();
+  }
+
+  function handleTiaSaveDestination(dest) {
+    if (!dest?.id) return;
+    trackTiaEvent('tia_save_destination_pro_attempted');
+    if (!isTiaProUnlocked()) {
+      openTiaSavePaywall();
+      return;
+    }
+    if (isDestinationWatched(dest.id)) {
+      trackTiaEvent('tia_save_destination_already_saved');
+      showToastMessage('Already saved to Watch.');
+      return;
+    }
+    const added = addToWatchlist(dest.id);
+    if (added) {
+      trackTiaEvent('tia_save_destination_succeeded');
+      showToastMessage('Saved to Watch. Tia will help you track this destination.');
+      refreshWatchUI();
+      return;
+    }
+    if (getWatchlistIds().length >= WATCHLIST_MAX) {
+      showToastMessage('Watch list full. Remove a destination to save.');
+    }
+  }
+
+  function handleTiaSavePreview() {
+    if (!_tiaPreviewDest || !_tiaPreviewMode || !_tiaCurrentPreview) return;
+    const dest = _tiaPreviewDest;
+    const mode = _tiaPreviewMode;
+    const preview = _tiaCurrentPreview;
+
+    if (mode === 'trip') trackTiaEvent('tia_save_trip_pro_attempted');
+    else trackTiaEvent('tia_save_itinerary_pro_attempted');
+
+    if (!isTiaProUnlocked()) {
+      openTiaSavePaywall();
+      return;
+    }
+
+    if (_isTiaPreviewSavedInWatch(mode, dest, preview)) {
+      showToastMessage('Already saved to Watch.');
+      const options = _getTiaWatchPreviewSaveOptions(mode, dest, preview);
+      _setTiaPreviewSheetContent(renderTiaPreviewResult(mode, preview, _tiaPreviewMeta, options));
+      return;
+    }
+
+    const item = mode === 'trip'
+      ? _buildTiaWatchTripItem(preview, dest.id)
+      : _buildTiaWatchItineraryItem(preview, dest.id);
+    if (!item) {
+      showToastMessage('Could not save this plan. Try generating again.');
+      return;
+    }
+
+    const added = addTiaWatchItem(item);
+    if (added === null) {
+      showToastMessage('Already saved to Watch.');
+    } else if (!added) {
+      showToastMessage('Saved plans list is full. Remove a plan to save another.');
+      return;
+    } else {
+      if (mode === 'trip') trackTiaEvent('tia_save_trip_succeeded');
+      else trackTiaEvent('tia_save_itinerary_succeeded');
+      showToastMessage('Saved to Watch. Tia kept your plan here.');
+      refreshWatchUI();
+    }
+
+    const options = _getTiaWatchPreviewSaveOptions(mode, dest, preview);
+    _setTiaPreviewSheetContent(renderTiaPreviewResult(mode, preview, _tiaPreviewMeta, options));
+  }
+
+  function renderTiaSavedDetailContent(item) {
+    if (!item) return '';
+    const typeLabel = item.type === 'trip' ? 'Trip' : 'Itinerary';
+    const destLabel = [item.destinationName, item.airportCode].filter(Boolean).join(' · ');
+    let body = '';
+
+    if (item.type === 'itinerary') {
+      body += `<p>${_escapeHtml(item.summary || '')}</p>`;
+      if (item.bestFor) body += `<p><strong>Best for:</strong> ${_escapeHtml(item.bestFor)}</p>`;
+      if (item.pace) body += `<p><strong>Pace:</strong> ${_escapeHtml(item.pace)}</p>`;
+      if (Array.isArray(item.days) && item.days.length) {
+        body += '<h4>Days</h4>';
+        item.days.forEach((day) => {
+          body += `<div class="tia-saved-detail-sheet__day">
+            <div class="tia-saved-detail-sheet__day-title">Day ${Number(day.day) || ''}: ${_escapeHtml(day.title || '')}</div>
+            <p>${_escapeHtml(day.summary || '')}</p>
+          </div>`;
+        });
+      }
+    } else {
+      body += `<p>${_escapeHtml(item.overview || '')}</p>`;
+      if (item.recommendedBase) body += `<p><strong>Base:</strong> ${_escapeHtml(item.recommendedBase)}</p>`;
+      if (item.vibe) body += `<p><strong>Vibe:</strong> ${_escapeHtml(item.vibe)}</p>`;
+      if (Array.isArray(item.dontMiss) && item.dontMiss.length) {
+        body += '<h4>Don\'t miss</h4><ul class="tia-saved-detail-sheet__list">';
+        item.dontMiss.forEach((entry) => {
+          body += `<li>${_escapeHtml(entry)}</li>`;
+        });
+        body += '</ul>';
+      }
+      if (item.suggestedPlan) body += `<p><strong>Suggested plan:</strong> ${_escapeHtml(item.suggestedPlan)}</p>`;
+    }
+
+    return `
+      <h2 id="tia-saved-detail-title" class="tia-saved-detail-sheet__title">${_escapeHtml(item.title || '')}</h2>
+      <div class="tia-saved-detail-sheet__meta">${_escapeHtml(typeLabel)}${destLabel ? ` · ${_escapeHtml(destLabel)}` : ''}</div>
+      <div class="tia-saved-detail-sheet__body">${body}</div>
+      <div class="tia-saved-detail-sheet__footer">
+        <button type="button" class="tia-preview-btn tia-preview-btn--ghost" data-tia-saved-dismiss>Close</button>
+        <button type="button" class="tia-preview-btn tia-preview-btn--ghost" data-tia-saved-remove data-tia-item-id="${_escapeHtml(item.id)}">Remove from Watch</button>
+      </div>
+    `;
+  }
+
+  function openTiaSavedDetailSheet(itemId) {
+    const item = getTiaWatchItemById(itemId);
+    if (!item) return;
+    const sheet = document.getElementById('tia-saved-detail-sheet');
+    const content = document.getElementById('tia-saved-detail-content');
+    if (!sheet || !content) return;
+
+    _tiaSavedDetailOpen = true;
+    _tiaSavedDetailItemId = itemId;
+    content.innerHTML = renderTiaSavedDetailContent(item);
+    sheet.style.display = 'flex';
+    sheet.classList.add('is-open');
+    sheet.setAttribute('aria-hidden', 'false');
+    trackTiaEvent('tia_watch_item_opened');
+  }
+
+  function closeTiaSavedDetailSheet() {
+    const sheet = document.getElementById('tia-saved-detail-sheet');
+    if (!sheet || !_tiaSavedDetailOpen) return;
+    _tiaSavedDetailOpen = false;
+    _tiaSavedDetailItemId = null;
+    sheet.style.display = 'none';
+    sheet.classList.remove('is-open');
+    sheet.setAttribute('aria-hidden', 'true');
+  }
+
+  function _renderTiaWatchSection(items) {
+    const section = document.createElement('section');
+    section.className = 'tia-watch-section';
+    section.setAttribute('aria-label', 'Tia saved plans');
+
+    const head = document.createElement('h3');
+    head.className = 'tia-watch-section__title';
+    head.textContent = 'Tia Saved Plans';
+    section.appendChild(head);
+
+    const list = document.createElement('div');
+    list.className = 'tia-watch-cards';
+    list.setAttribute('role', 'list');
+
+    items.forEach((item) => {
+      trackTiaEvent('tia_watch_item_rendered');
+      const card = document.createElement('article');
+      card.className = 'tia-watch-card';
+      card.setAttribute('role', 'listitem');
+      const typeLabel = item.type === 'trip' ? 'Trip' : 'Itinerary';
+      const summary = item.type === 'trip' ? item.overview : item.summary;
+      card.innerHTML = `
+        <div class="tia-watch-card__top">
+          <span class="tia-watch-card__badge">${_escapeHtml(typeLabel)}</span>
+          <span class="tia-watch-card__dest">${_escapeHtml(item.destinationName || item.destinationId || '')}</span>
+        </div>
+        <h4 class="tia-watch-card__title">${_escapeHtml(item.title || '')}</h4>
+        <p class="tia-watch-card__summary">${_escapeHtml(_tiaFirstSentence(summary, 120))}</p>
+        <div class="tia-watch-card__actions">
+          <button type="button" class="watch-btn watch-btn--primary" data-watch-action="tia-open" data-tia-item-id="${_escapeHtml(item.id)}">Open</button>
+          <button type="button" class="watch-btn watch-btn--ghost" data-watch-action="tia-remove" data-tia-item-id="${_escapeHtml(item.id)}">Remove</button>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+
+    section.appendChild(list);
+    return section;
+  }
+
   function _updateWatchStorageError() {
     const el = document.getElementById('watch-storage-error');
     if (!el) return;
@@ -11217,18 +11785,28 @@
     `;
   }
 
-  function renderTiaPreviewResult(mode, preview, meta = {}) {
+  function renderTiaPreviewResult(mode, preview, meta = {}, options = {}) {
     const cards = mode === 'trip'
       ? renderTiaTripPreviewCards(preview, meta)
       : renderTiaItineraryPreviewCards(preview, meta);
     const refineBtn = mode === 'itinerary'
       ? '<button type="button" class="tia-preview-btn tia-preview-btn--ghost" disabled title="Coming soon with GoTango Pro">Refine with Tia</button>'
       : '';
+    const saved = !!options.saved;
+    const proUnlocked = !!options.proUnlocked;
+    let saveBtn;
+    if (saved) {
+      saveBtn = '<button type="button" class="tia-preview-btn tia-preview-btn--gold" data-tia-preview-save-pro disabled>Saved to Watch</button>';
+    } else if (proUnlocked) {
+      saveBtn = '<button type="button" class="tia-preview-btn tia-preview-btn--gold" data-tia-preview-save-pro>Save to Watch</button>';
+    } else {
+      saveBtn = '<button type="button" class="tia-preview-btn tia-preview-btn--gold" data-tia-preview-save-pro>Save with GoTango Pro</button>';
+    }
 
     return `
       ${cards}
       <div class="tia-preview-actions">
-        <button type="button" class="tia-preview-btn tia-preview-btn--gold" data-tia-preview-save-pro>Save with GoTango Pro</button>
+        ${saveBtn}
         ${refineBtn}
         <button type="button" class="tia-preview-btn tia-preview-btn--ghost" data-tia-preview-dismiss>Keep exploring</button>
       </div>
@@ -11248,6 +11826,8 @@
     _tiaPreviewMode = mode;
     _tiaPreviewDest = dest;
     _tiaPreviewSheetOpen = true;
+    _tiaCurrentPreview = null;
+    _tiaPreviewMeta = { source: 'deterministic' };
 
     const formHtml = mode === 'trip'
       ? renderTiaTripPreviewForm(dest)
@@ -11318,7 +11898,10 @@
 
     if (requestToken !== _tiaPreviewCreateToken) return;
 
-    _setTiaPreviewSheetContent(renderTiaPreviewResult(mode, preview, meta));
+    _tiaCurrentPreview = preview;
+    _tiaPreviewMeta = meta;
+    const saveOptions = _getTiaWatchPreviewSaveOptions(mode, dest, preview);
+    _setTiaPreviewSheetContent(renderTiaPreviewResult(mode, preview, meta, saveOptions));
 
     if (mode === 'trip') trackTiaEvent('tia_trip_preview_created');
     else trackTiaEvent('tia_itinerary_preview_created');
@@ -11743,7 +12326,7 @@
         }
         if (action === 'save-destination') {
           trackTiaEvent('tia_save_destination_tapped');
-          openTiaProTeaserSheet();
+          handleTiaSaveDestination(dest);
           return;
         }
         if (action === 'open-chat') {
@@ -11776,7 +12359,7 @@
         }
         if (e.target.closest('[data-tia-chat-save-pro]')) {
           trackTiaEvent('tia_preview_save_pro_tapped');
-          openTiaProTeaserSheet();
+          openTiaSavePaywall();
         }
       });
 
@@ -11800,8 +12383,10 @@
           return;
         }
         if (e.target.closest('[data-tia-preview-save-pro]')) {
+          const btn = e.target.closest('[data-tia-preview-save-pro]');
+          if (btn && btn.disabled) return;
           trackTiaEvent('tia_preview_save_pro_tapped');
-          openTiaProTeaserSheet();
+          handleTiaSavePreview();
         }
       });
     }
@@ -11815,6 +12400,26 @@
         }
         if (e.target.closest('[data-tia-pro-start]')) {
           handleTiaProStart();
+        }
+      });
+    }
+
+    const savedDetailSheet = document.getElementById('tia-saved-detail-sheet');
+    if (savedDetailSheet) {
+      savedDetailSheet.addEventListener('click', (e) => {
+        if (e.target.closest('[data-tia-saved-dismiss]')) {
+          closeTiaSavedDetailSheet();
+          return;
+        }
+        const removeBtn = e.target.closest('[data-tia-saved-remove]');
+        if (removeBtn) {
+          const itemId = removeBtn.getAttribute('data-tia-item-id');
+          if (itemId) {
+            removeTiaWatchItem(itemId);
+            trackTiaEvent('tia_watch_item_removed');
+            closeTiaSavedDetailSheet();
+            refreshWatchUI();
+          }
         }
       });
     }
@@ -11848,9 +12453,10 @@
     _updateWatchStorageError();
     const watchEntries = _resolveWatchDestinations();
     const count = watchEntries.length;
+    const tiaItems = getTiaWatchItems();
     _updateWatchHeroCount(count);
 
-    if (count === 0) {
+    if (count === 0 && tiaItems.length === 0) {
       _watchManageMode = false;
       _watchClearConfirmVisible = false;
       root.innerHTML = `
@@ -11866,114 +12472,129 @@
     const cardsEl = document.createElement('div');
     cardsEl.className = 'watch-list-body';
 
-    const list = document.createElement('div');
-    list.className = 'watch-cards';
-    list.setAttribute('role', 'list');
-
-    watchEntries.forEach((entry, index) => {
-      const wrap = document.createElement('div');
-      wrap.className = 'watch-card-wrap';
-      wrap.setAttribute('role', 'listitem');
-
-      const slot = document.createElement('div');
-      slot.className = 'watch-card-slot';
-
-      const group = document.createElement('div');
-      group.className = 'movers-group';
-
-      const displayName = String(
-        (entry.dest && entry.dest.name) ||
-        (entry.raw && entry.raw.name) ||
-        entry.id ||
-        'Destination',
-      );
-
-      if (entry.usable && entry.dest) {
-        const dest = entry.dest;
-        const section = _inferWatchSection(dest);
-        const row = renderMoverRow(dest, index + 1, section);
-        const badgeMeta = getPublicSignalBadge(dest, { section });
-        const todayScore = Number(dest.latest_signal_score ?? dest.signal_score ?? 0);
-        const todayDisplay = Number.isFinite(todayScore) && todayScore > 0
-          ? String(Math.round(todayScore))
-          : '—';
-        const icao = _destIcao(dest);
-        row.setAttribute(
-          'aria-label',
-          `${dest.name || 'Destination'}${icao ? `, ${icao}` : ''}, ${badgeMeta.label}, score ${todayDisplay}`,
-        );
-        group.appendChild(row);
-      } else {
-        group.appendChild(_renderWatchFallbackRow(entry, index + 1));
-      }
-
-      slot.appendChild(group);
-      wrap.appendChild(slot);
-
-      if (_watchManageMode) {
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'watch-remove-btn';
-        removeBtn.setAttribute('data-watch-action', 'remove');
-        removeBtn.setAttribute('data-destination-id', String(entry.id || ''));
-        removeBtn.setAttribute('aria-label', `Remove ${displayName} from Watch`);
-        removeBtn.textContent = 'Remove';
-        wrap.appendChild(removeBtn);
-      }
-
-      list.appendChild(wrap);
-    });
-
-    cardsEl.appendChild(list);
-
-    const footer = document.createElement('div');
-    footer.className = 'watch-footer';
-
-    const primaryLabel = count >= WATCHLIST_MAX ? 'Replace a destination' : 'Browse destinations';
-    const primaryBtn = document.createElement('button');
-    primaryBtn.type = 'button';
-    primaryBtn.className = 'watch-btn watch-btn--primary';
-    primaryBtn.setAttribute('data-watch-action', 'browse');
-    primaryBtn.textContent = primaryLabel;
-
-    const secondaryBtn = document.createElement('button');
-    secondaryBtn.type = 'button';
-    secondaryBtn.className = 'watch-btn watch-btn--ghost';
-    if (_watchManageMode) {
-      secondaryBtn.setAttribute('data-watch-action', 'done');
-      secondaryBtn.textContent = 'Done';
-    } else {
-      secondaryBtn.setAttribute('data-watch-action', 'manage');
-      secondaryBtn.textContent = 'Manage list';
-    }
-
-    const row = document.createElement('div');
-    row.className = 'watch-footer-row';
-    row.appendChild(primaryBtn);
-    row.appendChild(secondaryBtn);
-    footer.appendChild(row);
-
-    if (_watchClearConfirmVisible) {
-      const confirm = document.createElement('div');
-      confirm.className = 'watch-clear-confirm';
-      confirm.innerHTML = `
-        <p>Remove all destinations from your Watch list?</p>
-        <div class="watch-clear-confirm-actions">
-          <button type="button" class="watch-btn watch-btn--ghost" data-watch-action="clear-cancel">Cancel</button>
-          <button type="button" class="watch-btn watch-btn--primary" data-watch-action="clear-confirm">Remove all</button>
-        </div>
+    if (count === 0) {
+      const note = document.createElement('div');
+      note.className = 'watch-empty watch-empty--compact';
+      note.innerHTML = `
+        <div class="watch-empty-title">No destinations watched yet.</div>
+        <div class="watch-empty-desc">Save a destination from Tia or any destination modal to track it here.</div>
       `;
-      footer.appendChild(confirm);
+      cardsEl.appendChild(note);
     } else {
-      const clearBtn = document.createElement('button');
-      clearBtn.type = 'button';
-      clearBtn.className = 'watch-btn watch-btn--danger';
-      clearBtn.setAttribute('data-watch-action', 'clear');
-      clearBtn.textContent = 'Clear all';
-      footer.appendChild(clearBtn);
+      const list = document.createElement('div');
+      list.className = 'watch-cards';
+      list.setAttribute('role', 'list');
+
+      watchEntries.forEach((entry, index) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'watch-card-wrap';
+        wrap.setAttribute('role', 'listitem');
+
+        const slot = document.createElement('div');
+        slot.className = 'watch-card-slot';
+
+        const group = document.createElement('div');
+        group.className = 'movers-group';
+
+        const displayName = String(
+          (entry.dest && entry.dest.name) ||
+          (entry.raw && entry.raw.name) ||
+          entry.id ||
+          'Destination',
+        );
+
+        if (entry.usable && entry.dest) {
+          const dest = entry.dest;
+          const section = _inferWatchSection(dest);
+          const row = renderMoverRow(dest, index + 1, section);
+          const badgeMeta = getPublicSignalBadge(dest, { section });
+          const todayScore = Number(dest.latest_signal_score ?? dest.signal_score ?? 0);
+          const todayDisplay = Number.isFinite(todayScore) && todayScore > 0
+            ? String(Math.round(todayScore))
+            : '—';
+          const icao = _destIcao(dest);
+          row.setAttribute(
+            'aria-label',
+            `${dest.name || 'Destination'}${icao ? `, ${icao}` : ''}, ${badgeMeta.label}, score ${todayDisplay}`,
+          );
+          group.appendChild(row);
+        } else {
+          group.appendChild(_renderWatchFallbackRow(entry, index + 1));
+        }
+
+        slot.appendChild(group);
+        wrap.appendChild(slot);
+
+        if (_watchManageMode) {
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'watch-remove-btn';
+          removeBtn.setAttribute('data-watch-action', 'remove');
+          removeBtn.setAttribute('data-destination-id', String(entry.id || ''));
+          removeBtn.setAttribute('aria-label', `Remove ${displayName} from Watch`);
+          removeBtn.textContent = 'Remove';
+          wrap.appendChild(removeBtn);
+        }
+
+        list.appendChild(wrap);
+      });
+
+      cardsEl.appendChild(list);
+
+      const footer = document.createElement('div');
+      footer.className = 'watch-footer';
+
+      const primaryLabel = count >= WATCHLIST_MAX ? 'Replace a destination' : 'Browse destinations';
+      const primaryBtn = document.createElement('button');
+      primaryBtn.type = 'button';
+      primaryBtn.className = 'watch-btn watch-btn--primary';
+      primaryBtn.setAttribute('data-watch-action', 'browse');
+      primaryBtn.textContent = primaryLabel;
+
+      const secondaryBtn = document.createElement('button');
+      secondaryBtn.type = 'button';
+      secondaryBtn.className = 'watch-btn watch-btn--ghost';
+      if (_watchManageMode) {
+        secondaryBtn.setAttribute('data-watch-action', 'done');
+        secondaryBtn.textContent = 'Done';
+      } else {
+        secondaryBtn.setAttribute('data-watch-action', 'manage');
+        secondaryBtn.textContent = 'Manage list';
+      }
+
+      const row = document.createElement('div');
+      row.className = 'watch-footer-row';
+      row.appendChild(primaryBtn);
+      row.appendChild(secondaryBtn);
+      footer.appendChild(row);
+
+      if (_watchClearConfirmVisible) {
+        const confirm = document.createElement('div');
+        confirm.className = 'watch-clear-confirm';
+        confirm.innerHTML = `
+          <p>Remove all destinations from your Watch list?</p>
+          <div class="watch-clear-confirm-actions">
+            <button type="button" class="watch-btn watch-btn--ghost" data-watch-action="clear-cancel">Cancel</button>
+            <button type="button" class="watch-btn watch-btn--primary" data-watch-action="clear-confirm">Remove all</button>
+          </div>
+        `;
+        footer.appendChild(confirm);
+      } else {
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'watch-btn watch-btn--danger';
+        clearBtn.setAttribute('data-watch-action', 'clear');
+        clearBtn.textContent = 'Clear all';
+        footer.appendChild(clearBtn);
+      }
+
+      cardsEl.appendChild(footer);
     }
 
-    cardsEl.appendChild(footer);
+    if (tiaItems.length > 0) {
+      cardsEl.appendChild(_renderTiaWatchSection(tiaItems));
+    }
+
     root.innerHTML = '';
     root.appendChild(cardsEl);
   }
@@ -12067,11 +12688,29 @@
         clearWatchlist();
         return;
       }
+
+      if (action === 'tia-open') {
+        e.preventDefault();
+        const itemId = target.getAttribute('data-tia-item-id');
+        if (itemId) openTiaSavedDetailSheet(itemId);
+        return;
+      }
+
+      if (action === 'tia-remove') {
+        e.preventDefault();
+        const itemId = target.getAttribute('data-tia-item-id');
+        if (itemId) {
+          removeTiaWatchItem(itemId);
+          trackTiaEvent('tia_watch_item_removed');
+          refreshWatchUI();
+        }
+        return;
+      }
     });
   }
 
   window.addEventListener('storage', (e) => {
-    if (e.key === WATCHLIST_STORAGE_KEY) {
+    if (e.key === WATCHLIST_STORAGE_KEY || e.key === TIA_WATCH_ITEMS_STORAGE_KEY) {
       refreshWatchUI();
     }
   });
@@ -15649,6 +16288,10 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && _tiaProSheetOpen) {
         closeTiaProTeaserSheet();
+        return;
+      }
+      if (e.key === 'Escape' && _tiaSavedDetailOpen) {
+        closeTiaSavedDetailSheet();
         return;
       }
       if (e.key === 'Escape' && _tiaPreviewSheetOpen) {
