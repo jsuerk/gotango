@@ -582,61 +582,123 @@
     text-size-adjust: 100%;
   }
 
+  /* Live Map header: scoped polish only (does not affect other sections) */
+  .section-head:has(#map-dest-count) {
+    align-items: baseline;
+    padding-bottom: 14px;
+  }
+  .section-head:has(#map-dest-count) .section-meta {
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+  }
+
   /* ===== WORLD STRIP ===== */
   .world-strip {
     margin: 0 20px 4px;
-    height: 150px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    height: 156px;
+    background: #0B161E;
+    border: 1px solid rgba(150, 180, 190, 0.14);
+    border-radius: 16px;
     position: relative;
     overflow: hidden;
+    box-shadow:
+      0 28px 56px -20px rgba(0, 0, 0, 0.94),
+      0 8px 20px -8px rgba(0, 0, 0, 0.6),
+      0 0 0 1px rgba(0, 0, 0, 0.42);
   }
-  .world-strip svg {
+  /* Layer 1: premium raster map plate (compact map only). */
+  .world-strip__plate {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+      url('/images/gotango-premium-map-plate-clean.png') center center / cover no-repeat;
+    pointer-events: none;
+  }
+  /* Layer 2: vignette + glass rim above the plate, below live markers. */
+  .world-strip__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      linear-gradient(180deg, rgba(200, 226, 230, 0.10) 0%, rgba(200, 226, 230, 0) 5%),
+      radial-gradient(118% 128% at 50% 26%, rgba(0, 0, 0, 0) 42%, rgba(4, 8, 12, 0.58) 100%),
+      linear-gradient(0deg, rgba(3, 7, 11, 0.50) 0%, rgba(3, 7, 11, 0) 22%);
+  }
+  /* Layer 3: live marker SVG (geography subdued; dots only). */
+  #world-map {
     width: 100%; height: 100%;
     display: block;
+    position: relative;
+    z-index: 2;
+    background: transparent;
   }
+  #world-map .compact-land {
+    display: none;
+  }
+  /* Hidden in the compact view to match the reference's clean framing.
+     Elements remain in the DOM so their data bindings stay intact. */
+  .world-expand-hint,
   .world-overlay {
-    position: absolute;
-    bottom: 10px; left: 12px;
-    font-family: 'Geist Mono', monospace;
-    font-size: 9px;
-    color: var(--text-faint);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    display: none;
   }
   .world-key {
     position: absolute;
-    top: 10px; right: 12px;
-    display: flex; gap: 10px;
+    bottom: 12px; right: 14px;
+    z-index: 3;
+    display: flex; gap: 14px; align-items: center;
     font-family: 'Geist Mono', monospace;
     font-size: 9px;
-    color: var(--text-faint);
-    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
     text-transform: uppercase;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
   }
-  .world-key span { display: flex; align-items: center; gap: 4px; }
+  .world-key span { display: flex; align-items: center; gap: 5px; }
   .world-key .dot {
-    width: 6px; height: 6px; border-radius: 50%;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--key-dot, currentColor);
+    box-shadow:
+      0 0 6px 0 var(--key-dot, currentColor),
+      0 0 2px 0 var(--key-dot, currentColor);
   }
   .world-strip[role="button"] {
     cursor: pointer;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .world-strip[role="button"]:hover {
+    border-color: rgba(124, 178, 184, 0.30);
+    box-shadow:
+      0 28px 56px -20px rgba(0, 0, 0, 0.94),
+      0 6px 16px -6px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(124, 178, 184, 0.16);
   }
   .world-strip[role="button"]:focus-visible {
     outline: 2px solid var(--amber-bright);
     outline-offset: 2px;
   }
-  .world-expand-hint {
+  .world-explore-hint {
     position: absolute;
-    top: 10px;
-    left: 12px;
+    bottom: 12px;
+    left: 14px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-family: 'Geist Mono', monospace;
-    font-size: 8px;
+    font-size: 9px;
     color: var(--text-faint);
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    opacity: 0.75;
+    opacity: 0.85;
     pointer-events: none;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  }
+  .world-explore-hint__icon {
+    flex: none;
+    color: var(--text-dim);
+    opacity: 0.9;
   }
 
   /* ===== LIVE MAP EXPANDED MODAL ===== */
@@ -5942,14 +6004,17 @@
       <span class="section-meta"><span id="map-dest-count">—</span> destinations · <span id="map-meta-time">04:17z</span></span>
     </div>
     <div class="world-strip" role="button" tabindex="0" aria-label="Open expanded live map">
+      <div class="world-strip__plate" aria-hidden="true"></div>
+      <div class="world-strip__overlay" aria-hidden="true"></div>
       <span class="world-expand-hint">Expand map</span>
       <svg id="world-map" viewBox="0 0 480 150" preserveAspectRatio="xMidYMid slice"></svg>
       <div class="world-key">
-        <span><span class="dot" style="background:#E07A6A"></span>Heating</span>
-        <span><span class="dot" style="background:#6BCB8B"></span>Steady</span>
-        <span><span class="dot" style="background:#5B9EA8"></span>Cooling</span>
+        <span><span class="dot" style="background:#E07A6A;--key-dot:#E07A6A"></span>Heating</span>
+        <span><span class="dot" style="background:#6BCB8B;--key-dot:#6BCB8B"></span>Steady</span>
+        <span><span class="dot" style="background:#5B9EA8;--key-dot:#5B9EA8"></span>Cooling</span>
       </div>
       <div class="world-overlay"><span id="map-overlay-dest-count">—</span> destinations · <span id="map-overlay-time">Hourly refresh</span></div>
+      <div class="world-explore-hint" aria-hidden="true"><svg class="world-explore-hint__icon" viewBox="0 0 14 14" width="11" height="11" aria-hidden="true"><circle cx="7" cy="7" r="3.4" fill="none" stroke="currentColor" stroke-width="1"/><line x1="7" y1="0.5" x2="7" y2="3" stroke="currentColor" stroke-width="1"/><line x1="7" y1="11" x2="7" y2="13.5" stroke="currentColor" stroke-width="1"/><line x1="0.5" y1="7" x2="3" y2="7" stroke="currentColor" stroke-width="1"/><line x1="11" y1="7" x2="13.5" y2="7" stroke="currentColor" stroke-width="1"/></svg>Tap a dot to explore</div>
     </div>
 
     <!-- TODAY'S MOVEMENT -->
@@ -10840,6 +10905,17 @@
     };
   }
 
+  /* Compact-map glow radii are fixed/clamped — not derived from traffic `d.size`. */
+  function _getCompactMarkerGlowPresentation(type) {
+    const coreR = type === 'surge' ? 3 : 2;
+    return {
+      coreR,
+      innerGlowR: 4,
+      outerGlowR: 6,
+      litCoreR: type === 'surge' ? 1.0 : 0.7
+    };
+  }
+
   function _getExpandedMapSelectionRadius(isMobile) {
     return isMobile ? 20 : 14;
   }
@@ -11422,17 +11498,16 @@
             .style('pointer-events', 'all');
         }
         renderExpandedMapBaseLayers(mapRoot, world, projection, pathGen, width, height, isMobileExpandedMap);
-      } else {
-        const land = topojson.feature(world, world.objects.land);
-        mapRoot.append('g')
-          .selectAll('path')
-          .data([land])
-          .join('path')
-          .attr('d', pathGen)
-          .attr('fill', '#1E242E')
-          .attr('stroke', '#313945')
-          .attr('stroke-width', 0.4)
-          .attr('opacity', 0.85);
+      }
+      /* Compact map: premium raster plate provides geography; SVG carries
+         live markers only (see .world-strip__plate + #world-map .compact-land). */
+      if (!isExpanded) {
+        const compactMarkerDefs = mapRoot.append('defs');
+        const markerBloom = compactMarkerDefs.append('filter')
+          .attr('id', 'gt-compact-marker-bloom')
+          .attr('x', '-70%').attr('y', '-70%')
+          .attr('width', '240%').attr('height', '240%');
+        markerBloom.append('feGaussianBlur').attr('stdDeviation', '0.85');
       }
 
       const dotGroup = mapRoot.append('g').attr('class', 'map-dots');
@@ -11489,24 +11564,40 @@
             }
           });
         } else {
+          const glow = _getCompactMarkerGlowPresentation(d.type);
+          // Presentational glow layers: fixed radii, pointer-events none.
           dotGroup.append('circle')
-            .attr('cx', baseX).attr('cy', y).attr('r', d.size)
-            .attr('class', 'map-dot')
+            .attr('cx', baseX).attr('cy', y)
+            .attr('r', glow.outerGlowR)
+            .attr('class', 'map-dot map-dot-halo')
             .attr('fill', color).attr('opacity', 0)
-            .transition().duration(600).attr('opacity', opac * 0.3);
-
-          dotGroup.append('circle')
-            .attr('cx', baseX).attr('cy', y).attr('r', d.size * 0.55)
-            .attr('class', 'map-dot')
-            .attr('fill', color).attr('opacity', 0)
-            .transition().duration(600).attr('opacity', opac * 0.6);
+            .attr('filter', 'url(#gt-compact-marker-bloom)')
+            .style('pointer-events', 'none')
+            .transition().duration(600).attr('opacity', opac * 0.09);
 
           dotGroup.append('circle')
             .attr('cx', baseX).attr('cy', y)
-            .attr('r', d.type === 'surge' ? 3 : 2)
+            .attr('r', glow.innerGlowR)
+            .attr('class', 'map-dot map-dot-glow')
+            .attr('fill', color).attr('opacity', 0)
+            .style('pointer-events', 'none')
+            .transition().duration(600).attr('opacity', opac * 0.20);
+
+          dotGroup.append('circle')
+            .attr('cx', baseX).attr('cy', y)
+            .attr('r', glow.coreR)
             .attr('class', 'map-dot')
             .attr('fill', color).attr('opacity', 0)
+            .style('pointer-events', 'none')
             .transition().duration(600).attr('opacity', 1);
+
+          dotGroup.append('circle')
+            .attr('cx', baseX).attr('cy', y)
+            .attr('r', glow.litCoreR)
+            .attr('class', 'map-dot')
+            .attr('fill', '#FBF6EC').attr('opacity', 0)
+            .style('pointer-events', 'none')
+            .transition().duration(600).attr('opacity', 0.8);
         }
 
         if (isExpanded && !isMobileExpandedMap) {
