@@ -5,6 +5,7 @@ import {
   validateItineraryPreview,
   validateTripPreview,
   validateTiaPreviewModelJson,
+  getTiaOpenAiModel,
 } from '../tia-preview.lib.js';
 
 const baseDestination = {
@@ -41,6 +42,14 @@ test('parseTiaPreviewRequest rejects unsupported destination id', () => {
   });
   assert.equal(parsed.ok, false);
   assert.match(parsed.error, /not supported/i);
+});
+
+test('getTiaOpenAiModel defaults to gpt-5.4-mini when env unset', () => {
+  const original = process.env.TIA_OPENAI_MODEL;
+  delete process.env.TIA_OPENAI_MODEL;
+  assert.equal(getTiaOpenAiModel(), 'gpt-5.4-mini');
+  if (original == null) delete process.env.TIA_OPENAI_MODEL;
+  else process.env.TIA_OPENAI_MODEL = original;
 });
 
 test('validateItineraryPreview normalizes required fields and days', () => {

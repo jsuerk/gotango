@@ -3,7 +3,7 @@ import { extractResponsesOutputText, parseBriefJsonFromModelText } from './weekl
 
 const MAX_BODY_BYTES = 24_000;
 const OPENAI_TIMEOUT_MS = 25_000;
-const DEFAULT_MODEL = 'gpt-4.1-mini';
+const DEFAULT_MODEL = 'gpt-5.4-mini';
 const MAX_STRING_LEN = 600;
 const MAX_DAY_ITEMS = 4;
 
@@ -12,6 +12,14 @@ const CORE_DESTINATION_IDS = new Set(DESTINATIONS.map((d) => d.id));
 export function getTiaOpenAiModel() {
   const configured = process.env.TIA_OPENAI_MODEL?.trim();
   return configured || DEFAULT_MODEL;
+}
+
+export function parseTiaJsonRequestBody(rawBody) {
+  return parseJsonBody(rawBody);
+}
+
+export function normalizeTiaDestinationInput(raw) {
+  return normalizeDestinationInput(raw);
 }
 
 function trimString(value, maxLen = MAX_STRING_LEN) {

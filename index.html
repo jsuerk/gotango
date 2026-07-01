@@ -23,6 +23,7 @@
 <meta name="twitter:image" content="https://gotango.co/og-gotango-v2.png">
 <meta name="next-public-tia-enabled" content="">
 <meta name="next-public-tia-ai-enabled" content="">
+<meta name="next-public-tia-voice-enabled" content="">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,300..900;9..144,1,400;9..144,1,500;9..144,1,700&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -3401,6 +3402,333 @@
     font-size: var(--fs-body);
     color: var(--text-dim);
     line-height: 1.45;
+  }
+
+  /* ===== TIA · CHAT SHEET (PR 4) ===== */
+  .tia-chat-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 10040;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+    font-family: inherit;
+  }
+  .tia-chat-sheet.is-open {
+    display: flex;
+  }
+  .tia-chat-sheet__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 8, 12, 0.66);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    cursor: pointer;
+  }
+  .tia-chat-sheet__panel {
+    position: relative;
+    width: min(560px, 100%);
+    max-height: min(92vh, 820px);
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #12151c 0%, #0c0e13 100%);
+    border: 1px solid rgba(244, 181, 42, 0.16);
+    border-bottom: none;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -10px 44px rgba(0, 0, 0, 0.58), 0 0 0 1px rgba(244, 181, 42, 0.05);
+    padding: 12px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+    animation: tia-pro-sheet-slide-up 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .tia-chat-sheet__handle {
+    width: 42px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-light);
+    margin: 4px auto 12px;
+    flex-shrink: 0;
+  }
+  .tia-chat-sheet__close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border-light);
+    background: rgba(10, 13, 17, 0.88);
+    color: var(--text);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+  .tia-chat-sheet__close:hover {
+    border-color: rgba(244, 181, 42, 0.35);
+    background: rgba(16, 20, 26, 0.95);
+  }
+  .tia-chat-sheet__close:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  .tia-chat-sheet__head {
+    flex-shrink: 0;
+    margin-bottom: 12px;
+    padding-right: 36px;
+  }
+  .tia-chat-sheet__title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(1.45rem, 1.15rem + 1.1vw, 1.8rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin: 0 0 6px;
+    line-height: 1.15;
+  }
+  .tia-chat-sheet__subtitle {
+    font-size: var(--fs-body);
+    line-height: 1.5;
+    color: var(--text-dim);
+    margin: 0;
+  }
+  .tia-chat-sheet__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-shrink: 0;
+  }
+  .tia-chat-chip {
+    border: 1px solid rgba(94, 170, 168, 0.28);
+    background: rgba(94, 170, 168, 0.06);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-family: 'Geist', sans-serif;
+    font-size: var(--fs-micro);
+    line-height: 1.3;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .tia-chat-chip:hover {
+    border-color: rgba(94, 170, 168, 0.45);
+    background: rgba(94, 170, 168, 0.1);
+  }
+  .tia-chat-chip:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  .tia-chat-sheet__messages {
+    flex: 1;
+    min-height: 120px;
+    max-height: min(42vh, 360px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-right: 2px;
+  }
+  .tia-chat-user-bubble {
+    align-self: flex-end;
+    max-width: 92%;
+    padding: 10px 14px;
+    border-radius: 12px 12px 4px 12px;
+    background: rgba(232, 163, 23, 0.12);
+    border: 1px solid rgba(244, 181, 42, 0.22);
+    color: var(--text);
+    font-size: var(--fs-body);
+    line-height: 1.45;
+  }
+  .tia-chat-answer-card {
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-light);
+    background: linear-gradient(160deg, rgba(244, 181, 42, 0.06), rgba(94, 170, 168, 0.04));
+  }
+  .tia-chat-answer-card__title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(1.1rem, 1rem + 0.5vw, 1.25rem);
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1.25;
+  }
+  .tia-chat-answer-card__summary {
+    font-size: var(--fs-body);
+    line-height: 1.55;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+  .tia-chat-answer-card__list {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--text);
+    font-size: var(--fs-body);
+    line-height: 1.5;
+  }
+  .tia-chat-answer-card__list li + li {
+    margin-top: 6px;
+  }
+  .tia-chat-answer-card__followups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .tia-chat-loading {
+    font-family: 'Geist Mono', monospace;
+    font-size: var(--fs-micro);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 8px 2px;
+  }
+  .tia-chat-pro-gate {
+    margin: 4px 0 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px dashed rgba(244, 181, 42, 0.35);
+    background: rgba(232, 163, 23, 0.06);
+    font-size: var(--fs-body);
+    line-height: 1.5;
+    color: var(--text-dim);
+  }
+  .tia-chat-compose {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .tia-chat-compose__row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .tia-chat-compose__input-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+  .tia-chat-compose__input-wrap label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+  .tia-chat-compose__input {
+    width: 100%;
+    min-height: 48px;
+    max-height: 120px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border-light);
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'Geist', sans-serif;
+    font-size: var(--fs-body);
+    line-height: 1.45;
+    resize: vertical;
+    outline: none;
+  }
+  .tia-chat-compose__input:focus {
+    border-color: rgba(244, 181, 42, 0.45);
+    box-shadow: 0 0 0 1px rgba(244, 181, 42, 0.12);
+  }
+  .tia-chat-compose__mic,
+  .tia-chat-compose__send {
+    flex-shrink: 0;
+    min-width: 48px;
+    min-height: 48px;
+    border-radius: 12px;
+    font-family: 'Geist', sans-serif;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .tia-chat-compose__mic {
+    border: 1px solid rgba(94, 170, 168, 0.35);
+    background: rgba(94, 170, 168, 0.08);
+    color: var(--teal);
+    font-size: 18px;
+    line-height: 1;
+  }
+  .tia-chat-compose__mic.is-listening {
+    border-color: rgba(244, 181, 42, 0.55);
+    background: rgba(232, 163, 23, 0.14);
+    color: var(--amber);
+    box-shadow: 0 0 0 1px rgba(244, 181, 42, 0.2);
+  }
+  .tia-chat-compose__send {
+    border: none;
+    background: var(--amber);
+    color: var(--bg);
+    padding: 0 16px;
+  }
+  .tia-chat-compose__send:hover {
+    background: var(--amber-bright);
+  }
+  .tia-chat-compose__send:focus-visible,
+  .tia-chat-compose__mic:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  .tia-chat-voice-status {
+    min-height: 18px;
+    font-family: 'Geist Mono', monospace;
+    font-size: var(--fs-micro);
+    letter-spacing: 0.06em;
+    color: var(--teal);
+  }
+  .tia-chat-voice-status.is-error {
+    color: var(--text-dim);
+  }
+  .tia-chat-footer-cta {
+    margin-top: 4px;
+  }
+  .tia-destination-panel__ask {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(49, 57, 69, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .tia-destination-panel__ask-label {
+    font-size: var(--fs-body);
+    color: var(--text-dim);
+    line-height: 1.45;
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+  }
+  .tia-destination-panel__ask-btn {
+    flex-shrink: 0;
+    min-height: 40px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(94, 170, 168, 0.35);
+    background: rgba(94, 170, 168, 0.08);
+    color: var(--text);
+    font-family: 'Geist', sans-serif;
+    font-size: var(--fs-body);
+    font-weight: 500;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .tia-destination-panel__ask-btn:hover {
+    border-color: rgba(94, 170, 168, 0.5);
+    background: rgba(94, 170, 168, 0.12);
+  }
+  .tia-destination-panel__ask-btn:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
   }
 
   /* ===== BRIEF ARTICLE ===== */
@@ -7477,6 +7805,17 @@
   </div>
 </div>
 
+<div id="tia-chat-sheet" class="tia-chat-sheet" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="tia-chat-sheet-title" style="display: none;">
+  <div class="tia-chat-sheet__backdrop" data-tia-chat-dismiss></div>
+  <div class="tia-chat-sheet__panel" role="document">
+    <div class="tia-chat-sheet__handle" aria-hidden="true"></div>
+    <button type="button" class="tia-chat-sheet__close" data-tia-chat-dismiss aria-label="Close Tia chat">
+      <span aria-hidden="true">×</span>
+    </button>
+    <div id="tia-chat-sheet-content"></div>
+  </div>
+</div>
+
 <div id="live-map-modal" class="live-map-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="live-map-modal-title" style="display: none;">
   <div class="live-map-modal__backdrop" data-live-map-modal-close></div>
   <div class="live-map-modal__panel" role="document">
@@ -7528,12 +7867,33 @@
     return false;
   })();
 
+  // ============ TIA VOICE FEATURE SWITCH (PR 4) ============
+  const IS_TIA_VOICE_ENABLED = IS_TIA_ENABLED && (function resolveTiaVoiceEnabledFlag() {
+    if (typeof window !== 'undefined' && window.NEXT_PUBLIC_TIA_VOICE_ENABLED === 'true') return true;
+    if (typeof window !== 'undefined' && window.NEXT_PUBLIC_TIA_VOICE_ENABLED === 'false') return false;
+    try {
+      const meta = document.querySelector('meta[name="next-public-tia-voice-enabled"]');
+      if (meta && meta.getAttribute('content') === 'true') return true;
+    } catch (_) { /* noop */ }
+    return false;
+  })();
+
   const TIA_PREVIEW_API_TIMEOUT_MS = 28000;
+  const TIA_CHAT_API_TIMEOUT_MS = 28000;
   let _tiaPreviewCreateToken = 0;
+  let _tiaChatSendToken = 0;
   let _tiaProSheetOpen = false;
   let _tiaPreviewSheetOpen = false;
+  let _tiaChatSheetOpen = false;
   let _tiaPreviewMode = null;
   let _tiaPreviewDest = null;
+  let _tiaChatDest = null;
+  let _tiaChatHistory = [];
+  let _tiaChatAnswerCount = 0;
+  let _tiaSpeechRecognition = null;
+  let _tiaSpeechListening = false;
+  let _tiaVoiceStatusMessage = '';
+  let _tiaChatProGateTracked = false;
   let _goTangoScoreV2Data = null;
   let _goTangoScoreV2Active = false;
 
@@ -10230,6 +10590,10 @@
           <button type="button" class="tia-destination-panel__btn" data-tia-action="create-trip">Create a Trip</button>
           <button type="button" class="tia-destination-panel__btn" data-tia-action="save-destination">Save Destination</button>
         </div>
+        <div class="tia-destination-panel__ask">
+          <p class="tia-destination-panel__ask-label">Ask Tia about this destination…</p>
+          <button type="button" class="tia-destination-panel__ask-btn" data-tia-action="open-chat">Ask Tia</button>
+        </div>
         <p class="tia-destination-panel__footer">Free preview available. Save + daily updates require GoTango Pro.</p>
       </section>
     `;
@@ -10963,6 +11327,398 @@
     if (saveBtn) setTimeout(() => saveBtn.focus(), 50);
   }
 
+  const TIA_CHAT_SUGGESTED_CHIPS = [
+    'What should I know before going?',
+    'Build a better first day',
+    'Where should I stay?',
+    'How should I time this trip?',
+  ];
+
+  function isTiaVoiceSupported() {
+    if (!IS_TIA_VOICE_ENABLED) return false;
+    return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  }
+
+  function buildTiaChatFallbackAnswer(dest, message) {
+    const intel = _getTiaDestinationIntel(dest);
+    const msg = String(message || '').trim();
+    const scoreNote = intel.score != null
+      ? `${intel.name} currently has GoTango Score ${intel.score}`
+      : `${intel.name} has active GoTango destination intelligence`;
+    const newsNote = _tiaFirstSentence(intel.newsBlurb, 140);
+    const bullets = [
+      `${intel.name} can be tracked in Watch with GoTango Pro.`,
+      'Tia can turn the destination into a trip or itinerary.',
+      'Daily updates are available after saving with Pro.',
+    ];
+    if (newsNote) bullets.unshift(newsNote);
+    else bullets.unshift(scoreNote + '.');
+
+    return {
+      title: msg ? `About ${intel.name}` : 'Ask Tia Preview',
+      summary: 'Tia can use GoTango’s destination signal, daily news, and traveler context to help you plan smarter.',
+      bullets: bullets.slice(0, 4),
+      followUps: [
+        'Create a 3-day itinerary',
+        'What should I avoid?',
+        'Best area to stay?',
+      ],
+    };
+  }
+
+  function _validateTiaChatAnswerClient(answer) {
+    if (!answer || typeof answer !== 'object') return null;
+    const title = String(answer.title || '').trim();
+    const summary = String(answer.summary || '').trim();
+    const bullets = Array.isArray(answer.bullets)
+      ? answer.bullets.map((b) => String(b || '').trim()).filter(Boolean)
+      : [];
+    const followUps = Array.isArray(answer.followUps)
+      ? answer.followUps.map((b) => String(b || '').trim()).filter(Boolean)
+      : [];
+    if (!title || !summary || bullets.length < 2) return null;
+    return {
+      title,
+      summary,
+      bullets: bullets.slice(0, 5),
+      followUps: followUps.length ? followUps.slice(0, 4) : TIA_CHAT_SUGGESTED_CHIPS.slice(0, 3),
+    };
+  }
+
+  function validateTiaChatApiResponse(data) {
+    if (!data || data.ok !== true || !data.answer) return null;
+    return _validateTiaChatAnswerClient(data.answer);
+  }
+
+  async function fetchTiaChatAnswer(dest, message, history) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIA_CHAT_API_TIMEOUT_MS);
+    try {
+      const response = await fetch('/api/tia-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destination: buildTiaPreviewApiDestination(dest),
+          message,
+          history,
+        }),
+        signal: controller.signal,
+      });
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (_) {
+        data = null;
+      }
+      if (!response.ok) return null;
+      return validateTiaChatApiResponse(data);
+    } catch (_) {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function renderTiaChatAnswerCard(answer, meta = {}) {
+    const bullets = (answer.bullets || [])
+      .map((item) => `<li>${_escapeHtml(item)}</li>`)
+      .join('');
+    const followUps = (answer.followUps || [])
+      .map((chip) => `<button type="button" class="tia-chat-chip" data-tia-chat-chip>${_escapeHtml(chip)}</button>`)
+      .join('');
+    const generatedBy = meta.source === 'openai'
+      ? '<div class="tia-preview-generated">Generated by Tia</div>'
+      : '';
+
+    return `
+      ${generatedBy}
+      <div class="tia-chat-answer-card">
+        <div class="tia-chat-answer-card__title">${_escapeHtml(answer.title)}</div>
+        <div class="tia-chat-answer-card__summary">${_escapeHtml(answer.summary)}</div>
+        <ul class="tia-chat-answer-card__list">${bullets}</ul>
+        ${followUps ? `<div class="tia-chat-answer-card__followups">${followUps}</div>` : ''}
+      </div>
+    `;
+  }
+
+  function _appendTiaChatUserMessage(message) {
+    const root = document.getElementById('tia-chat-messages');
+    if (!root) return;
+    const el = document.createElement('div');
+    el.className = 'tia-chat-user-bubble';
+    el.setAttribute('data-tia-chat-message', 'user');
+    el.textContent = message;
+    root.appendChild(el);
+    root.scrollTop = root.scrollHeight;
+  }
+
+  function _appendTiaChatAnswer(answer, meta = {}) {
+    const root = document.getElementById('tia-chat-messages');
+    if (!root) return;
+    const wrap = document.createElement('div');
+    wrap.setAttribute('data-tia-chat-message', 'assistant');
+    wrap.innerHTML = renderTiaChatAnswerCard(answer, meta);
+    root.appendChild(wrap);
+    root.scrollTop = root.scrollHeight;
+  }
+
+  function _setTiaChatLoading(isLoading) {
+    const root = document.getElementById('tia-chat-messages');
+    if (!root) return;
+    const existing = root.querySelector('[data-tia-chat-loading]');
+    if (!isLoading) {
+      if (existing) existing.remove();
+      return;
+    }
+    if (existing) return;
+    const el = document.createElement('div');
+    el.className = 'tia-chat-loading';
+    el.setAttribute('data-tia-chat-loading', 'true');
+    el.setAttribute('role', 'status');
+    el.textContent = 'Tia is building your answer…';
+    root.appendChild(el);
+    root.scrollTop = root.scrollHeight;
+  }
+
+  function _updateTiaChatProGate() {
+    const gate = document.getElementById('tia-chat-pro-gate');
+    const saveBtn = document.getElementById('tia-chat-save-pro');
+    if (!gate) return;
+    if (_tiaChatAnswerCount >= 1) {
+      gate.hidden = false;
+      if (saveBtn) saveBtn.hidden = false;
+      if (!_tiaChatProGateTracked) {
+        _tiaChatProGateTracked = true;
+        trackTiaEvent('tia_chat_pro_gate_viewed');
+      }
+    } else {
+      gate.hidden = true;
+      if (saveBtn) saveBtn.hidden = true;
+    }
+  }
+
+  function _updateTiaVoiceStatus(message, isError) {
+    _tiaVoiceStatusMessage = message || '';
+    const el = document.getElementById('tia-chat-voice-status');
+    if (!el) return;
+    el.textContent = message || '';
+    el.classList.toggle('is-error', !!isError);
+  }
+
+  function _updateTiaMicButtonState() {
+    const micBtn = document.getElementById('tia-chat-mic');
+    if (!micBtn) return;
+    micBtn.classList.toggle('is-listening', _tiaSpeechListening);
+    micBtn.setAttribute('aria-pressed', _tiaSpeechListening ? 'true' : 'false');
+    micBtn.textContent = _tiaSpeechListening ? '■' : '🎙';
+    micBtn.setAttribute('aria-label', _tiaSpeechListening ? 'Stop dictation' : 'Dictate question to Tia');
+  }
+
+  function stopTiaSpeechRecognition() {
+    if (_tiaSpeechRecognition) {
+      try {
+        _tiaSpeechRecognition.stop();
+      } catch (_) { /* noop */ }
+      _tiaSpeechRecognition = null;
+    }
+    _tiaSpeechListening = false;
+    _updateTiaMicButtonState();
+    if (!_tiaVoiceStatusMessage) _updateTiaVoiceStatus('');
+  }
+
+  function startTiaSpeechRecognition() {
+    if (!isTiaVoiceSupported()) return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    if (_tiaSpeechListening) {
+      stopTiaSpeechRecognition();
+      return;
+    }
+
+    stopTiaSpeechRecognition();
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    _tiaSpeechRecognition = recognition;
+    _tiaSpeechListening = true;
+    _updateTiaMicButtonState();
+    _updateTiaVoiceStatus('Listening…', false);
+    trackTiaEvent('tia_voice_listening_started');
+
+    recognition.onresult = (event) => {
+      const transcript = event?.results?.[0]?.[0]?.transcript;
+      const input = document.getElementById('tia-chat-input');
+      if (input && transcript) {
+        input.value = String(transcript).trim();
+      }
+      trackTiaEvent('tia_voice_transcript_ready');
+      _updateTiaVoiceStatus('Transcript ready. Tap Send when you are ready.', false);
+      stopTiaSpeechRecognition();
+    };
+
+    recognition.onerror = () => {
+      trackTiaEvent('tia_voice_error');
+      _updateTiaVoiceStatus('Voice input unavailable. You can still type your question.', true);
+      stopTiaSpeechRecognition();
+    };
+
+    recognition.onend = () => {
+      _tiaSpeechListening = false;
+      _updateTiaMicButtonState();
+    };
+
+    try {
+      recognition.start();
+    } catch (_) {
+      trackTiaEvent('tia_voice_error');
+      _updateTiaVoiceStatus('Voice input unavailable. You can still type your question.', true);
+      stopTiaSpeechRecognition();
+    }
+  }
+
+  function renderTiaChatSheetShell(dest) {
+    const intel = _getTiaDestinationIntel(dest);
+    const destName = _escapeHtml(intel.name);
+    const chips = TIA_CHAT_SUGGESTED_CHIPS
+      .map((chip) => `<button type="button" class="tia-chat-chip" data-tia-chat-chip>${_escapeHtml(chip)}</button>`)
+      .join('');
+    const micBtn = isTiaVoiceSupported()
+      ? '<button type="button" class="tia-chat-compose__mic" id="tia-chat-mic" aria-label="Dictate question to Tia" aria-pressed="false">🎙</button>'
+      : '';
+
+    return `
+      <div class="tia-chat-sheet__head">
+        <h2 id="tia-chat-sheet-title" class="tia-chat-sheet__title">Tia</h2>
+        <p class="tia-chat-sheet__subtitle">Ask about ${destName} or use the mic to dictate your question.</p>
+      </div>
+      <div class="tia-chat-sheet__chips" aria-label="Suggested questions">${chips}</div>
+      <div class="tia-chat-sheet__messages" id="tia-chat-messages" aria-live="polite" aria-relevant="additions"></div>
+      <div class="tia-chat-pro-gate" id="tia-chat-pro-gate" hidden>
+        Continue the conversation, save this plan, and get daily updates with GoTango Pro.
+      </div>
+      <div class="tia-chat-compose">
+        <div class="tia-chat-voice-status" id="tia-chat-voice-status" aria-live="polite"></div>
+        <div class="tia-chat-compose__row">
+          ${micBtn}
+          <div class="tia-chat-compose__input-wrap">
+            <label for="tia-chat-input">Ask Tia about ${destName}</label>
+            <textarea id="tia-chat-input" class="tia-chat-compose__input" rows="2" placeholder="Ask Tia about ${destName}…"></textarea>
+          </div>
+          <button type="button" class="tia-chat-compose__send" id="tia-chat-send">Send</button>
+        </div>
+        <button type="button" class="tia-preview-btn tia-preview-btn--gold tia-chat-footer-cta" id="tia-chat-save-pro" data-tia-chat-save-pro hidden>Save with GoTango Pro</button>
+      </div>
+    `;
+  }
+
+  function openTiaChatSheet(dest) {
+    if (!IS_TIA_ENABLED || !dest) return;
+    const sheet = document.getElementById('tia-chat-sheet');
+    if (!sheet) return;
+
+    stopTiaSpeechRecognition();
+    _tiaChatDest = dest;
+    _tiaChatHistory = [];
+    _tiaChatAnswerCount = 0;
+    _tiaChatProGateTracked = false;
+    _tiaChatSheetOpen = true;
+
+    const content = document.getElementById('tia-chat-sheet-content');
+    if (content) content.innerHTML = renderTiaChatSheetShell(dest);
+
+    sheet.style.display = 'flex';
+    sheet.classList.add('is-open');
+    sheet.setAttribute('aria-hidden', 'false');
+    trackTiaEvent('tia_chat_opened');
+
+    const input = document.getElementById('tia-chat-input');
+    if (input) setTimeout(() => input.focus(), 50);
+  }
+
+  function closeTiaChatSheet(options = {}) {
+    const sheet = document.getElementById('tia-chat-sheet');
+    if (!sheet || !_tiaChatSheetOpen) return;
+    stopTiaSpeechRecognition();
+    _tiaChatSheetOpen = false;
+    _tiaChatDest = null;
+    _tiaChatHistory = [];
+    _tiaChatAnswerCount = 0;
+    _tiaChatProGateTracked = false;
+    sheet.style.display = 'none';
+    sheet.classList.remove('is-open');
+    sheet.setAttribute('aria-hidden', 'true');
+    const content = document.getElementById('tia-chat-sheet-content');
+    if (content) content.innerHTML = '';
+    if (!options.skipTrack) {
+      trackTiaEvent('tia_chat_dismissed');
+    }
+  }
+
+  function _setTiaChatInputValue(value) {
+    const input = document.getElementById('tia-chat-input');
+    if (input) {
+      input.value = value;
+      input.focus();
+    }
+  }
+
+  async function handleTiaChatSend(messageOverride) {
+    if (!_tiaChatDest || !_tiaChatSheetOpen) return;
+
+    if (_tiaChatAnswerCount >= 1) {
+      trackTiaEvent('tia_chat_pro_gate_viewed');
+      openTiaProTeaserSheet();
+      return;
+    }
+
+    const input = document.getElementById('tia-chat-input');
+    const message = String(messageOverride != null ? messageOverride : (input?.value || '')).trim();
+    if (!message) return;
+
+    if (input && messageOverride == null) input.value = '';
+    const requestToken = ++_tiaChatSendToken;
+    trackTiaEvent('tia_chat_message_sent');
+    _appendTiaChatUserMessage(message);
+    _setTiaChatLoading(true);
+
+    let answer = null;
+    let meta = { source: 'deterministic' };
+
+    if (IS_TIA_AI_ENABLED) {
+      const aiAnswer = await fetchTiaChatAnswer(_tiaChatDest, message, _tiaChatHistory);
+      if (requestToken !== _tiaChatSendToken) return;
+      if (aiAnswer) {
+        answer = aiAnswer;
+        meta = { source: 'openai' };
+        trackTiaEvent('tia_chat_answer_succeeded');
+      } else {
+        trackTiaEvent('tia_chat_answer_failed');
+        trackTiaEvent('tia_chat_fallback_used');
+      }
+    }
+
+    if (!answer) {
+      answer = buildTiaChatFallbackAnswer(_tiaChatDest, message);
+      if (IS_TIA_AI_ENABLED) {
+        meta = { source: 'deterministic' };
+      }
+    }
+
+    _setTiaChatLoading(false);
+    if (requestToken !== _tiaChatSendToken) return;
+
+    _appendTiaChatAnswer(answer, meta);
+    _tiaChatHistory.push({ role: 'user', content: message });
+    _tiaChatHistory.push({
+      role: 'assistant',
+      content: [answer.title, answer.summary, ...(answer.bullets || [])].join(' '),
+    });
+    _tiaChatAnswerCount += 1;
+    _updateTiaChatProGate();
+  }
+
   function attachTiaHandlers() {
     if (!IS_TIA_ENABLED) return;
 
@@ -10988,6 +11744,46 @@
         if (action === 'save-destination') {
           trackTiaEvent('tia_save_destination_tapped');
           openTiaProTeaserSheet();
+          return;
+        }
+        if (action === 'open-chat') {
+          openTiaChatSheet(dest);
+        }
+      });
+    }
+
+    const chatSheet = document.getElementById('tia-chat-sheet');
+    if (chatSheet) {
+      chatSheet.addEventListener('click', (e) => {
+        if (e.target.closest('[data-tia-chat-dismiss]')) {
+          closeTiaChatSheet();
+          return;
+        }
+        const chip = e.target.closest('[data-tia-chat-chip]');
+        if (chip) {
+          const text = chip.textContent?.trim();
+          if (text) handleTiaChatSend(text);
+          return;
+        }
+        if (e.target.closest('#tia-chat-send')) {
+          handleTiaChatSend();
+          return;
+        }
+        if (e.target.closest('#tia-chat-mic')) {
+          trackTiaEvent('tia_voice_mic_tapped');
+          startTiaSpeechRecognition();
+          return;
+        }
+        if (e.target.closest('[data-tia-chat-save-pro]')) {
+          trackTiaEvent('tia_preview_save_pro_tapped');
+          openTiaProTeaserSheet();
+        }
+      });
+
+      chatSheet.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey && e.target && e.target.id === 'tia-chat-input') {
+          e.preventDefault();
+          handleTiaChatSend();
         }
       });
     }
@@ -14814,6 +15610,7 @@
   function closeDestinationModal() {
     closeTiaProTeaserSheet({ skipTrack: true });
     closeTiaPreviewSheet({ skipTrack: true });
+    closeTiaChatSheet({ skipTrack: true });
 
     const modal = document.getElementById('destination-modal');
     if (modal) {
@@ -14856,6 +15653,10 @@
       }
       if (e.key === 'Escape' && _tiaPreviewSheetOpen) {
         closeTiaPreviewSheet();
+        return;
+      }
+      if (e.key === 'Escape' && _tiaChatSheetOpen) {
+        closeTiaChatSheet();
         return;
       }
       if (e.key === 'Escape' && _modalCurrentDestId) {
