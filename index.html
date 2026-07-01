@@ -14969,6 +14969,10 @@ Return strict JSON:
       if (!data || data.ok !== true || !data.brief) {
         return { ok: false, error: (data && data.error) || 'no_brief' };
       }
+      if (input?.sourceSavedAt && data.source_saved_at
+        && String(data.source_saved_at) !== String(input.sourceSavedAt)) {
+        return { ok: false, error: 'stale_snapshot' };
+      }
       return { ok: true, brief: normalizeBriefFromAi(data.brief, input) };
     } catch (error) {
       if (error && error.name === 'AbortError') {
@@ -15021,6 +15025,7 @@ Return strict JSON:
       paragraphs: paragraphs.length ? paragraphs : [collapsedText],
       signalChips,
       drivers: Array.isArray(aiBrief.drivers) ? aiBrief.drivers : [],
+      primaryDestinationId: aiBrief.primaryDestinationId || input?.primaryDestinationId || undefined,
     };
   }
 
@@ -15351,9 +15356,12 @@ Return strict JSON:
       privateArrivals24h = Number(payload.total_arrivals_across_all);
     }
 
+    const topInSeason = _getTopInSeasonLeaderFromDestinations(enriched);
+
     return {
       todayDate: (payload.saved_at ? String(payload.saved_at) : new Date().toISOString()).slice(0, 10),
       updatedAt: _tapeUpdatedLabelFromPayload(payload),
+      sourceSavedAt: payload.saved_at ? String(payload.saved_at) : undefined,
       destinationCount,
       heatingCount: heatingList.length,
       coolingCount: coolingList.length,
@@ -15361,6 +15369,9 @@ Return strict JSON:
       privateArrivals24h,
       scoreLeaders,
       destinations: inputDestinations,
+      primaryDestinationId: topInSeason?.id || undefined,
+      primaryDestinationName: topInSeason?.name || undefined,
+      primaryDestinationScore: topInSeason?.goTangoScore,
     };
   }
 
@@ -15412,13 +15423,42 @@ Return strict JSON:
    * @param {TodayMovementInput|null|undefined} input
    * @returns {string[]}
    */
-  function _collectTodayMovementImageDestIds(input) {
+  const NOW_IN_SEASON_MIN_SCORE = 70;
+
+  function _getTopInSeasonLeaderFromDestinations(destinations) {
+    const list = Array.isArray(destinations) ? destinations : [];
+    const inSeason = list
+      .filter((d) => {
+        const score = _destinationGoTangoScoreForGrouping(d);
+        return score != null && score >= NOW_IN_SEASON_MIN_SCORE;
+      })
+      .sort((a, b) => {
+        const scoreA = _destinationGoTangoScoreForGrouping(a);
+        const scoreB = _destinationGoTangoScoreForGrouping(b);
+        const safeA = scoreA == null ? -Infinity : scoreA;
+        const safeB = scoreB == null ? -Infinity : scoreB;
+        if (safeB !== safeA) return safeB - safeA;
+        return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+      });
+    const top = inSeason[0];
+    if (!top) return null;
+    const score = _destinationGoTangoScoreForGrouping(top);
+    return {
+      id: String(top.id || ''),
+      name: String(top.name || top.id || ''),
+      goTangoScore: score == null ? undefined : score,
+    };
+  }
+
+  function _collectTodayMovementImageDestIds(input, brief) {
     const ids = [];
     const pushId = (id) => {
       const key = String(id || '').trim();
       if (key && !ids.includes(key)) ids.push(key);
     };
+    if (brief && brief.primaryDestinationId) pushId(brief.primaryDestinationId);
     if (!input || typeof input !== 'object') return ids;
+    if (input.primaryDestinationId) pushId(input.primaryDestinationId);
     if (Array.isArray(input.scoreLeaders)) {
       input.scoreLeaders.forEach((d) => pushId(d && d.id));
     }
@@ -15451,7 +15491,7 @@ Return strict JSON:
       if (entry) return entry;
     }
 
-    const boardLists = ['#in-season-list', '#steady-list', '#quiet-list'];
+    const boardLists = ['#in-season-list'];
     for (let li = 0; li < boardLists.length; li += 1) {
       const cards = document.querySelectorAll(`${boardLists[li]} [data-destination-id]`);
       for (let ci = 0; ci < cards.length; ci += 1) {
@@ -15594,6 +15634,7 @@ Return strict JSON:
       });
       if (token !== _dailyTapeUpgradeToken) return;
       if (aiResult.ok && aiResult.brief) {
+        _todayMovementImageDestIds = _collectTodayMovementImageDestIds(baseInput, aiResult.brief);
         renderTodayMovementDailyTape(aiResult.brief);
         return;
       }
@@ -15616,10 +15657,17 @@ Return strict JSON:
         return;
       }
 
-      // Fast path: render immediately from live page data (no network).
-      renderTodayMovementDailyTape(buildTodayMovementBrief(baseInput));
+      const deterministicBrief = buildTodayMovementBrief(baseInput);
+      if (baseInput.primaryDestinationId) {
+        deterministicBrief.primaryDestinationId = baseInput.primaryDestinationId;
+      }
+      _todayMovementImageDestIds = _collectTodayMovementImageDestIds(baseInput, deterministicBrief);
 
-      // Slow path: AI synthesis upgrades in the background without blocking init.
+      // Fast path: render immediately from live page data (no network).
+      renderTodayMovementDailyTape(deterministicBrief);
+
+      // Slow path: KV-backed brief upgrades in the background when it matches
+      // the current arrivals snapshot (stale cached reads are ignored).
       const token = ++_dailyTapeUpgradeToken;
       void upgradeTodayMovementDailyTapeBrief(baseInput, token);
     } catch (error) {
@@ -15651,8 +15699,8 @@ Return strict JSON:
     }
     updateStats(arrivalsData);
     updateTodaysPick(arrivalsData);
-    refreshTodayMovementDailyTape(arrivalsData, goTangoScoreV2Data);
     renderNowMomentumCategories(arrivalsData);
+    refreshTodayMovementDailyTape(arrivalsData, goTangoScoreV2Data);
     renderMoversIndex(arrivalsData, moversIndexData);
     renderWorldMap(arrivalsData);
     attachLiveMapModalHandlers();
