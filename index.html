@@ -596,44 +596,47 @@
   .world-strip {
     margin: 0 20px 4px;
     height: 156px;
-    /* Dimensional "ocean" plate: soft central bloom over a charcoal/teal
-       blue-black gradient with lighting falloff toward the lower edges. */
-    background:
-      radial-gradient(95% 78% at 50% 18%, rgba(126, 178, 184, 0.11) 0%, rgba(126, 178, 184, 0) 58%),
-      radial-gradient(140% 120% at 50% -12%, rgba(70, 120, 132, 0.10) 0%, rgba(70, 120, 132, 0) 55%),
-      linear-gradient(180deg, #1C2B34 0%, #132129 46%, #0B161E 100%);
-    border: 1px solid rgba(150, 180, 190, 0.12);
+    background: #0B161E;
+    border: 1px solid rgba(150, 180, 190, 0.14);
     border-radius: 16px;
     position: relative;
     overflow: hidden;
-    /* Premium elevation: deep outer drop shadow + crisp containment ring. */
     box-shadow:
-      0 26px 52px -22px rgba(0, 0, 0, 0.92),
-      0 6px 16px -6px rgba(0, 0, 0, 0.55),
-      0 0 0 1px rgba(0, 0, 0, 0.4);
+      0 28px 56px -20px rgba(0, 0, 0, 0.94),
+      0 8px 20px -8px rgba(0, 0, 0, 0.6),
+      0 0 0 1px rgba(0, 0, 0, 0.42);
   }
-  /* Inset-panel lighting: paints above the map, below the labels.
-     Top glass rim highlight + radial vignette + bottom inner shadow. */
-  .world-strip::before {
-    content: "";
+  /* Layer 1: premium raster map plate (compact map only). */
+  .world-strip__plate {
     position: absolute;
     inset: 0;
-    pointer-events: none;
-    z-index: 1;
+    z-index: 0;
     background:
-      linear-gradient(180deg, rgba(200, 226, 230, 0.12) 0%, rgba(200, 226, 230, 0) 5%),
-      radial-gradient(118% 128% at 50% 26%, rgba(0, 0, 0, 0) 44%, rgba(4, 8, 12, 0.62) 100%),
-      linear-gradient(0deg, rgba(3, 7, 11, 0.55) 0%, rgba(3, 7, 11, 0) 24%);
+      url('/images/gotango-premium-map-plate-clean.png') center center / cover no-repeat;
+    pointer-events: none;
   }
+  /* Layer 2: vignette + glass rim above the plate, below live markers. */
+  .world-strip__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      linear-gradient(180deg, rgba(200, 226, 230, 0.10) 0%, rgba(200, 226, 230, 0) 5%),
+      radial-gradient(118% 128% at 50% 26%, rgba(0, 0, 0, 0) 42%, rgba(4, 8, 12, 0.58) 100%),
+      linear-gradient(0deg, rgba(3, 7, 11, 0.50) 0%, rgba(3, 7, 11, 0) 22%);
+  }
+  /* Layer 3: live marker SVG (geography subdued; dots only). */
   #world-map {
     width: 100%; height: 100%;
     display: block;
     position: relative;
-    z-index: 0;
+    z-index: 2;
+    background: transparent;
   }
-  /* Compact-map land + marker depth is handled by scoped SVG gradients and
-     blur filters in renderWorldMap() (a CSS `filter` here would override the
-     SVG `filter` attributes those layers rely on). */
+  #world-map .compact-land {
+    display: none;
+  }
   /* Hidden in the compact view to match the reference's clean framing.
      Elements remain in the DOM so their data bindings stay intact. */
   .world-expand-hint,
@@ -643,7 +646,7 @@
   .world-key {
     position: absolute;
     bottom: 12px; right: 14px;
-    z-index: 2;
+    z-index: 3;
     display: flex; gap: 14px; align-items: center;
     font-family: 'Geist Mono', monospace;
     font-size: 9px;
@@ -679,7 +682,7 @@
     position: absolute;
     bottom: 12px;
     left: 14px;
-    z-index: 2;
+    z-index: 3;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -6001,6 +6004,8 @@
       <span class="section-meta"><span id="map-dest-count">—</span> destinations · <span id="map-meta-time">04:17z</span></span>
     </div>
     <div class="world-strip" role="button" tabindex="0" aria-label="Open expanded live map">
+      <div class="world-strip__plate" aria-hidden="true"></div>
+      <div class="world-strip__overlay" aria-hidden="true"></div>
       <span class="world-expand-hint">Expand map</span>
       <svg id="world-map" viewBox="0 0 480 150" preserveAspectRatio="xMidYMid slice"></svg>
       <div class="world-key">
@@ -11482,54 +11487,9 @@
             .style('pointer-events', 'all');
         }
         renderExpandedMapBaseLayers(mapRoot, world, projection, pathGen, width, height, isMobileExpandedMap);
-      } else {
-        const land = topojson.feature(world, world.objects.land);
-
-        // Scoped defs for the compact map: a dimensional land gradient plus
-        // soft blur filters for coastline + marker bloom. Re-added each render
-        // because svg.selectAll('*').remove() clears them above.
-        const compactDefs = mapRoot.append('defs');
-        const landGrad = compactDefs.append('linearGradient')
-          .attr('id', 'gt-compact-land')
-          .attr('x1', '0').attr('y1', '0')
-          .attr('x2', '0').attr('y2', '1');
-        landGrad.append('stop').attr('offset', '0%').attr('stop-color', '#3B4F5A');
-        landGrad.append('stop').attr('offset', '52%').attr('stop-color', '#283A44');
-        landGrad.append('stop').attr('offset', '100%').attr('stop-color', '#19272F');
-        const coastGlow = compactDefs.append('filter')
-          .attr('id', 'gt-compact-coast-glow')
-          .attr('x', '-30%').attr('y', '-30%')
-          .attr('width', '160%').attr('height', '160%');
-        coastGlow.append('feGaussianBlur').attr('stdDeviation', '1.35');
-        const markerGlow = compactDefs.append('filter')
-          .attr('id', 'gt-compact-marker-glow')
-          .attr('x', '-120%').attr('y', '-120%')
-          .attr('width', '340%').attr('height', '340%');
-        markerGlow.append('feGaussianBlur').attr('stdDeviation', '1.25');
-
-        const landGroup = mapRoot.append('g').attr('class', 'compact-land');
-        // 1) soft outer coastal glow (blurred, atmospheric)
-        landGroup.append('path').datum(land)
-          .attr('d', pathGen)
-          .attr('fill', 'none')
-          .attr('stroke', '#6FA7B0')
-          .attr('stroke-width', 2.4)
-          .attr('opacity', 0.22)
-          .attr('filter', 'url(#gt-compact-coast-glow)');
-        // 2) dimensional land body (top-lit gradient fill)
-        landGroup.append('path').datum(land)
-          .attr('d', pathGen)
-          .attr('fill', 'url(#gt-compact-land)')
-          .attr('stroke', 'none')
-          .attr('opacity', 0.97);
-        // 3) crisp illuminated coastline
-        landGroup.append('path').datum(land)
-          .attr('d', pathGen)
-          .attr('fill', 'none')
-          .attr('stroke', '#90C0C8')
-          .attr('stroke-width', 0.45)
-          .attr('opacity', 0.85);
       }
+      /* Compact map: premium raster plate provides geography; SVG carries
+         live markers only (see .world-strip__plate + #world-map .compact-land). */
 
       const dotGroup = mapRoot.append('g').attr('class', 'map-dots');
       const destinationLabelEntries = [];
@@ -11585,34 +11545,45 @@
             }
           });
         } else {
-          // soft outer halo (blurred bloom)
+          // Presentational halo layers (pointer-events: none; data unchanged).
           dotGroup.append('circle')
-            .attr('cx', baseX).attr('cy', y).attr('r', d.size)
-            .attr('class', 'map-dot')
+            .attr('cx', baseX).attr('cy', y)
+            .attr('r', d.size * 4.2)
+            .attr('class', 'map-dot map-dot-halo')
             .attr('fill', color).attr('opacity', 0)
-            .attr('filter', 'url(#gt-compact-marker-glow)')
-            .transition().duration(600).attr('opacity', opac * 0.32);
+            .style('pointer-events', 'none')
+            .transition().duration(600).attr('opacity', opac * 0.16);
+
+          dotGroup.append('circle')
+            .attr('cx', baseX).attr('cy', y)
+            .attr('r', d.size * 2.5)
+            .attr('class', 'map-dot map-dot-glow')
+            .attr('fill', color).attr('opacity', 0)
+            .style('pointer-events', 'none')
+            .transition().duration(600).attr('opacity', opac * 0.30);
 
           dotGroup.append('circle')
             .attr('cx', baseX).attr('cy', y).attr('r', d.size * 0.55)
             .attr('class', 'map-dot')
             .attr('fill', color).attr('opacity', 0)
-            .transition().duration(600).attr('opacity', opac * 0.6);
+            .style('pointer-events', 'none')
+            .transition().duration(600).attr('opacity', opac * 0.65);
 
           dotGroup.append('circle')
             .attr('cx', baseX).attr('cy', y)
             .attr('r', d.type === 'surge' ? 3 : 2)
             .attr('class', 'map-dot')
             .attr('fill', color).attr('opacity', 0)
+            .style('pointer-events', 'none')
             .transition().duration(600).attr('opacity', 1);
 
-          // bright "lit" core highlight for an elegant, polished pop
           dotGroup.append('circle')
             .attr('cx', baseX).attr('cy', y)
             .attr('r', d.type === 'surge' ? 1.1 : 0.75)
             .attr('class', 'map-dot')
             .attr('fill', '#FBF6EC').attr('opacity', 0)
-            .transition().duration(600).attr('opacity', 0.85);
+            .style('pointer-events', 'none')
+            .transition().duration(600).attr('opacity', 0.88);
         }
 
         if (isExpanded && !isMobileExpandedMap) {
