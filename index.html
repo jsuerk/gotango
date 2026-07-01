@@ -1835,6 +1835,11 @@
   .daily-tape__toggle-wrap {
     margin-top: 14px;
     padding-top: 2px;
+    display: flex;
+    justify-content: center;
+  }
+  .daily-tape[data-expanded="false"][data-expandable="true"] .daily-tape__card {
+    cursor: pointer;
   }
   .daily-tape[data-expanded="true"] .daily-tape__inner {
     padding-bottom: 18px;
@@ -15540,8 +15545,8 @@ Return strict JSON:
     // while collapsed and expands on toggle (mirrors the destination-modal
     // "What's Happening" READ MORE behavior).
     root.innerHTML = `
-      <section class="daily-tape${hasPhoto ? '' : ' daily-tape--no-photo'}" data-expanded="${startExpanded ? 'true' : 'false'}">
-        <article class="daily-tape__card">
+      <section class="daily-tape${hasPhoto ? '' : ' daily-tape--no-photo'}" data-expanded="${startExpanded ? 'true' : 'false'}" data-expandable="${startExpanded ? 'false' : 'true'}">
+        <article class="daily-tape__card" data-tape-card>
           ${mediaHtml}
           <div class="daily-tape__inner">
             <div class="daily-tape__header">
@@ -15551,9 +15556,6 @@ Return strict JSON:
                   ${brief.updatedLabel ? `<p class="daily-tape__updated">${_escapeHtml(String(brief.updatedLabel))}</p>` : ''}
                 </div>
               </div>
-              <button type="button" class="daily-tape__collapse" data-tape-collapse aria-label="Read less"${startExpanded ? '' : ' hidden'}>
-                <span class="daily-tape__collapse-icon" aria-hidden="true">&#9652;</span>
-              </button>
             </div>
             <h2 class="daily-tape__headline">${_escapeHtml(String(brief.headline || 'The Daily Take'))}</h2>
             <div class="daily-tape__content ${startExpanded ? '' : 'is-collapsed'}" id="daily-tape-content" data-tape-content>
@@ -15570,8 +15572,8 @@ Return strict JSON:
       </section>`;
 
     const section = root.querySelector('.daily-tape');
+    const card = root.querySelector('[data-tape-card]');
     const btn = root.querySelector('[data-tape-cta]');
-    const collapseBtn = root.querySelector('[data-tape-collapse]');
     const ctaLabel = root.querySelector('[data-tape-cta-label]');
     const content = root.querySelector('[data-tape-content]');
     const toggleWrap = root.querySelector('[data-tape-toggle-wrap]');
@@ -15579,20 +15581,24 @@ Return strict JSON:
 
     const setExpanded = (next) => {
       section.setAttribute('data-expanded', next ? 'true' : 'false');
+      section.setAttribute('data-expandable', next ? 'false' : 'true');
       btn.setAttribute('aria-expanded', next ? 'true' : 'false');
       if (ctaLabel) ctaLabel.textContent = next ? 'Read Less' : 'Read More';
       content.classList.toggle('is-collapsed', !next);
-      if (collapseBtn) collapseBtn.hidden = !next;
     };
 
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const next = section.getAttribute('data-expanded') !== 'true';
       setExpanded(next);
     });
 
-    if (collapseBtn) {
-      collapseBtn.addEventListener('click', () => {
-        setExpanded(false);
+    if (card) {
+      card.addEventListener('click', () => {
+        if (section.getAttribute('data-expanded') === 'true') return;
+        if (section.getAttribute('data-expandable') !== 'true') return;
+        if (toggleWrap && toggleWrap.hidden) return;
+        setExpanded(true);
       });
     }
 
@@ -15603,6 +15609,7 @@ Return strict JSON:
         if (!overflowing) {
           toggleWrap.hidden = true;
           content.classList.remove('is-collapsed');
+          section.setAttribute('data-expandable', 'false');
         }
       });
     }
