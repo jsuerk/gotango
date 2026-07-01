@@ -10905,6 +10905,17 @@
     };
   }
 
+  /* Compact-map glow radii are fixed/clamped — not derived from traffic `d.size`. */
+  function _getCompactMarkerGlowPresentation(type) {
+    const coreR = type === 'surge' ? 3 : 2;
+    return {
+      coreR,
+      innerGlowR: 4,
+      outerGlowR: 6,
+      litCoreR: type === 'surge' ? 1.0 : 0.7
+    };
+  }
+
   function _getExpandedMapSelectionRadius(isMobile) {
     return isMobile ? 20 : 14;
   }
@@ -11490,6 +11501,14 @@
       }
       /* Compact map: premium raster plate provides geography; SVG carries
          live markers only (see .world-strip__plate + #world-map .compact-land). */
+      if (!isExpanded) {
+        const compactMarkerDefs = mapRoot.append('defs');
+        const markerBloom = compactMarkerDefs.append('filter')
+          .attr('id', 'gt-compact-marker-bloom')
+          .attr('x', '-70%').attr('y', '-70%')
+          .attr('width', '240%').attr('height', '240%');
+        markerBloom.append('feGaussianBlur').attr('stdDeviation', '0.85');
+      }
 
       const dotGroup = mapRoot.append('g').attr('class', 'map-dots');
       const destinationLabelEntries = [];
@@ -11545,33 +11564,28 @@
             }
           });
         } else {
-          // Presentational halo layers (pointer-events: none; data unchanged).
+          const glow = _getCompactMarkerGlowPresentation(d.type);
+          // Presentational glow layers: fixed radii, pointer-events none.
           dotGroup.append('circle')
             .attr('cx', baseX).attr('cy', y)
-            .attr('r', d.size * 4.2)
+            .attr('r', glow.outerGlowR)
             .attr('class', 'map-dot map-dot-halo')
             .attr('fill', color).attr('opacity', 0)
+            .attr('filter', 'url(#gt-compact-marker-bloom)')
             .style('pointer-events', 'none')
-            .transition().duration(600).attr('opacity', opac * 0.16);
+            .transition().duration(600).attr('opacity', opac * 0.09);
 
           dotGroup.append('circle')
             .attr('cx', baseX).attr('cy', y)
-            .attr('r', d.size * 2.5)
+            .attr('r', glow.innerGlowR)
             .attr('class', 'map-dot map-dot-glow')
             .attr('fill', color).attr('opacity', 0)
             .style('pointer-events', 'none')
-            .transition().duration(600).attr('opacity', opac * 0.30);
-
-          dotGroup.append('circle')
-            .attr('cx', baseX).attr('cy', y).attr('r', d.size * 0.55)
-            .attr('class', 'map-dot')
-            .attr('fill', color).attr('opacity', 0)
-            .style('pointer-events', 'none')
-            .transition().duration(600).attr('opacity', opac * 0.65);
+            .transition().duration(600).attr('opacity', opac * 0.20);
 
           dotGroup.append('circle')
             .attr('cx', baseX).attr('cy', y)
-            .attr('r', d.type === 'surge' ? 3 : 2)
+            .attr('r', glow.coreR)
             .attr('class', 'map-dot')
             .attr('fill', color).attr('opacity', 0)
             .style('pointer-events', 'none')
@@ -11579,11 +11593,11 @@
 
           dotGroup.append('circle')
             .attr('cx', baseX).attr('cy', y)
-            .attr('r', d.type === 'surge' ? 1.1 : 0.75)
+            .attr('r', glow.litCoreR)
             .attr('class', 'map-dot')
             .attr('fill', '#FBF6EC').attr('opacity', 0)
             .style('pointer-events', 'none')
-            .transition().duration(600).attr('opacity', 0.88);
+            .transition().duration(600).attr('opacity', 0.8);
         }
 
         if (isExpanded && !isMobileExpandedMap) {
